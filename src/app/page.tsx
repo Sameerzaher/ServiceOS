@@ -34,8 +34,7 @@ import { AppointmentFiltersBar } from "@/features/appointments/components/Appoin
 import { AppointmentForm } from "@/features/appointments/components/AppointmentForm";
 import { AppointmentList } from "@/features/appointments/components/AppointmentList";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
-import { Dashboard } from "@/features/dashboard/components/Dashboard";
-import { RemindersPanel } from "@/features/dashboard/components/RemindersPanel";
+import { HomeQuickDashboard } from "@/features/dashboard/components/HomeQuickDashboard";
 import { ClientForm } from "@/features/clients/components/ClientForm";
 import { ClientList } from "@/features/clients/components/ClientList";
 import { useClients } from "@/features/clients/hooks/useClients";
@@ -402,27 +401,37 @@ export default function HomePage() {
           {!dataReady ? (
             <LoadingState message={heUi.loading.summary} />
           ) : (
-            <Dashboard
+            <HomeQuickDashboard
               appointments={sortedAppointments}
               clients={sortedClients}
-              preset={preset}
-              onTogglePaid={handleToggleAppointmentPaid}
-            />
-          )}
-        </section>
-
-        <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>{heUi.sections.reminders}</h2>
-          {!dataReady ? (
-            <LoadingState message={heUi.loading.default} />
-          ) : (
-            <RemindersPanel
-              appointments={sortedAppointments}
-              clients={sortedClients}
+              lessonLabelPlural={preset.labels.lessons}
               reminderTemplate={settings.reminderTemplate}
               businessName={settings.businessName}
               businessPhone={settings.businessPhone}
-              onCopied={() => toast(heUi.toast.reminderCopied)}
+              onReminderCopied={() => toast(heUi.toast.reminderCopied)}
+              onQuickAddClient={() => {
+                setEditingClientId(null);
+                window.requestAnimationFrame(() => {
+                  document
+                    .getElementById(ONBOARDING_ANCHORS.clientForm)
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                });
+              }}
+              onQuickAddAppointment={() => {
+                setEditingAppointmentId(null);
+                setAppointmentPrefillClientId(null);
+                window.requestAnimationFrame(() => {
+                  document
+                    .getElementById(ONBOARDING_ANCHORS.lessonForm)
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                });
+              }}
             />
           )}
         </section>

@@ -226,6 +226,14 @@ export const heUi = {
   },
 
   dashboard: {
+    quickActionsTitle: "פעולות מהירות",
+    quickAddClient: "הוספת תלמיד",
+    quickAddAppointment: "הוספת שיעור",
+    remindersSectionTitle: "תזכורות קרובות",
+    kpiToday: "שיעורים היום",
+    kpiTomorrow: "שיעורים מחר",
+    kpiUnpaid: "שיעורים לא משולמים",
+    kpiClients: "סה״כ תלמידים",
     statTotal: (lessonsWord: string) => `סה״כ ${lessonsWord}`,
     statToday: "היום",
     statUnpaid: "לא שולמו",
@@ -327,6 +335,7 @@ export const heUi = {
 
   nav: {
     home: "בית",
+    back: "חזרה",
     brand: "ServiceOS",
   },
 

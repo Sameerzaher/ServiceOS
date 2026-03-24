@@ -1,14 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { heUi } from "@/config";
 import { cn } from "@/lib/cn";
 
 export function AppNav() {
-  const pathname = usePathname();
-  const isHome = pathname === "/";
+  const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    setCanGoBack(window.history.length > 1);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    const onPopState = (): void => {
+      setCanGoBack(window.history.length > 1);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [isMounted]);
+
+  function handleBack(): void {
+    if (!canGoBack) return;
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/");
+  }
 
   return (
     <nav
@@ -22,17 +47,32 @@ export function AppNav() {
         >
           {heUi.nav.brand}
         </Link>
-        <Link
-          href="/"
-          className={cn(
-            "inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5",
-            isHome
-              ? "bg-neutral-900 text-white"
-              : "text-neutral-700 hover:bg-neutral-100",
-          )}
-        >
-          {heUi.nav.home}
-        </Link>
+        <div className="flex items-center rounded-xl border border-neutral-200 bg-neutral-50/80 p-1">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={!isMounted || !canGoBack}
+            className={cn(
+              "inline-flex min-h-[2.5rem] items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition sm:min-h-0 sm:px-3 sm:py-1.5",
+              "text-neutral-700 hover:bg-neutral-100",
+              !isMounted || !canGoBack
+                ? "pointer-events-none invisible"
+                : "",
+            )}
+          >
+            <span aria-hidden>←</span>
+            <span>{heUi.nav.back}</span>
+          </button>
+          <Link
+            href="/"
+            className={cn(
+              "inline-flex min-h-[2.5rem] items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition sm:min-h-0 sm:px-3 sm:py-1.5",
+              "text-neutral-700 hover:bg-neutral-100",
+            )}
+          >
+            {heUi.nav.home}
+          </Link>
+        </div>
       </div>
     </nav>
   );

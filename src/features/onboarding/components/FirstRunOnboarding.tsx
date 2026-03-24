@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { heUi } from "@/config";
 import { cn } from "@/lib/cn";
 
@@ -18,13 +20,6 @@ export interface FirstRunOnboardingProps {
   onDismiss: () => void;
 }
 
-function scrollToAnchor(id: string): void {
-  document.getElementById(id)?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
-}
-
 export function FirstRunOnboarding({
   hasClient,
   hasAppointment,
@@ -32,19 +27,21 @@ export function FirstRunOnboarding({
   onMarkRemindersReviewed,
   onDismiss,
 }: FirstRunOnboardingProps) {
+  const router = useRouter();
+
   const checklist = [
     {
       id: "client",
       title: heUi.onboarding.checklistAddClient,
       done: hasClient,
-      action: () => scrollToAnchor(ONBOARDING_ANCHORS.clientForm),
+      action: () => router.push("/clients"),
       actionLabel: heUi.onboarding.jumpToClientForm,
     },
     {
       id: "appointment",
       title: heUi.onboarding.checklistAddLesson,
       done: hasAppointment,
-      action: () => scrollToAnchor(ONBOARDING_ANCHORS.lessonForm),
+      action: () => router.push("/appointments"),
       actionLabel: heUi.onboarding.jumpToLessonForm,
     },
     {
@@ -52,7 +49,12 @@ export function FirstRunOnboarding({
       title: heUi.onboarding.checklistReviewReminders,
       done: remindersReviewed,
       action: () => {
-        scrollToAnchor(ONBOARDING_ANCHORS.summary);
+        router.push("/");
+        window.requestAnimationFrame(() => {
+          document
+            .getElementById(ONBOARDING_ANCHORS.summary)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
         onMarkRemindersReviewed();
       },
       actionLabel: heUi.onboarding.markRemindersReviewed,

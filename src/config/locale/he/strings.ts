@@ -356,6 +356,11 @@ export const heUi = {
     home: "בית",
     back: "חזרה",
     brand: "ServiceOS",
+    dashboard: "ראשי",
+    clients: "תלמידים",
+    lessons: "שיעורים",
+    booking: "הזמנות",
+    settings: "הגדרות",
   },
 
   pwa: {

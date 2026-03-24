@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 
-import { AppNav } from "@/components/AppNav";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import {
   PWA_APP_NAME,
@@ -54,7 +53,6 @@ export default function RootLayout({
     <html lang="he" dir="rtl" className={rubik.variable}>
       <body className="font-sans antialiased">
         <AppProviders>
-          <AppNav />
           {children}
           <PwaInstallBanner />
         </AppProviders>

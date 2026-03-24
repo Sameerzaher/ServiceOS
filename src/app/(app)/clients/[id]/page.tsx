@@ -6,8 +6,7 @@ import { useMemo } from "react";
 
 import { getActiveVerticalPreset, heUi, paymentStatusLabel } from "@/config";
 import { Button, EmptyState, LoadingState, ui } from "@/components/ui";
-import { useAppointments } from "@/features/appointments/hooks/useAppointments";
-import { useClients } from "@/features/clients/hooks/useClients";
+import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import { formatIls } from "@/core/utils/currency";
 import { getLastLesson } from "@/core/utils/clientSchedule";
@@ -67,8 +66,8 @@ export default function ClientProfilePage() {
         ? (segment[0] ?? "")
         : "";
   const preset = getActiveVerticalPreset();
-  const { sortedClients, isReady: clientsReady } = useClients();
-  const { sortedAppointments, isReady: appointmentsReady } = useAppointments();
+  const { sortedClients, clientsReady, sortedAppointments, appointmentsReady } =
+    useServiceApp();
 
   const client = useMemo(
     () => sortedClients.find((c) => c.id === id),
@@ -115,7 +114,7 @@ export default function ClientProfilePage() {
           className="mb-6"
         />
         <Link
-          href="/"
+          href="/clients"
           className="inline-flex font-medium text-neutral-900 underline-offset-2 hover:underline"
         >
           {heUi.clientProfile.back}
@@ -130,7 +129,7 @@ export default function ClientProfilePage() {
     <main className={ui.pageMain}>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
-          href="/"
+          href="/clients"
           className="inline-flex min-h-[2.5rem] items-center text-sm font-medium text-neutral-700 underline-offset-2 hover:underline"
         >
           ← {heUi.clientProfile.back}
@@ -247,9 +246,9 @@ export default function ClientProfilePage() {
                 description={heUi.clientProfile.appointmentsEmptyHint}
               />
               <div className="flex justify-center">
-                <Link href="/">
+                <Link href="/appointments">
                   <Button type="button" variant="secondary">
-                    {heUi.clientProfile.back}
+                    {preset.labels.addLesson}
                   </Button>
                 </Link>
               </div>

@@ -299,17 +299,31 @@ export default function HomePage() {
       <div className={ui.pageStack}>
         {demoActive ? (
           <section className="rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-3 shadow-sm">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-medium text-violet-900">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-violet-900">
                 {heUi.demo.activeBadge}
-              </p>
-              <button
-                type="button"
-                className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-sm font-medium text-violet-900 transition hover:bg-violet-100"
-                onClick={() => setDemoResetOpen(true)}
-              >
-                {heUi.demo.returnToEmpty}
-              </button>
+                </p>
+                <p className="text-sm text-violet-900/90">
+                  {heUi.demo.activeDescription}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-sm font-medium text-violet-900 transition hover:bg-violet-100"
+                  onClick={handleRequestLoadDemo}
+                >
+                  {heUi.demo.reloadDemo}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-sm font-medium text-violet-900 transition hover:bg-violet-100"
+                  onClick={() => setDemoResetOpen(true)}
+                >
+                  {heUi.demo.returnToEmpty}
+                </button>
+              </div>
             </div>
           </section>
         ) : null}

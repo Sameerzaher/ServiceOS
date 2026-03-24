@@ -9,12 +9,12 @@ import {
 /** Settings applied when loading demo data (driving school context). */
 export const DEMO_SETTINGS: AppSettings = {
   ...DEFAULT_APP_SETTINGS,
-  businessName: "DrivePro — דמו למורה נהיגה",
+  businessName: "DrivePro תל אביב — דמו למורה נהיגה",
   businessPhone: "050-7132456",
   defaultLessonPrice: 210,
   defaultLessonDurationMinutes: 45,
   reminderTemplate:
-    "היי {{name}}, כאן {{business}}. תזכורת לשיעור נהיגה מחר בשעה {{time}}. לכל שינוי אפשר לחזור אליי ב-{{businessPhone}}.",
+    "היי {{name}}, כאן {{business}}. תזכורת לשיעור נהיגה מחר ב-{{time}}. אם צריך לשנות שעה, אפשר לעדכן אותי ב-{{businessPhone}}.",
 };
 
 function id(): string {
@@ -53,6 +53,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
   const c5 = id();
   const c6 = id();
   const c7 = id();
+  const c8 = id();
 
   const clients: Client[] = [
     {
@@ -118,6 +119,15 @@ export function buildDemoDataset(reference: Date = new Date()): {
       createdAt: now,
       updatedAt: now,
     },
+    {
+      id: c8,
+      fullName: "גל פרידמן",
+      phone: "052-6644221",
+      notes: "לחץ קל לפני טסט, מעדיף שיעורי בוקר.",
+      customFields: { lessonCount: 35, transmissionType: "ידני" },
+      createdAt: now,
+      updatedAt: now,
+    },
   ];
 
   function ap(
@@ -167,7 +177,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c1,
       at(reference, 1, 8, 0),
-      AppointmentStatus.Scheduled,
+      AppointmentStatus.Confirmed,
       PaymentStatus.Pending,
       200,
       "גבעתיים — ליד הפארק",
@@ -230,7 +240,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c5,
       at(reference, 1, 9, 30),
-      AppointmentStatus.Scheduled,
+      AppointmentStatus.Confirmed,
       PaymentStatus.Unpaid,
       200,
       "ליד בית הספר",
@@ -271,6 +281,33 @@ export function buildDemoDataset(reference: Date = new Date()): {
       200,
       "כביש החוף",
       "טויוטה קורולה",
+    ),
+    ap(
+      c4,
+      at(reference, 1, 12, 30),
+      AppointmentStatus.Scheduled,
+      PaymentStatus.Pending,
+      210,
+      "ת״א — כיכר רבין",
+      "קיה ריו",
+    ),
+    ap(
+      c8,
+      at(reference, 1, 7, 30),
+      AppointmentStatus.Scheduled,
+      PaymentStatus.Unpaid,
+      240,
+      "ראשל״צ מערב",
+      "מאזדה 2",
+    ),
+    ap(
+      c8,
+      at(reference, 3, 7, 30),
+      AppointmentStatus.Confirmed,
+      PaymentStatus.Partial,
+      240,
+      "ראשל״צ — תחנה מרכזית ישנה",
+      "מאזדה 2",
     ),
     ap(
       c2,

@@ -69,7 +69,7 @@ export function HomeQuickDashboard({
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div className="rounded-xl border border-neutral-200/90 bg-white p-4 shadow-sm sm:p-5">
+      <div className={`${ui.card} ${ui.cardPadding}`}>
         <p className="text-sm font-medium text-neutral-800">
           {heUi.dashboard.quickActionsTitle}
         </p>

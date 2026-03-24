@@ -11,9 +11,11 @@ export interface EmptyStateProps {
 
 const toneClass: Record<EmptyStateTone, string> = {
   neutral:
-    "border border-dashed border-neutral-300 bg-white shadow-sm",
-  muted: "border border-neutral-200 bg-neutral-50/90",
-  warning: "border border-amber-200/90 bg-amber-50/90 shadow-sm",
+    "border border-dashed border-neutral-300/90 bg-white shadow-sm ring-1 ring-neutral-950/[0.03]",
+  muted:
+    "border border-neutral-200/80 bg-neutral-50/95 shadow-sm ring-1 ring-neutral-950/[0.04]",
+  warning:
+    "border border-amber-200/90 bg-amber-50/90 shadow-sm ring-1 ring-amber-900/10",
 };
 
 export function EmptyState({
@@ -25,7 +27,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-xl px-6 py-12 text-center",
+        "rounded-2xl px-6 py-12 text-center",
         toneClass[tone],
         className,
       )}

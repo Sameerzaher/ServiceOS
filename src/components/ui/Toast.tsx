@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -35,7 +36,13 @@ function makeId(): string {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [items, setItems] = useState<ToastItem[]>([]);
+
+  const skipMobileBottomNavOffset =
+    pathname === "/book" ||
+    pathname === "/offline" ||
+    pathname?.startsWith("/offline");
 
   const show = useCallback((message: string, variant: ToastVariant = "success") => {
     const id = makeId();
@@ -51,7 +58,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex flex-col items-center gap-2 p-4 sm:items-end sm:p-5"
+        className={cn(
+          "pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex flex-col items-center gap-2 p-4 sm:items-end sm:p-5",
+          skipMobileBottomNavOffset
+            ? "pb-4 sm:pb-5"
+            : "pb-[calc(4.5rem+env(safe-area-inset-bottom,0px)+0.5rem)] sm:pb-5",
+        )}
         aria-live="polite"
       >
         {items.map((t) => (
@@ -59,7 +71,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role="status"
             className={cn(
-              "pointer-events-auto w-full max-w-md rounded-xl border px-4 py-3 text-sm font-medium shadow-lg sm:text-base",
+              "pointer-events-auto w-full max-w-md rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg shadow-black/10 sm:text-base",
               t.variant === "success" &&
                 "border-emerald-200 bg-emerald-50 text-emerald-950",
               t.variant === "error" &&

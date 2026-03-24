@@ -161,6 +161,7 @@ export const heUi = {
     previewPhoneFallback: "050-1234567",
     save: "שמור הגדרות",
     saving: "שומר…",
+    sectionHint: "פרטי העסק והודעות התזכורת שמופיעים ללקוחות.",
   },
 
   backup: {
@@ -170,6 +171,8 @@ export const heUi = {
     export: "ייצוא גיבוי (JSON)",
     import: "ייבוא גיבוי",
     importHint: "בחרו קובץ JSON שיוצא מהמערכת.",
+    actionsHint:
+      "המלצה לפני ייבוא: ייצאו קודם גיבוי עדכני כדי שתמיד תוכלו לחזור אחורה.",
     importConfirmTitle: "שחזור מהגיבוי",
     importConfirmMessage:
       "כל הנתונים הנוכחיים במכשיר זה יוחלפו בתוכן הקובץ. פעולה זו אינה הפיכה. להמשיך?",
@@ -236,6 +239,8 @@ export const heUi = {
     quickAddClient: "הוספת תלמיד",
     quickAddAppointment: "הוספת שיעור",
     remindersSectionTitle: "תזכורות קרובות",
+    todaySectionHint: "השיעורים של היום לפי שעה, כדי לדעת מה מחכה עכשיו.",
+    remindersSectionHint: "תזכורות למחר להעתקה מהירה ושליחה בוואטסאפ.",
     kpiToday: "שיעורים היום",
     kpiTomorrow: "שיעורים מחר",
     kpiUnpaid: "שיעורים לא משולמים",
@@ -284,7 +289,7 @@ export const heUi = {
     emptyTodayTitle: (lessonsWord: string) =>
       `אין ${lessonsWord} מתוכננים להיום`,
     emptyTodayDescription:
-      "שיעורים שמוזמנים להיום יופיעו כאן.",
+      "אין שיעורים להיום עדיין. אפשר לקבוע שיעור חדש בלחיצה מהירה למעלה.",
     statWeeklyRevenue: "הכנסות השבוע",
     debtListTitle: "תלמידים עם חוב — חמשת המובילים",
     upcomingListTitle: "שיעורים קרובים",
@@ -309,6 +314,8 @@ export const heUi = {
   reminders: {
     title: "תזכורות למחר",
     empty: "אין שיעורים מחר — אין מה לשלוח.",
+    emptyHint:
+      "ברגע שיקבע שיעור למחר תופיע כאן הודעה מוכנה להעתקה ושליחה.",
     copyWhatsapp: "העתק הודעת וואטסאפ",
     copied: "הועתק",
     clipboardError:
@@ -334,6 +341,8 @@ export const heUi = {
     paymentSummaryTitle: "סיכום תשלומים",
     detailsTitle: "פרטים",
     appointmentsTitle: "שיעורים",
+    appointmentsEmptyTitle: "עדיין אין שיעורים לתלמיד הזה",
+    appointmentsEmptyHint: "כדאי לחזור לדף הבית ולקבוע לו שיעור ראשון.",
     lastLesson: "שיעור אחרון",
     noLastLesson: "אין שיעור קודם",
     openWhatsapp: "וואטסאפ",

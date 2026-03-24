@@ -126,6 +126,7 @@ export function HomeQuickDashboard({
         <h3 className="text-base font-semibold text-neutral-900 sm:text-lg">
           {heUi.dashboard.todaySectionTitle(lessonLabelPlural)}
         </h3>
+        <p className="text-sm text-neutral-600">{heUi.dashboard.todaySectionHint}</p>
         {todayRows.length === 0 ? (
           <EmptyState
             tone="muted"
@@ -164,6 +165,9 @@ export function HomeQuickDashboard({
         <h3 className="text-base font-semibold text-neutral-900 sm:text-lg">
           {heUi.dashboard.remindersSectionTitle}
         </h3>
+        <p className="text-sm text-neutral-600">
+          {heUi.dashboard.remindersSectionHint}
+        </p>
         <RemindersPanel
           appointments={appointments}
           clients={clients}

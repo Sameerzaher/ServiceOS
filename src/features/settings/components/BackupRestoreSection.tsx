@@ -178,6 +178,7 @@ export function BackupRestoreSection({
             onChange={handleFileChange}
           />
         </div>
+        <p className="text-xs text-neutral-500">{heUi.backup.actionsHint}</p>
         <p className="text-xs text-neutral-500">{heUi.backup.importHint}</p>
       </div>
     </>

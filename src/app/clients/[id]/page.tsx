@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMemo } from "react";
 
 import { getActiveVerticalPreset, heUi, paymentStatusLabel } from "@/config";
-import { EmptyState, LoadingState, ui } from "@/components/ui";
+import { Button, EmptyState, LoadingState, ui } from "@/components/ui";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
 import { useClients } from "@/features/clients/hooks/useClients";
 import type { AppointmentRecord } from "@/core/types/appointment";
@@ -131,7 +131,7 @@ export default function ClientProfilePage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href="/"
-          className="text-sm font-medium text-neutral-700 underline-offset-2 hover:underline"
+          className="inline-flex min-h-[2.5rem] items-center text-sm font-medium text-neutral-700 underline-offset-2 hover:underline"
         >
           ← {heUi.clientProfile.back}
         </Link>
@@ -239,7 +239,21 @@ export default function ClientProfilePage() {
             {heUi.clientProfile.appointmentsTitle}
           </h2>
           {clientAppointments.length === 0 ? (
-            <p className="text-sm text-neutral-600">{heUi.empty.appointmentsDescription}</p>
+            <div className="space-y-3">
+              <EmptyState
+                tone="muted"
+                className="py-8"
+                title={heUi.clientProfile.appointmentsEmptyTitle}
+                description={heUi.clientProfile.appointmentsEmptyHint}
+              />
+              <div className="flex justify-center">
+                <Link href="/">
+                  <Button type="button" variant="secondary">
+                    {heUi.clientProfile.back}
+                  </Button>
+                </Link>
+              </div>
+            </div>
           ) : (
             <ul className="flex flex-col gap-2">
               {[...clientAppointments]

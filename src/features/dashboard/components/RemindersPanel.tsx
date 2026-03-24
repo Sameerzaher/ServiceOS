@@ -90,6 +90,7 @@ export function RemindersPanel({
           className="py-8 sm:py-10"
           tone="muted"
           title={heUi.reminders.empty}
+          description={heUi.reminders.emptyHint}
         />
       ) : (
         <ul className="mt-5 flex flex-col gap-3">

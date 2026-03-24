@@ -40,6 +40,8 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
 
   return (
     <div className={cn(ui.formCard, "space-y-5 sm:space-y-4")}>
+      <p className="text-sm text-neutral-600">{heUi.settings.sectionHint}</p>
+
       <div>
         <label htmlFor="settings-business" className={ui.label}>
           {heUi.settings.businessName}
@@ -171,21 +173,23 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="primary"
-        className="w-full sm:w-auto"
-        disabled={isSaving}
-        aria-busy={isSaving}
-        onClick={() => {
-          if (isSaving) return;
-          setIsSaving(true);
-          onSave(draft);
-          window.setTimeout(() => setIsSaving(false), 0);
-        }}
-      >
-        {isSaving ? heUi.settings.saving : heUi.settings.save}
-      </Button>
+      <div className="sticky bottom-0 -mx-2 border-t border-neutral-200/80 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
+        <Button
+          type="button"
+          variant="primary"
+          className="w-full sm:w-auto"
+          disabled={isSaving}
+          aria-busy={isSaving}
+          onClick={() => {
+            if (isSaving) return;
+            setIsSaving(true);
+            onSave(draft);
+            window.setTimeout(() => setIsSaving(false), 0);
+          }}
+        >
+          {isSaving ? heUi.settings.saving : heUi.settings.save}
+        </Button>
+      </div>
     </div>
   );
 }

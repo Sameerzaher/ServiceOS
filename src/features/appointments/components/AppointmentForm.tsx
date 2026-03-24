@@ -409,6 +409,12 @@ export function AppointmentForm({
       )}
       noValidate
     >
+      <div className="rounded-lg border border-neutral-200/80 bg-neutral-50/80 px-3 py-2 text-xs text-neutral-600">
+        {isEditing
+          ? heUi.forms.editLesson
+          : heUi.forms.saveLesson}
+      </div>
+
       <div>
         <label htmlFor="appt-client" className={ui.label}>
           {heUi.forms.appointmentStudent}
@@ -577,7 +583,7 @@ export function AppointmentForm({
         </div>
       ))}
 
-      <div className="mt-1 flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+      <div className="sticky bottom-0 -mx-2 mt-1 flex w-auto flex-col gap-2 border-t border-neutral-200/80 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mx-0 sm:w-full sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
         {isEditing && onCancelEdit ? (
           <Button
             type="button"

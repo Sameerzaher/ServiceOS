@@ -3,5 +3,6 @@ export const STORAGE_KEYS = {
   clients: "serviceos.clients",
   appointments: "serviceos.appointments",
   settings: "serviceos.settings",
+  availability: "serviceos.availability",
   meta: "serviceos.meta",
 } as const;

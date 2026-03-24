@@ -1,4 +1,8 @@
 import type { AppointmentRecord } from "@/core/types/appointment";
+import {
+  normalizeAvailabilitySettings,
+  type AvailabilitySettings,
+} from "@/core/types/availability";
 import type { Client } from "@/core/types/client";
 import {
   normalizeAppSettings,
@@ -47,5 +51,16 @@ export const localStorageAdapter: ServiceStorage = {
   persistSettings(settings: AppSettings): void {
     ensureStorageBootstrap();
     saveToStorage(STORAGE_KEYS.settings, settings);
+  },
+
+  loadAvailabilitySettings(): AvailabilitySettings {
+    ensureStorageBootstrap();
+    const raw = loadFromStorage<unknown>(STORAGE_KEYS.availability);
+    return normalizeAvailabilitySettings(raw);
+  },
+
+  persistAvailabilitySettings(settings: AvailabilitySettings): void {
+    ensureStorageBootstrap();
+    saveToStorage(STORAGE_KEYS.availability, settings);
   },
 };

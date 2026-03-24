@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import {
   appPageTitle,
@@ -38,6 +39,8 @@ import { AppointmentFiltersBar } from "@/features/appointments/components/Appoin
 import { AppointmentForm } from "@/features/appointments/components/AppointmentForm";
 import { AppointmentList } from "@/features/appointments/components/AppointmentList";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
+import { AvailabilitySettingsForm } from "@/features/booking/components/AvailabilitySettingsForm";
+import { useAvailabilitySettings } from "@/features/booking/hooks/useAvailabilitySettings";
 import { HomeQuickDashboard } from "@/features/dashboard/components/HomeQuickDashboard";
 import { ClientForm } from "@/features/clients/components/ClientForm";
 import { ClientList } from "@/features/clients/components/ClientList";
@@ -60,6 +63,11 @@ export default function HomePage() {
   const preset = getActiveVerticalPreset();
   const toast = useToast();
   const { settings, isReady: settingsReady, replaceSettings } = useSettings();
+  const {
+    settings: availabilitySettings,
+    updateSettings: updateAvailabilitySettings,
+    resetSettings: resetAvailabilitySettings,
+  } = useAvailabilitySettings();
   const {
     sortedClients,
     addClient,
@@ -421,6 +429,25 @@ export default function HomePage() {
                   toast(heUi.toast.settingsSaved);
                 }}
               />
+              <div className={cn(ui.formCard, "space-y-4")}>
+                <h3 className="text-base font-semibold text-neutral-900 sm:text-lg">
+                  {heUi.settings.bookingTitle}
+                </h3>
+                <p className="text-sm text-neutral-600">{heUi.settings.bookingHint}</p>
+                <Link
+                  href="/book"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 shadow-sm transition hover:bg-neutral-50 sm:w-fit"
+                >
+                  {heUi.settings.bookingPublicLink}
+                </Link>
+                <AvailabilitySettingsForm
+                  settings={availabilitySettings}
+                  onChange={(next) => updateAvailabilitySettings(next)}
+                  onReset={resetAvailabilitySettings}
+                />
+              </div>
               <BackupRestoreSection
                 clients={sortedClients}
                 appointments={sortedAppointments}

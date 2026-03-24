@@ -1,4 +1,5 @@
 import type { AppointmentRecord } from "@/core/types/appointment";
+import type { AvailabilitySettings } from "@/core/types/availability";
 import type { Client } from "@/core/types/client";
 import type { AppSettings } from "@/core/types/settings";
 
@@ -13,4 +14,6 @@ export interface ServiceStorage {
   persistAppointments(appointments: AppointmentRecord[]): void;
   loadSettings(): AppSettings;
   persistSettings(settings: AppSettings): void;
+  loadAvailabilitySettings(): AvailabilitySettings;
+  persistAvailabilitySettings(settings: AvailabilitySettings): void;
 }

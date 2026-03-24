@@ -1,3 +1,4 @@
+import { normalizeAvailabilitySettings } from "@/core/types/availability";
 import { normalizeAppSettings } from "@/core/types/settings";
 import { loadFromStorage, saveToStorage } from "@/core/utils/storage";
 
@@ -38,6 +39,10 @@ function clearDomainData(): void {
   saveToStorage(STORAGE_KEYS.clients, []);
   saveToStorage(STORAGE_KEYS.appointments, []);
   saveToStorage(STORAGE_KEYS.settings, normalizeAppSettings(null));
+  saveToStorage(
+    STORAGE_KEYS.availability,
+    normalizeAvailabilitySettings(null),
+  );
 }
 
 /** Re-save normalized domain rows (v0 → v1 and any future pre-write cleanup). */
@@ -53,6 +58,12 @@ function migrateToCurrentSchema(): void {
 
   const settingsRaw = loadFromStorage<unknown>(STORAGE_KEYS.settings);
   saveToStorage(STORAGE_KEYS.settings, normalizeAppSettings(settingsRaw));
+
+  const availabilityRaw = loadFromStorage<unknown>(STORAGE_KEYS.availability);
+  saveToStorage(
+    STORAGE_KEYS.availability,
+    normalizeAvailabilitySettings(availabilityRaw),
+  );
 }
 
 function runStorageBootstrap(): StorageBootstrapResult {

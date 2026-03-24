@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
 import { Button, ui } from "@/components/ui";
-import type { AppSettings } from "@/core/types/settings";
+import type { ActivePreset, AppSettings } from "@/core/types/settings";
 import { applyReminderTemplate } from "@/core/utils/reminderTemplate";
 import { cn } from "@/lib/cn";
 
@@ -12,6 +12,15 @@ export interface SettingsPanelProps {
   settings: AppSettings;
   onSave: (next: AppSettings) => void;
 }
+
+const ACTIVE_PRESET_OPTIONS: ReadonlyArray<{
+  value: ActivePreset;
+  label: string;
+}> = [
+  { value: "driving", label: heUi.settings.activePresetDriving },
+  { value: "fitness", label: heUi.settings.activePresetFitness },
+  { value: "beauty", label: heUi.settings.activePresetBeauty },
+];
 
 export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
   const [draft, setDraft] = useState(settings);
@@ -42,7 +51,33 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
     <div className={cn(ui.formCard, "space-y-5 sm:space-y-4")}>
       <p className="text-sm text-neutral-600">{heUi.settings.sectionHint}</p>
 
-      <div>
+      <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-4 shadow-sm shadow-emerald-900/5 ring-1 ring-emerald-900/[0.04]">
+        <label htmlFor="settings-active-preset" className={ui.label}>
+          {heUi.settings.businessType}
+        </label>
+        <select
+          id="settings-active-preset"
+          value={draft.activePreset}
+          onChange={(e) =>
+            setDraft((d) => ({
+              ...d,
+              activePreset: e.target.value as ActivePreset,
+            }))
+          }
+          className={ui.select}
+        >
+          {ACTIVE_PRESET_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-neutral-600">
+          {heUi.settings.businessTypeHint}
+        </p>
+      </div>
+
+      <div className="border-t border-neutral-200/70 pt-5">
         <label htmlFor="settings-business" className={ui.label}>
           {heUi.settings.businessName}
         </label>
@@ -161,10 +196,10 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           {heUi.settings.reminderTemplateHint}
         </p>
         <div
-          className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50/90 p-3"
+          className="mt-3 rounded-xl border border-emerald-100/90 bg-emerald-50/60 p-3 ring-1 ring-emerald-900/[0.04]"
           aria-live="polite"
         >
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <p className="text-xs font-medium uppercase tracking-wide text-emerald-900/70">
             {heUi.settings.reminderPreviewTitle}
           </p>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-neutral-900">

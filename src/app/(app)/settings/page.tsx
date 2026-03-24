@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  appPageTitle,
-  getActiveVerticalPreset,
-  heUi,
-} from "@/config";
+import { appPageTitle, heUi } from "@/config";
 import { LoadingState, ui, useToast } from "@/components/ui";
 import { setDemoModeActive } from "@/core/demo/demoMode";
 import { BackupRestoreSection } from "@/features/settings/components/BackupRestoreSection";
@@ -13,8 +9,8 @@ import { useServiceApp } from "@/features/app/ServiceAppProvider";
 
 export default function SettingsPage() {
   const toast = useToast();
-  const preset = getActiveVerticalPreset();
   const {
+    preset,
     settings,
     settingsReady,
     replaceSettings,

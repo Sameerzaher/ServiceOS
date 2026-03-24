@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  appPageTitle,
-  getActiveVerticalPreset,
-  heUi,
-} from "@/config";
+import { appPageTitle, heUi, resolveVerticalPresetFromSettings } from "@/config";
 import { useToast } from "@/components/ui";
 import { DEMO_SETTINGS, buildDemoDataset } from "@/core/demo/demoSeed";
 import { isDemoModeActive, setDemoModeActive } from "@/core/demo/demoMode";
@@ -36,8 +32,11 @@ function togglePaymentStatus(current: PaymentStatus): PaymentStatus {
 
 export function useServiceAppState() {
   const toast = useToast();
-  const preset = getActiveVerticalPreset();
   const { settings, isReady: settingsReady, replaceSettings } = useSettings();
+  const preset = useMemo(
+    () => resolveVerticalPresetFromSettings(settings),
+    [settings],
+  );
   const {
     settings: availabilitySettings,
     updateSettings: updateAvailabilitySettings,

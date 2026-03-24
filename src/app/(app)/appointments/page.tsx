@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 
 import {
   appPageTitle,
-  getActiveVerticalPreset,
   heUi,
 } from "@/config";
 import { LoadingState, ui, useToast } from "@/components/ui";
@@ -19,8 +18,8 @@ import { ONBOARDING_ANCHORS } from "@/features/onboarding/components/FirstRunOnb
 function AppointmentsPageContent() {
   const toast = useToast();
   const searchParams = useSearchParams();
-  const preset = getActiveVerticalPreset();
   const {
+    preset,
     settings,
     sortedClients,
     sortedAppointments,

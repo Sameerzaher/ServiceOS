@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 
-import { getActiveVerticalPreset, heUi, paymentStatusLabel } from "@/config";
+import { heUi, paymentStatusLabel } from "@/config";
 import { Button, EmptyState, LoadingState, ui } from "@/components/ui";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import type { AppointmentRecord } from "@/core/types/appointment";
@@ -65,9 +65,13 @@ export default function ClientProfilePage() {
       : Array.isArray(segment)
         ? (segment[0] ?? "")
         : "";
-  const preset = getActiveVerticalPreset();
-  const { sortedClients, clientsReady, sortedAppointments, appointmentsReady } =
-    useServiceApp();
+  const {
+    preset,
+    sortedClients,
+    clientsReady,
+    sortedAppointments,
+    appointmentsReady,
+  } = useServiceApp();
 
   const client = useMemo(
     () => sortedClients.find((c) => c.id === id),

@@ -153,7 +153,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.input}
+          className={ui.select}
         >
           <option value="">{selectPlaceholder}</option>
           {(def.options ?? []).map((opt) => (
@@ -173,7 +173,7 @@ function CustomFieldControl({
             name={def.key}
             checked={value === "true"}
             onChange={(e) => onChange(e.target.checked ? "true" : "")}
-            className="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+            className="size-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-500/40"
           />
           <span>{def.label}</span>
         </label>
@@ -409,7 +409,7 @@ export function AppointmentForm({
       )}
       noValidate
     >
-      <div className="rounded-lg border border-neutral-200/80 bg-neutral-50/80 px-3 py-2 text-xs text-neutral-600">
+      <div className="rounded-xl border border-emerald-100/80 bg-emerald-50/50 px-3 py-2 text-xs text-neutral-700 ring-1 ring-emerald-900/[0.04]">
         {isEditing
           ? heUi.forms.editLesson
           : heUi.forms.saveLesson}
@@ -428,7 +428,7 @@ export function AppointmentForm({
             setClientId(e.target.value);
             setClientError(null);
           }}
-          className={ui.input}
+          className={ui.select}
           aria-invalid={clientError ? true : undefined}
           aria-describedby={clientError ? "appt-client-error" : undefined}
         >
@@ -481,7 +481,7 @@ export function AppointmentForm({
                 setStartTime(e.target.value);
                 setDatetimeError(null);
               }}
-              className={ui.input}
+              className={ui.select}
               aria-invalid={datetimeError ? true : undefined}
               aria-describedby={datetimeError ? "appt-datetime-error" : undefined}
             >
@@ -517,7 +517,7 @@ export function AppointmentForm({
           onChange={(e) =>
             setPaymentStatus(e.target.value as PaymentStatus)
           }
-          className={ui.input}
+          className={ui.select}
         >
           {(Object.values(PaymentStatus) as PaymentStatus[]).map((status) => (
             <option key={status} value={status}>

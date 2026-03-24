@@ -49,7 +49,7 @@ export function AppointmentFiltersBar({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-4 rounded-xl border border-neutral-200/90 bg-neutral-50/80 p-3.5 sm:grid-cols-3 sm:gap-4 sm:p-4",
+        "grid grid-cols-1 gap-4 rounded-xl border border-emerald-100/80 bg-emerald-50/35 p-3.5 shadow-sm shadow-emerald-900/5 ring-1 ring-emerald-900/[0.03] sm:grid-cols-3 sm:gap-4 sm:p-4",
         className,
       )}
     >
@@ -63,7 +63,7 @@ export function AppointmentFiltersBar({
           onChange={(e) =>
             onDateFilterChange(e.target.value as AppointmentDateFilter)
           }
-          className={ui.input}
+          className={ui.select}
         >
           {dateOptions.map((o) => (
             <option key={o.value} value={o.value}>
@@ -99,7 +99,7 @@ export function AppointmentFiltersBar({
           id="filter-sort"
           value={sort}
           onChange={(e) => onSortChange(e.target.value as AppointmentSort)}
-          className={ui.input}
+          className={ui.select}
         >
           {sortOptions.map((o) => (
             <option key={o.value} value={o.value}>

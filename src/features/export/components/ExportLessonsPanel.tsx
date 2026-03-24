@@ -144,7 +144,7 @@ export function ExportLessonsPanel({
           onChange={(e) =>
             setPaymentFilter(e.target.value as PaymentFilter)
           }
-          className={ui.input}
+          className={ui.select}
           disabled={noData || isExporting}
         >
           {PAYMENT_OPTIONS.map((o) => (

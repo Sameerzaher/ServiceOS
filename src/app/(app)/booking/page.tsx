@@ -2,19 +2,15 @@
 
 import Link from "next/link";
 
-import {
-  appPageTitle,
-  getActiveVerticalPreset,
-  heUi,
-} from "@/config";
+import { appPageTitle, heUi } from "@/config";
 import { ui } from "@/components/ui";
 import { AvailabilitySettingsForm } from "@/features/booking/components/AvailabilitySettingsForm";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import { cn } from "@/lib/cn";
 
 export default function BookingSettingsPage() {
-  const preset = getActiveVerticalPreset();
   const {
+    preset,
     settings,
     availabilitySettings,
     updateAvailabilitySettings,

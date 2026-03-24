@@ -1,16 +1,20 @@
+import type { ActivePreset } from "@/core/types/settings";
 import type { VerticalPreset } from "@/core/types/vertical";
 
+import { beautyVerticalPreset } from "./beauty";
 import { drivingVerticalPreset } from "./driving";
+import { fitnessVerticalPreset } from "./fitness";
 
 /**
- * Register verticals here. Keys are stable ids (storage, future routes).
- * Add a new file under `verticals/`, import the preset, and add to this map.
+ * Register verticals here. Keys match `AppSettings.activePreset` (storage).
  */
 export const VERTICAL_REGISTRY = {
   driving: drivingVerticalPreset,
-} as const satisfies Record<string, VerticalPreset>;
+  fitness: fitnessVerticalPreset,
+  beauty: beautyVerticalPreset,
+} as const satisfies Record<ActivePreset, VerticalPreset>;
 
-export type VerticalId = keyof typeof VERTICAL_REGISTRY;
+export type VerticalId = ActivePreset;
 
 export const DEFAULT_VERTICAL_ID: VerticalId = "driving";
 

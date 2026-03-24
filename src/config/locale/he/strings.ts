@@ -140,6 +140,12 @@ export const heUi = {
   },
 
   settings: {
+    businessType: "סוג עסק",
+    businessTypeHint:
+      "המונחים בממשק (לקוחות, שיעורים, שדות נוספים) יתאימו לתחום שבחרתם.",
+    activePresetDriving: "נהיגה — מורה / בית ספר",
+    activePresetFitness: "כושר — מאמן / מכון",
+    activePresetBeauty: "יופי וטיפוח",
     businessName: "שם העסק",
     businessNameHint: "יוצג בראש המסך, בתזכורות ובייצוא.",
     businessPhone: "טלפון העסק",

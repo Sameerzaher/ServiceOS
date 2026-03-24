@@ -151,7 +151,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.input}
+          className={ui.select}
         >
           <option value="">{selectPlaceholder}</option>
           {(def.options ?? []).map((opt) => (

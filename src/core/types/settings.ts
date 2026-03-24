@@ -1,5 +1,10 @@
+/** Business vertical (terminology + extra fields). Matches `VERTICAL_REGISTRY` keys. */
+export type ActivePreset = "driving" | "fitness" | "beauty";
+
 /** App preferences stored locally (no backend yet). */
 export interface AppSettings {
+  /** Active industry preset — drives labels and custom fields in the UI. */
+  activePreset: ActivePreset;
   /** Shown in header and exports; e.g. "בית ספר לנהיגה — דני". */
   businessName: string;
   /** Default amount (₪) for new lessons in the form. */
@@ -13,6 +18,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
+  activePreset: "driving",
   businessName: "",
   defaultLessonPrice: 0,
   defaultLessonDurationMinutes: 45,
@@ -33,6 +39,13 @@ function coerceNonNegativeNumber(v: unknown, fallback: number): number {
     if (Number.isFinite(n)) return Math.max(0, n);
   }
   return fallback;
+}
+
+function coerceActivePreset(v: unknown): ActivePreset {
+  if (v === "driving" || v === "fitness" || v === "beauty") {
+    return v;
+  }
+  return DEFAULT_APP_SETTINGS.activePreset;
 }
 
 function coerceDurationMinutes(v: unknown, fallback: number): number {
@@ -60,6 +73,7 @@ export function normalizeAppSettings(raw: unknown): AppSettings {
       : DEFAULT_APP_SETTINGS.reminderTemplate;
 
   return {
+    activePreset: coerceActivePreset(o.activePreset),
     businessName: typeof o.businessName === "string" ? o.businessName : "",
     defaultLessonPrice: coerceNonNegativeNumber(
       o.defaultLessonPrice,

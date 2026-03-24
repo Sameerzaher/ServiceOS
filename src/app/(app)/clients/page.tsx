@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 
 import {
   appPageTitle,
-  getActiveVerticalPreset,
   heUi,
 } from "@/config";
 import { LoadingState, ui } from "@/components/ui";
@@ -16,8 +15,8 @@ import { ONBOARDING_ANCHORS } from "@/features/onboarding/components/FirstRunOnb
 
 export default function ClientsPage() {
   const router = useRouter();
-  const preset = getActiveVerticalPreset();
   const {
+    preset,
     settings,
     sortedClients,
     sortedAppointments,

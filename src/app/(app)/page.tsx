@@ -2,11 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import {
-  appTagline,
-  getActiveVerticalPreset,
-  heUi,
-} from "@/config";
+import { appTagline, heUi } from "@/config";
 import { EmptyState, LoadingState, ui, useToast } from "@/components/ui";
 import { DemoExportBar } from "@/features/demo/components/DemoExportBar";
 import { ExportLessonsPanel } from "@/features/export/components/ExportLessonsPanel";
@@ -22,8 +18,8 @@ import { useServiceApp } from "@/features/app/ServiceAppProvider";
 export default function DashboardPage() {
   const router = useRouter();
   const toast = useToast();
-  const preset = getActiveVerticalPreset();
   const {
+    preset,
     settings,
     sortedClients,
     sortedAppointments,

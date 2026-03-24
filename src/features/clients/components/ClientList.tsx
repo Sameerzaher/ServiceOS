@@ -14,6 +14,8 @@ import { cn } from "@/lib/cn";
 
 export interface ClientListProps {
   clients: Client[];
+  /** Total clients before search filter (for empty-search messaging). */
+  totalClientCount?: number;
   preset: VerticalPreset;
   /** When provided, shows "next lesson" per client. */
   appointments?: readonly AppointmentRecord[];
@@ -66,6 +68,7 @@ function formatCustomValue(
 
 export function ClientList({
   clients,
+  totalClientCount = 0,
   preset,
   appointments,
   referenceDate,
@@ -78,14 +81,17 @@ export function ClientList({
   const studentsLabel = preset.labels.students;
 
   if (clients.length === 0) {
+    const isFilteredOut = totalClientCount > 0;
     return (
       <EmptyState
         title={
-          studentsLabel
+          isFilteredOut
+            ? heUi.filters.filterResultsEmpty
+            : studentsLabel
             ? heUi.empty.clientsTitle(studentsLabel)
             : heUi.empty.clientsFallback
         }
-        description={heUi.empty.clientsDescription}
+        description={isFilteredOut ? undefined : heUi.empty.clientsDescription}
       />
     );
   }
@@ -107,7 +113,7 @@ export function ClientList({
                 "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-neutral-50",
             )}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-semibold leading-tight text-neutral-900">
@@ -152,13 +158,14 @@ export function ClientList({
                   </p>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2 sm:shrink-0">
+              <div className="flex flex-wrap gap-2.5 sm:gap-2 sm:shrink-0">
                 {onEdit ? (
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
                     onClick={() => onEdit(client.id)}
+                    aria-label={`${heUi.list.edit}: ${client.fullName}`}
                   >
                     {heUi.list.edit}
                   </Button>
@@ -169,6 +176,7 @@ export function ClientList({
                     variant="secondary"
                     size="sm"
                     onClick={() => onAddLessonForClient(client.id)}
+                    aria-label={`${heUi.list.addLessonForClient} — ${client.fullName}`}
                   >
                     {heUi.list.addLessonForClient}
                   </Button>
@@ -179,6 +187,7 @@ export function ClientList({
                     variant="danger"
                     size="sm"
                     onClick={() => onRequestDelete(client.id)}
+                    aria-label={`${heUi.list.delete}: ${client.fullName}`}
                   >
                     {heUi.list.delete}
                   </Button>

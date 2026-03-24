@@ -3,6 +3,11 @@ import { Rubik } from "next/font/google";
 
 import { AppNav } from "@/components/AppNav";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
+import {
+  PWA_APP_NAME,
+  PWA_DESCRIPTION,
+  PWA_THEME_COLOR,
+} from "@/config/pwa";
 
 import { AppProviders } from "./providers";
 import "./globals.css";
@@ -13,27 +18,30 @@ const rubik = Rubik({
   variable: "--font-rubik",
 });
 
-/** Same as `manifest.ts` theme_color for status bar / splash tint. */
-const THEME_COLOR = "#171717";
-
 export const viewport: Viewport = {
-  themeColor: THEME_COLOR,
+  themeColor: PWA_THEME_COLOR,
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
-  title: "ServiceOS",
-  description: "ניהול תלמידים, שיעורים והגדרות — ServiceOS",
-  applicationName: "ServiceOS",
+  title: PWA_APP_NAME,
+  description: PWA_DESCRIPTION,
+  applicationName: PWA_APP_NAME,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "ServiceOS",
+    title: PWA_APP_NAME,
   },
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/icon-192.png", sizes: "192x192" }],
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
 };
 

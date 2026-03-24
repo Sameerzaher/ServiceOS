@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   appPageTitle,
@@ -16,6 +16,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { DEMO_SETTINGS, buildDemoDataset } from "@/core/demo/demoSeed";
+import { isDemoModeActive, setDemoModeActive } from "@/core/demo/demoMode";
 import { PaymentStatus } from "@/core/types/appointment";
 import { isPaidStatus } from "@/core/utils/insights";
 import {
@@ -27,7 +28,8 @@ import {
 } from "@/core/utils/appointmentFilters";
 import type { AppointmentDateFilter } from "@/core/utils/dateRange";
 import { DemoExportBar } from "@/features/demo/components/DemoExportBar";
-import { exportLessonsCsv, exportStudentsCsv } from "@/features/export/csvExport";
+import { ExportLessonsPanel } from "@/features/export/components/ExportLessonsPanel";
+import { exportStudentsCsv } from "@/features/export/csvExport";
 import { AppointmentFiltersBar } from "@/features/appointments/components/AppointmentFiltersBar";
 import { AppointmentForm } from "@/features/appointments/components/AppointmentForm";
 import { AppointmentList } from "@/features/appointments/components/AppointmentList";
@@ -88,6 +90,9 @@ export default function HomePage() {
   const [confirm, setConfirm] = useState<
     null | { kind: "client" | "appointment"; id: string }
   >(null);
+  const [demoResetOpen, setDemoResetOpen] = useState(false);
+  const [demoLoadOpen, setDemoLoadOpen] = useState(false);
+  const [demoActive, setDemoActive] = useState(false);
 
   const referenceDate = useMemo(() => new Date(), []);
 
@@ -128,6 +133,8 @@ export default function HomePage() {
     dataReady &&
     sortedClients.length === 0 &&
     sortedAppointments.length === 0;
+  const hasAnyData =
+    sortedClients.length > 0 || sortedAppointments.length > 0;
 
   const onboardingPhase = useMemo((): "client" | "appointment" | null => {
     if (!dataReady) return null;
@@ -139,12 +146,36 @@ export default function HomePage() {
   const displayTitle =
     settings.businessName.trim() || appPageTitle(preset);
 
+  useEffect(() => {
+    setDemoActive(isDemoModeActive());
+  }, []);
+
+  useEffect(() => {
+    if (!dataReady) return;
+    if (!hasAnyData && demoActive) {
+      setDemoModeActive(false);
+      setDemoActive(false);
+    }
+  }, [dataReady, hasAnyData, demoActive]);
+
   function handleConfirmDelete(): void {
     if (!confirm) return;
     if (confirm.kind === "client") {
+      const deletedClientId = confirm.id;
       deleteAppointmentsForClient(confirm.id);
       deleteClient(confirm.id);
       if (editingClientId === confirm.id) setEditingClientId(null);
+      if (
+        editingAppointmentId &&
+        sortedAppointments.some(
+          (a) => a.id === editingAppointmentId && a.clientId === deletedClientId,
+        )
+      ) {
+        setEditingAppointmentId(null);
+      }
+      if (appointmentPrefillClientId === deletedClientId) {
+        setAppointmentPrefillClientId(null);
+      }
       toast(heUi.toast.clientDeleted);
     } else {
       deleteAppointment(confirm.id);
@@ -171,7 +202,11 @@ export default function HomePage() {
       setEditingClientId(null);
       toast(heUi.toast.clientUpdated);
     } else {
-      addClient(data);
+      const row = addClient(data);
+      if (!row) {
+        toast(heUi.toast.actionFailed, "error");
+        return;
+      }
       toast(heUi.toast.clientCreated);
     }
   }
@@ -184,6 +219,8 @@ export default function HomePage() {
     setEditingClientId(null);
     setEditingAppointmentId(null);
     setAppointmentPrefillClientId(null);
+    setDemoModeActive(true);
+    setDemoActive(true);
     toast(heUi.toast.demoLoaded);
   }
 
@@ -193,7 +230,28 @@ export default function HomePage() {
     setEditingClientId(null);
     setEditingAppointmentId(null);
     setAppointmentPrefillClientId(null);
+    setDemoModeActive(false);
+    setDemoActive(false);
     toast(heUi.toast.demoReset);
+  }
+
+  function handleConfirmDemoReset(): void {
+    resetData();
+    setDemoResetOpen(false);
+  }
+
+  function handleRequestLoadDemo(): void {
+    if (!dataReady) return;
+    if (hasAnyData) {
+      setDemoLoadOpen(true);
+      return;
+    }
+    loadDemo();
+  }
+
+  function handleConfirmDemoLoad(): void {
+    setDemoLoadOpen(false);
+    loadDemo();
   }
 
   return (
@@ -219,7 +277,44 @@ export default function HomePage() {
         onCancel={() => setConfirm(null)}
       />
 
+      <ConfirmDialog
+        open={demoResetOpen}
+        title={heUi.dialog.resetDemoTitle}
+        message={heUi.dialog.resetDemoMessage}
+        confirmLabel={heUi.dialog.confirm}
+        confirmVariant="danger"
+        onConfirm={handleConfirmDemoReset}
+        onCancel={() => setDemoResetOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={demoLoadOpen}
+        title={heUi.dialog.loadDemoTitle}
+        message={heUi.dialog.loadDemoMessage}
+        confirmLabel={heUi.demo.load}
+        confirmVariant="primary"
+        onConfirm={handleConfirmDemoLoad}
+        onCancel={() => setDemoLoadOpen(false)}
+      />
+
       <div className={ui.pageStack}>
+        {demoActive ? (
+          <section className="rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-3 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-medium text-violet-900">
+                {heUi.demo.activeBadge}
+              </p>
+              <button
+                type="button"
+                className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-sm font-medium text-violet-900 transition hover:bg-violet-100"
+                onClick={() => setDemoResetOpen(true)}
+              >
+                {heUi.demo.returnToEmpty}
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         {onboardingPhase ? (
           <FirstRunOnboarding phase={onboardingPhase} />
         ) : null}
@@ -232,11 +327,11 @@ export default function HomePage() {
               description={heUi.demo.bannerDescription}
               className="border border-dashed border-neutral-300 bg-white py-8"
             />
-            <div className="mt-4 flex justify-center">
+            <div className="mt-5 flex justify-center">
               <button
                 type="button"
-                onClick={loadDemo}
-                className="rounded-lg bg-neutral-900 px-5 py-2.5 text-base font-medium text-white shadow-sm transition hover:bg-neutral-800"
+                onClick={handleRequestLoadDemo}
+                className="min-h-[2.75rem] rounded-lg bg-neutral-900 px-6 py-2.5 text-base font-medium text-white shadow-sm transition hover:bg-neutral-800 active:scale-[0.99]"
               >
                 {heUi.demo.load}
               </button>
@@ -249,18 +344,24 @@ export default function HomePage() {
           {!dataReady ? (
             <LoadingState message={heUi.loading.default} />
           ) : (
-            <DemoExportBar
-              onLoadDemo={loadDemo}
-              onReset={resetData}
-              onExportStudents={() => {
-                exportStudentsCsv(sortedClients);
-                toast(heUi.toast.exportStudents);
-              }}
-              onExportLessons={() => {
-                exportLessonsCsv(sortedAppointments, sortedClients);
-                toast(heUi.toast.exportLessons);
-              }}
-            />
+            <div className="space-y-4">
+              <DemoExportBar
+                onLoadDemo={handleRequestLoadDemo}
+                onRequestReset={() => setDemoResetOpen(true)}
+                onExportStudents={() => {
+                  if (sortedClients.length === 0) {
+                    toast(heUi.export.noStudentsToExport, "error");
+                    return;
+                  }
+                  exportStudentsCsv(sortedClients);
+                  toast(heUi.toast.exportStudents);
+                }}
+              />
+              <ExportLessonsPanel
+                appointments={sortedAppointments}
+                clients={sortedClients}
+              />
+            </div>
           )}
         </section>
 
@@ -288,6 +389,8 @@ export default function HomePage() {
                   setEditingClientId(null);
                   setEditingAppointmentId(null);
                   setAppointmentPrefillClientId(null);
+                  setDemoModeActive(false);
+                  setDemoActive(false);
                 }}
               />
             </>
@@ -317,6 +420,8 @@ export default function HomePage() {
               appointments={sortedAppointments}
               clients={sortedClients}
               reminderTemplate={settings.reminderTemplate}
+              businessName={settings.businessName}
+              businessPhone={settings.businessPhone}
               onCopied={() => toast(heUi.toast.reminderCopied)}
             />
           )}
@@ -367,6 +472,7 @@ export default function HomePage() {
           ) : (
             <ClientList
               clients={filteredClients}
+              totalClientCount={sortedClients.length}
               preset={preset}
               appointments={sortedAppointments}
               referenceDate={referenceDate}
@@ -410,6 +516,9 @@ export default function HomePage() {
             clients={sortedClients}
             initialAppointment={editingAppointment}
             defaultAmount={settings.defaultLessonPrice}
+            defaultLessonDurationMinutes={
+              settings.defaultLessonDurationMinutes
+            }
             prefillClientId={appointmentPrefillClientId}
             onCancelEdit={() => {
               setEditingAppointmentId(null);
@@ -421,7 +530,11 @@ export default function HomePage() {
                 setEditingAppointmentId(null);
                 toast(heUi.toast.lessonUpdated);
               } else {
-                addAppointment(data);
+                const row = addAppointment(data);
+                if (!row) {
+                  toast(heUi.toast.actionFailed, "error");
+                  return;
+                }
                 setAppointmentPrefillClientId(null);
                 toast(heUi.toast.lessonCreated);
               }

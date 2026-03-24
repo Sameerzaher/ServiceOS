@@ -4,6 +4,17 @@
  */
 
 export const heUi = {
+  errors: {
+    pageTitle: "משהו השתבש",
+    pageDescription:
+      "אירעה שגיאה בלתי צפויה. אפשר לנסות שוב או לחזור לדף הבית.",
+    tryAgain: "נסו שוב",
+    goHome: "חזרה לדף הבית",
+    globalTitle: "שגיאה קריטית",
+    globalDescription:
+      "לא ניתן להציג את הממשק. רעננו את הדף או נסו שוב מאוחר יותר.",
+  },
+
   loading: {
     summary: "טוען סיכום…",
     students: "טוען תלמידים…",
@@ -45,6 +56,9 @@ export const heUi = {
     exportLessons: "קובץ שיעורים הורד",
     backupExported: "גיבוי הורד בהצלחה",
     backupRestored: "הנתונים שוחזרו מהגיבוי",
+    storageSchemaReset:
+      "נתונים מקומיים אופסו — גרסת האחסון לא נתמכת או פגומה. התחילו מחדש או שחזרו מגיבוי.",
+    actionFailed: "הפעולה לא הושלמה. נסו שוב.",
   },
 
   /** Fallbacks when a preset omits optional label keys */
@@ -66,6 +80,12 @@ export const heUi = {
       "למחוק את הלקוח ואת כל השיעורים המשויכים אליו? פעולה זו לא ניתנת לביטול.",
     deleteAppointmentTitle: "מחיקת שיעור",
     deleteAppointmentMessage: "למחוק את השיעור? פעולה זו לא ניתנת לביטול.",
+    resetDemoTitle: "איפוס כל הנתונים",
+    resetDemoMessage:
+      "כל התלמידים, השיעורים וההגדרות במכשיר זה יימחקו. פעולה זו אינה הפיכה. להמשיך?",
+    loadDemoTitle: "טעינת נתוני הדגמה",
+    loadDemoMessage:
+      "טעינת הדגמה תחליף את הנתונים הקיימים במכשיר זה. מומלץ לייצא גיבוי לפני המשך. להמשיך?",
   },
 
   forms: {
@@ -80,6 +100,7 @@ export const heUi = {
     saving: "שומר…",
     editLesson: "ערוך שיעור",
     amount: "סכום (₪)",
+    defaultAmountHint: (ils: number) => `ברירת מחדל מההגדרות: ${ils} ₪`,
     searchClients: "חיפוש לפי שם או טלפון…",
     selectPlaceholder: "בחר…",
     selectStudentPlaceholder: "בחר תלמיד…",
@@ -90,6 +111,8 @@ export const heUi = {
     /** First option in the time dropdown */
     appointmentTimePlaceholder: "בחר שעה…",
     paymentStatus: "סטטוס תשלום",
+    /** Shown when date, time, and default duration from settings are set */
+    suggestedLessonEnd: (endTime: string) => `סיום משוער (לפי משך מההגדרות): ${endTime}`,
   },
 
   filters: {
@@ -115,11 +138,26 @@ export const heUi = {
 
   settings: {
     businessName: "שם העסק",
-    businessNameHint: "יוצג בראש המסך ובייצוא.",
+    businessNameHint: "יוצג בראש המסך, בתזכורות ובייצוא.",
+    businessPhone: "טלפון העסק",
+    businessPhoneHint:
+      "מוצג בתבנית תזכורת עם {{businessPhone}} — ליצירת קשר מההודעה.",
     defaultLessonPrice: "מחיר ברירת מחדל לשיעור (₪)",
+    defaultLessonPriceHint:
+      "ממולא אוטומטית בשדה הסכום בטופס שיעור חדש (ניתן לשנות לפני שמירה).",
+    defaultLessonDuration: "משך שיעור ברירת מחדל (דקות)",
+    defaultLessonDurationHint:
+      "מציג בטופס שיעור «סיום משוער» לפי שעת ההתחלה — לא נשמר ביומן.",
     reminderTemplate: "תבנית תזכורת (וואטסאפ)",
-    reminderTemplateHint: "משתנים: {{name}} — שם, {{time}} — שעה.",
+    reminderTemplateHint:
+      "משתנים: {{name}}, {{time}}, {{business}} או {{businessName}}, {{businessPhone}}.",
+    reminderPreviewTitle: "תצוגה מקדימה",
+    previewStudentName: "יוסי כהן",
+    previewLessonTime: "09:00",
+    previewBusinessFallback: "בית ספר לנהיגה",
+    previewPhoneFallback: "050-1234567",
     save: "שמור הגדרות",
+    saving: "שומר…",
   },
 
   backup: {
@@ -136,18 +174,17 @@ export const heUi = {
     errors: {
       notObject: "הקובץ אינו בפורמט תקין.",
       badVersion: "גרסת הגיבוי אינה נתמכת.",
-      missingArrays: "חסרים רשימות תלמידים או שיעורים.",
-      invalidClient: "רשומת תלמיד לא תקינה בגיבוי.",
-      invalidAppointment: "רשומת שיעור לא תקינה בגיבוי.",
-      invalidSettings: "הגדרות לא תקינות בגיבוי.",
-      orphanAppointment: "קיים שיעור המקושר לתלמיד שלא מופיע בגיבוי.",
       parseJson: "לא ניתן לקרוא את הקובץ — ודאו שזה JSON תקין.",
+      invalidFileType: "יש לבחור קובץ JSON בלבד.",
+      fileTooLarge: "קובץ הגיבוי גדול מדי לייבוא בדפדפן זה.",
     },
   },
 
   demo: {
     load: "טען נתוני הדגמה",
     reset: "איפוס נתונים",
+    activeBadge: "מצב הדגמה פעיל — הנתונים במסך מיועדים להצגה בלבד.",
+    returnToEmpty: "חזרה למצב ריק",
     emptyHint:
       "אין עדיין נתונים — טענו הדגמה מלאה לתלמידי נהיגה (מומלץ לדמו).",
     bannerTitle: "התחלת דמו מהירה",
@@ -157,7 +194,18 @@ export const heUi = {
 
   export: {
     students: "ייצוא תלמידים (CSV)",
-    lessons: "ייצוא שיעורים (CSV)",
+    noStudentsToExport: "אין תלמידים לייצוא עדיין.",
+    noLessonsToExport:
+      "אין שיעורים לייצוא. הוסיפו שיעורים או שינו את טווח התאריכים והסינון.",
+    lessonsTitle: "ייצוא שיעורים (CSV)",
+    lessonsHint:
+      "בחרו טווח תאריכים (אופציונלי) וסטטוס תשלום. שדה תאריך ריק = ללא גבול באותו צד.",
+    dateFrom: "מתאריך",
+    dateTo: "עד תאריך",
+    paymentFilterLabel: "סטטוס תשלום",
+    exportCsv: "הורד CSV",
+    exporting: "מייצא…",
+    invalidDateRange: "תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.",
   },
 
   empty: {
@@ -249,6 +297,8 @@ export const heUi = {
     empty: "אין שיעורים מחר — אין מה לשלוח.",
     copyWhatsapp: "העתק הודעת וואטסאפ",
     copied: "הועתק",
+    clipboardError:
+      "לא ניתן להעתיק ללוח — בדקו הרשאות הדפדפן או נסו שוב.",
     templateHint:
       'תבנית: "היי {{name}}, תזכורת לשיעור מחר ב-{{time}}"',
   },
@@ -261,6 +311,8 @@ export const heUi = {
   clientProfile: {
     back: "חזרה לדף הבית",
     notFound: "הלקוח לא נמצא",
+    notFoundHint:
+      "ייתכן שהקישור פג תוקף או שהרשומה נמחקה. חזרו לרשימה בדף הבית.",
     lessonsTotal: "סה״כ שיעורים",
     paidTotal: "שולם (סה״כ)",
     unpaidTotal: "לא שולם (סה״כ)",
@@ -286,7 +338,14 @@ export const heUi = {
     installIosBody:
       "לפתיחה מהמסך הראשי: לחצו על שיתוף ואז «הוסף למסך הבית».",
     installAction: "התקן",
-    installDismiss: "סגור",
+    installDismiss: "לא עכשיו",
+    offlineTitle: "אין חיבור לרשת",
+    offlineBody:
+      "לא ניתן לטעון את העמוד מהאינטרנט. אם ביקרתם כאן קודם, חלק מהממשק עלול להיות זמין במצב לא מקוון — הנתונים המקומיים במכשיר נשמרים.",
+    offlineRetry: "נסו שוב",
+    offlineHome: "דף הבית",
+    offlineStatusOnline: "מקוון",
+    offlineStatusOffline: "לא מקוון",
   },
 
   list: {

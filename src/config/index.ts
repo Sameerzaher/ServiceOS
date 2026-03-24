@@ -1,4 +1,11 @@
 export {
+  PWA_APP_NAME,
+  PWA_BACKGROUND_COLOR,
+  PWA_DESCRIPTION,
+  PWA_SHORT_NAME,
+  PWA_THEME_COLOR,
+} from "./pwa";
+export {
   getActiveVerticalId,
   getActiveVerticalPreset,
   setActiveVerticalId,

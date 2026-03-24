@@ -161,14 +161,14 @@ export function Dashboard({
     studentWords(preset);
 
   const secondaryStatClass =
-    "rounded-xl border border-neutral-200/90 bg-white p-3 shadow-sm sm:p-4";
+    "rounded-xl border border-neutral-200/90 bg-white p-3.5 shadow-sm sm:p-4";
   const secondaryLabelClass =
-    "text-[11px] font-medium uppercase tracking-wide text-neutral-500";
+    "text-xs font-medium uppercase tracking-wide text-neutral-500 sm:text-[11px]";
   const secondaryValueClass =
-    "mt-1 text-lg font-semibold tabular-nums text-neutral-900 sm:text-xl";
+    "mt-1.5 text-lg font-semibold tabular-nums text-neutral-900 sm:text-xl";
 
   return (
-    <div className="flex flex-col gap-8 sm:gap-10">
+    <div className="flex flex-col gap-7 sm:gap-10">
       {/* Primary KPIs — larger numbers */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         <div
@@ -179,7 +179,7 @@ export function Dashboard({
           <p className="text-xs font-medium uppercase tracking-wide text-emerald-800/90">
             {heUi.dashboard.statWeeklyRevenue}
           </p>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-emerald-950 sm:text-4xl">
+          <p className="mt-2.5 text-3xl font-bold tabular-nums leading-none text-emerald-950 sm:text-4xl">
             {formatIls(weekRevenue)}
           </p>
         </div>
@@ -191,7 +191,7 @@ export function Dashboard({
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-900/80">
             {heUi.dashboard.statUnpaidAmount}
           </p>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-amber-950 sm:text-4xl">
+          <p className="mt-2.5 text-3xl font-bold tabular-nums leading-none text-amber-950 sm:text-4xl">
             {formatIls(unpaidAmount)}
           </p>
         </div>
@@ -199,7 +199,7 @@ export function Dashboard({
           <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
             {heUi.dashboard.statTodayRevenue}
           </p>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-neutral-900 sm:text-4xl">
+          <p className="mt-2.5 text-3xl font-bold tabular-nums leading-none text-neutral-900 sm:text-4xl">
             {formatIls(todayRevenue)}
           </p>
         </div>

@@ -28,6 +28,60 @@ export function filterAppointments(
   });
 }
 
+function startOfLocalDayFromYmd(ymd: string): number {
+  const parts = ymd.split("-").map(Number);
+  if (parts.length !== 3) return NaN;
+  const [y, m, d] = parts;
+  const dt = new Date(y, m - 1, d, 0, 0, 0, 0);
+  return dt.getTime();
+}
+
+function endOfLocalDayFromYmd(ymd: string): number {
+  const parts = ymd.split("-").map(Number);
+  if (parts.length !== 3) return NaN;
+  const [y, m, d] = parts;
+  const dt = new Date(y, m - 1, d, 23, 59, 59, 999);
+  return dt.getTime();
+}
+
+/**
+ * Filters lessons for CSV export: optional local date range (`YYYY-MM-DD`) and payment status.
+ * Empty `dateFrom` / `dateTo` means no bound on that side.
+ */
+export function filterAppointmentsForExport(
+  rows: readonly AppointmentRecord[],
+  opts: {
+    dateFrom: string;
+    dateTo: string;
+    paymentFilter: PaymentFilter;
+  },
+): AppointmentRecord[] {
+  return rows.filter((a) => {
+    const t = new Date(a.startAt).getTime();
+    if (Number.isNaN(t)) return false;
+
+    const from = opts.dateFrom.trim();
+    if (from) {
+      const start = startOfLocalDayFromYmd(from);
+      if (Number.isNaN(start) || t < start) return false;
+    }
+
+    const to = opts.dateTo.trim();
+    if (to) {
+      const end = endOfLocalDayFromYmd(to);
+      if (Number.isNaN(end) || t > end) return false;
+    }
+
+    if (opts.paymentFilter === "paid" && !isPaidStatus(a.paymentStatus)) {
+      return false;
+    }
+    if (opts.paymentFilter === "unpaid" && !isDebtStatus(a.paymentStatus)) {
+      return false;
+    }
+    return true;
+  });
+}
+
 export function sortAppointments(
   rows: readonly AppointmentRecord[],
   sort: AppointmentSort,

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServiceStorage } from "@/core/storage";
 import {
   DEFAULT_APP_SETTINGS,
+  normalizeAppSettings,
   type AppSettings,
 } from "@/core/types/settings";
 
@@ -31,23 +32,11 @@ export function useSettings(): UseSettingsResult {
   }, [settings, isReady, storage]);
 
   const updateSettings = useCallback((patch: Partial<AppSettings>) => {
-    setSettings((prev) => ({
-      ...prev,
-      ...patch,
-      defaultLessonPrice:
-        patch.defaultLessonPrice !== undefined
-          ? Math.max(0, patch.defaultLessonPrice)
-          : prev.defaultLessonPrice,
-    }));
+    setSettings((prev) => normalizeAppSettings({ ...prev, ...patch }));
   }, []);
 
   const replaceSettings = useCallback((next: AppSettings) => {
-    setSettings({
-      ...next,
-      defaultLessonPrice: Math.max(0, next.defaultLessonPrice),
-      reminderTemplate:
-        next.reminderTemplate.trim() || DEFAULT_APP_SETTINGS.reminderTemplate,
-    });
+    setSettings(normalizeAppSettings(next));
   }, []);
 
   return {

@@ -213,6 +213,7 @@ export function ClientForm({
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitLock = useRef(false);
+  const firstInputRef = useRef<HTMLInputElement | null>(null);
 
   const clientFields = useMemo(
     () => preset.clientFields,
@@ -299,7 +300,7 @@ export function ClientForm({
       onSubmit={handleSubmit}
       onKeyDown={handleFormKeyDown}
       className={cn(
-        "mx-auto flex w-full max-w-lg flex-col gap-5 transition-shadow",
+        "mx-auto flex w-full max-w-lg flex-col gap-6 transition-shadow sm:gap-5",
         ui.formCard,
         isEditing &&
           "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-neutral-50",
@@ -316,7 +317,10 @@ export function ClientForm({
           name="fullName"
           type="text"
           value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
+          onChange={(e) => {
+            setFullName(e.target.value);
+            setNameError(null);
+          }}
           className={ui.input}
           autoComplete="name"
           aria-invalid={nameError ? true : undefined}

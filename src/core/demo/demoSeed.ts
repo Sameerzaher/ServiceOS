@@ -9,8 +9,12 @@ import {
 /** Settings applied when loading demo data (driving school context). */
 export const DEMO_SETTINGS: AppSettings = {
   ...DEFAULT_APP_SETTINGS,
-  businessName: "בית ספר לנהיגה — הדגמה",
-  defaultLessonPrice: 200,
+  businessName: "DrivePro — דמו למורה נהיגה",
+  businessPhone: "050-7132456",
+  defaultLessonPrice: 210,
+  defaultLessonDurationMinutes: 45,
+  reminderTemplate:
+    "היי {{name}}, כאן {{business}}. תזכורת לשיעור נהיגה מחר בשעה {{time}}. לכל שינוי אפשר לחזור אליי ב-{{businessPhone}}.",
 };
 
 function id(): string {
@@ -119,6 +123,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
   function ap(
     clientId: string,
     startAt: string,
+    status: AppointmentStatus,
     payment: PaymentStatus,
     amount: number,
     pickup: string,
@@ -128,7 +133,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
       id: id(),
       clientId,
       startAt,
-      status: AppointmentStatus.Scheduled,
+      status,
       paymentStatus: payment,
       amount,
       customFields: {
@@ -144,6 +149,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c1,
       at(reference, -5, 9, 0),
+      AppointmentStatus.Completed,
       PaymentStatus.Paid,
       200,
       "רח׳ ביאליק 12, גבעתיים",
@@ -152,6 +158,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c1,
       at(reference, 0, 17, 30),
+      AppointmentStatus.Confirmed,
       PaymentStatus.Unpaid,
       200,
       "אצל התלמידה",
@@ -160,6 +167,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c1,
       at(reference, 1, 8, 0),
+      AppointmentStatus.Scheduled,
       PaymentStatus.Pending,
       200,
       "גבעתיים — ליד הפארק",
@@ -168,6 +176,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c2,
       at(reference, -3, 18, 0),
+      AppointmentStatus.Completed,
       PaymentStatus.Paid,
       220,
       "תחנת רכבת — ארלוזורוב",
@@ -176,6 +185,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c2,
       at(reference, 2, 16, 0),
+      AppointmentStatus.Confirmed,
       PaymentStatus.Partial,
       220,
       "חניון קניון",
@@ -184,6 +194,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c3,
       at(reference, -1, 10, 30),
+      AppointmentStatus.Completed,
       PaymentStatus.Paid,
       180,
       "רמת גן — רח׳ בורוכוב",
@@ -192,6 +203,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c3,
       at(reference, 4, 11, 0),
+      AppointmentStatus.Scheduled,
       PaymentStatus.Unpaid,
       180,
       "בורוכוב",
@@ -200,6 +212,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c4,
       at(reference, 0, 14, 0),
+      AppointmentStatus.Confirmed,
       PaymentStatus.Paid,
       200,
       "ת״א — כיכר רבין",
@@ -208,6 +221,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c5,
       at(reference, -7, 19, 0),
+      AppointmentStatus.Completed,
       PaymentStatus.Paid,
       200,
       "פתח תקווה",
@@ -216,6 +230,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c5,
       at(reference, 1, 9, 30),
+      AppointmentStatus.Scheduled,
       PaymentStatus.Unpaid,
       200,
       "ליד בית הספר",
@@ -224,6 +239,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c6,
       at(reference, -2, 7, 0),
+      AppointmentStatus.Completed,
       PaymentStatus.Paid,
       240,
       "חולון — רח׳ סוקולוב",
@@ -232,6 +248,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c6,
       at(reference, 3, 8, 30),
+      AppointmentStatus.Confirmed,
       PaymentStatus.Pending,
       240,
       "חולון",
@@ -240,6 +257,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c7,
       at(reference, -4, 17, 0),
+      AppointmentStatus.Completed,
       PaymentStatus.Paid,
       200,
       "רמת השרון",
@@ -248,6 +266,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c7,
       at(reference, 0, 20, 0),
+      AppointmentStatus.Scheduled,
       PaymentStatus.Unpaid,
       200,
       "כביש החוף",
@@ -256,10 +275,29 @@ export function buildDemoDataset(reference: Date = new Date()): {
     ap(
       c2,
       at(reference, 6, 10, 0),
+      AppointmentStatus.Scheduled,
       PaymentStatus.Pending,
       220,
       "צומת הר שמואל",
       "פולו",
+    ),
+    ap(
+      c4,
+      at(reference, -2, 19, 0),
+      AppointmentStatus.NoShow,
+      PaymentStatus.Waived,
+      200,
+      "ת״א — אבן גבירול",
+      "קיה ריו",
+    ),
+    ap(
+      c6,
+      at(reference, 5, 12, 30),
+      AppointmentStatus.Scheduled,
+      PaymentStatus.Unpaid,
+      260,
+      "חולון — קניון הזהב",
+      "סקודה",
     ),
   ];
 

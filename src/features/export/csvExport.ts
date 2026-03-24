@@ -1,6 +1,5 @@
 import { paymentStatusLabel } from "@/config";
 import type { AppointmentRecord } from "@/core/types/appointment";
-import { AppointmentStatus } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
 import { downloadCsv } from "@/core/utils/csv";
 
@@ -10,6 +9,17 @@ function stamp(): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function formatLessonDateTime(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("he-IL", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
 }
 
 export function exportStudentsCsv(clients: Client[], prefix = "תלמידים"): void {
@@ -24,26 +34,31 @@ export function exportStudentsCsv(clients: Client[], prefix = "תלמידים"):
   downloadCsv(`${prefix}-${stamp()}`, headers, rows);
 }
 
-export function exportLessonsCsv(
+/**
+ * Filtered lesson export: client name, phone, lesson datetime, amount, payment status.
+ * Filename: `serviceos-export-YYYY-MM-DD.csv` (export date).
+ */
+export function exportServiceosLessonsCsv(
   appointments: AppointmentRecord[],
   clients: Client[],
 ): void {
-  const byId = new Map(clients.map((c) => [c.id, c.fullName]));
+  const byId = new Map(clients.map((c) => [c.id, c]));
   const headers = [
-    "מזהה",
-    "תלמיד",
+    "שם תלמיד",
+    "טלפון",
     "תאריך ושעה",
-    "סטטוס שיעור",
-    "תשלום",
     "סכום (₪)",
+    "סטטוס תשלום",
   ];
-  const rows = appointments.map((a) => [
-    a.id,
-    byId.get(a.clientId) ?? a.clientId,
-    a.startAt,
-    String(a.status ?? AppointmentStatus.Scheduled),
-    paymentStatusLabel(a.paymentStatus),
-    String(a.amount ?? 0),
-  ]);
-  downloadCsv(`שיעורים-${stamp()}`, headers, rows);
+  const rows = appointments.map((a) => {
+    const c = byId.get(a.clientId);
+    return [
+      c?.fullName ?? "",
+      (c?.phone ?? "").trim(),
+      formatLessonDateTime(a.startAt),
+      String(a.amount ?? 0),
+      paymentStatusLabel(a.paymentStatus),
+    ];
+  });
+  downloadCsv(`serviceos-export-${stamp()}`, headers, rows);
 }

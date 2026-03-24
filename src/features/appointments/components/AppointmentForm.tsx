@@ -210,6 +210,8 @@ export interface AppointmentFormProps {
   onCancelEdit?: () => void;
   /** When adding a new lesson, pre-select this client in the dropdown. */
   prefillClientId?: string | null;
+  /** From settings — shows approximate end time under date/time for new lessons. */
+  defaultLessonDurationMinutes?: number;
 }
 
 export function AppointmentForm({
@@ -220,6 +222,7 @@ export function AppointmentForm({
   defaultAmount,
   onCancelEdit,
   prefillClientId,
+  defaultLessonDurationMinutes,
 }: AppointmentFormProps) {
   const defaultMoney = defaultAmount ?? preset.defaultServices[0]?.price ?? 0;
   const [clientId, setClientId] = useState("");
@@ -257,6 +260,25 @@ export function AppointmentForm({
     return slots;
   }, [initialAppointment]);
 
+  const suggestedEndTime = useMemo(() => {
+    if (initialAppointment) return null;
+    const mins = defaultLessonDurationMinutes ?? 0;
+    if (mins <= 0) return null;
+    if (!startDate.trim() || !startTime.trim()) return null;
+    const t = startTime.length >= 5 ? startTime.slice(0, 5) : startTime;
+    const combined = `${startDate}T${t}`;
+    const d = new Date(combined);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setMinutes(d.getMinutes() + mins);
+    try {
+      return new Intl.DateTimeFormat("he-IL", { timeStyle: "short" }).format(
+        d,
+      );
+    } catch {
+      return null;
+    }
+  }, [initialAppointment, startDate, startTime, defaultLessonDurationMinutes]);
+
   const resetForm = useCallback((): void => {
     setClientId("");
     setStartDate("");
@@ -287,6 +309,13 @@ export function AppointmentForm({
   }, [clients.length]);
 
   useEffect(() => {
+    if (initialAppointment) return;
+    if (defaultMoney > 0) {
+      setAmountInput((prev) => (prev === "" ? String(defaultMoney) : prev));
+    }
+  }, [defaultMoney, initialAppointment]);
+
+  useEffect(() => {
     if (!initialAppointment) return;
     const { date, time } = isoToLocalDateParts(initialAppointment.startAt);
     setClientId(initialAppointment.clientId);
@@ -305,7 +334,7 @@ export function AppointmentForm({
     event.preventDefault();
     if (submitLock.current || isSubmitting) return;
 
-    if (!clientId) {
+    if (!clientId || !clients.some((c) => c.id === clientId)) {
       setClientError(heUi.validation.studentRequired);
       return;
     }
@@ -373,7 +402,7 @@ export function AppointmentForm({
       onSubmit={handleSubmit}
       onKeyDown={handleFormKeyDown}
       className={cn(
-        "mx-auto flex w-full max-w-lg flex-col gap-5 transition-shadow",
+        "mx-auto flex w-full max-w-lg flex-col gap-6 transition-shadow sm:gap-5",
         ui.formCard,
         isEditing &&
           "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-neutral-50",
@@ -389,7 +418,10 @@ export function AppointmentForm({
           ref={firstFieldRef}
           name="clientId"
           value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
+          onChange={(e) => {
+            setClientId(e.target.value);
+            setClientError(null);
+          }}
           className={ui.input}
           aria-invalid={clientError ? true : undefined}
           aria-describedby={clientError ? "appt-client-error" : undefined}
@@ -422,7 +454,10 @@ export function AppointmentForm({
               name="startDate"
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setDatetimeError(null);
+              }}
               className={ui.input}
               aria-invalid={datetimeError ? true : undefined}
               aria-describedby={datetimeError ? "appt-datetime-error" : undefined}
@@ -436,7 +471,10 @@ export function AppointmentForm({
               id="appt-time"
               name="startTime"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={(e) => {
+                setStartTime(e.target.value);
+                setDatetimeError(null);
+              }}
               className={ui.input}
               aria-invalid={datetimeError ? true : undefined}
               aria-describedby={datetimeError ? "appt-datetime-error" : undefined}
@@ -453,6 +491,11 @@ export function AppointmentForm({
         {datetimeError ? (
           <p id="appt-datetime-error" className="mt-1 text-sm text-red-600">
             {datetimeError}
+          </p>
+        ) : null}
+        {suggestedEndTime ? (
+          <p className="text-xs text-neutral-500">
+            {heUi.forms.suggestedLessonEnd(suggestedEndTime)}
           </p>
         ) : null}
       </fieldset>
@@ -494,6 +537,11 @@ export function AppointmentForm({
           className={ui.input}
           autoComplete="off"
         />
+        {!isEditing && defaultMoney > 0 ? (
+          <p className="mt-1 text-xs text-neutral-500">
+            {heUi.forms.defaultAmountHint(defaultMoney)}
+          </p>
+        ) : null}
       </div>
 
       {appointmentFields.map((def) => (

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMemo } from "react";
 
 import { getActiveVerticalPreset, heUi, paymentStatusLabel } from "@/config";
-import { LoadingState, ui } from "@/components/ui";
+import { EmptyState, LoadingState, ui } from "@/components/ui";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
 import { useClients } from "@/features/clients/hooks/useClients";
 import type { AppointmentRecord } from "@/core/types/appointment";
@@ -108,15 +108,18 @@ export default function ClientProfilePage() {
   if (!client) {
     return (
       <main className={ui.pageMain}>
-        <p className="text-base text-neutral-800">{heUi.clientProfile.notFound}</p>
-        <p className="mt-4">
-          <Link
-            href="/"
-            className="font-medium text-neutral-900 underline-offset-2 hover:underline"
-          >
-            {heUi.clientProfile.back}
-          </Link>
-        </p>
+        <EmptyState
+          tone="muted"
+          title={heUi.clientProfile.notFound}
+          description={heUi.clientProfile.notFoundHint}
+          className="mb-6"
+        />
+        <Link
+          href="/"
+          className="inline-flex font-medium text-neutral-900 underline-offset-2 hover:underline"
+        >
+          {heUi.clientProfile.back}
+        </Link>
       </main>
     );
   }

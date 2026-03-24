@@ -39,20 +39,26 @@ export function BackupRestoreSection({
   replaceSettings,
   onAfterRestore,
 }: BackupRestoreSectionProps) {
+  const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importConfirmOpen, setImportConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<AppBackupPayload | null>(
     null,
   );
+  const [fileBusy, setFileBusy] = useState(false);
+
+  const actionsLocked = fileBusy || importConfirmOpen;
 
   function handleExport(): void {
+    if (actionsLocked) return;
     const payload = buildBackupPayload(clients, appointments, settings);
     downloadBackupFile(payload);
     toast(heUi.toast.backupExported);
   }
 
   function handleImportButtonClick(): void {
+    if (actionsLocked) return;
     fileInputRef.current?.click();
   }
 
@@ -60,7 +66,21 @@ export function BackupRestoreSection({
     const input = e.target;
     const file = input.files?.[0];
     if (!file) return;
+    const fileName = file.name.toLowerCase();
+    const looksLikeJson =
+      file.type === "application/json" || fileName.endsWith(".json");
+    if (!looksLikeJson) {
+      toast(heUi.backup.errors.invalidFileType, "error");
+      input.value = "";
+      return;
+    }
+    if (file.size > MAX_IMPORT_BYTES) {
+      toast(heUi.backup.errors.fileTooLarge, "error");
+      input.value = "";
+      return;
+    }
 
+    setFileBusy(true);
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -76,11 +96,13 @@ export function BackupRestoreSection({
       } catch {
         toast(heUi.backup.errors.parseJson, "error");
       } finally {
+        setFileBusy(false);
         input.value = "";
       }
     };
     reader.onerror = () => {
       toast(heUi.backup.errors.parseJson, "error");
+      setFileBusy(false);
       input.value = "";
     };
     reader.readAsText(file);
@@ -130,10 +152,20 @@ export function BackupRestoreSection({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" onClick={handleExport}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleExport}
+            disabled={actionsLocked}
+          >
             {heUi.backup.export}
           </Button>
-          <Button type="button" variant="secondary" onClick={handleImportButtonClick}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleImportButtonClick}
+            disabled={actionsLocked}
+          >
             {heUi.backup.import}
           </Button>
           <input
@@ -142,6 +174,7 @@ export function BackupRestoreSection({
             accept="application/json,.json"
             className="sr-only"
             aria-label={heUi.backup.import}
+            tabIndex={-1}
             onChange={handleFileChange}
           />
         </div>

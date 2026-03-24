@@ -49,11 +49,11 @@ export function AppointmentFiltersBar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-xl border border-neutral-200/90 bg-neutral-50/80 p-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4",
+        "grid grid-cols-1 gap-4 rounded-xl border border-neutral-200/90 bg-neutral-50/80 p-3.5 sm:grid-cols-3 sm:gap-4 sm:p-4",
         className,
       )}
     >
-      <div className="min-w-0 flex-1 sm:max-w-[12rem]">
+      <div className="min-w-0 sm:max-w-none">
         <label htmlFor="filter-date" className={ui.label}>
           {heUi.forms.appointmentDate}
         </label>
@@ -72,7 +72,7 @@ export function AppointmentFiltersBar({
           ))}
         </select>
       </div>
-      <div className="min-w-0 flex-1 sm:max-w-[12rem]">
+      <div className="min-w-0 sm:max-w-none">
         <label htmlFor="filter-payment" className={ui.label}>
           {heUi.forms.paymentStatus}
         </label>
@@ -91,7 +91,7 @@ export function AppointmentFiltersBar({
           ))}
         </select>
       </div>
-      <div className="min-w-0 flex-1 sm:max-w-[12rem]">
+      <div className="min-w-0 sm:max-w-none">
         <label htmlFor="filter-sort" className={ui.label}>
           {heUi.filters.sort}
         </label>
@@ -99,7 +99,7 @@ export function AppointmentFiltersBar({
           id="filter-sort"
           value={sort}
           onChange={(e) => onSortChange(e.target.value as AppointmentSort)}
-          className={cn(ui.input, "mt-1")}
+          className={ui.input}
         >
           {sortOptions.map((o) => (
             <option key={o.value} value={o.value}>

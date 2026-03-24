@@ -7,6 +7,10 @@ const withPWA = withPWAInit({
   skipWaiting: true,
   /** Cache client navigations so App Router routes work offline after first visit. */
   cacheOnFrontEndNav: true,
+  /** When both network and cache fail, show a friendly offline page (must exist at this path). */
+  fallbacks: {
+    document: "/offline",
+  },
 });
 
 /** @type {import('next').NextConfig} */

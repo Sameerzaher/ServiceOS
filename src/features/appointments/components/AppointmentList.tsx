@@ -117,7 +117,7 @@ export function AppointmentList({
                   "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-neutral-50",
               )}
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-lg font-semibold leading-tight text-neutral-900">
@@ -163,13 +163,19 @@ export function AppointmentList({
                     {formatIls(appt.amount ?? 0)}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">
+                <div className="flex flex-wrap gap-2.5 sm:gap-2 sm:shrink-0 sm:justify-end">
                   {onTogglePaid ? (
                     <Button
                       type="button"
                       variant="secondary"
                       size="sm"
                       onClick={() => onTogglePaid(appt.id)}
+                      aria-label={
+                        paid
+                          ? `${heUi.appointments.markUnpaid} — ${clientNameById(clients, appt.clientId)}`
+                          : `${heUi.appointments.markPaid} — ${clientNameById(clients, appt.clientId)}`
+                      }
+                      aria-pressed={paid}
                     >
                       {paid
                         ? heUi.appointments.markUnpaid
@@ -182,6 +188,7 @@ export function AppointmentList({
                       variant="secondary"
                       size="sm"
                       onClick={() => onEdit(appt.id)}
+                      aria-label={`${heUi.appointments.edit} — ${formatStartAt(appt.startAt)}`}
                     >
                       {heUi.appointments.edit}
                     </Button>
@@ -192,6 +199,7 @@ export function AppointmentList({
                       variant="danger"
                       size="sm"
                       onClick={() => onRequestDelete(appt.id)}
+                      aria-label={`${heUi.appointments.delete}: ${clientNameById(clients, appt.clientId)} — ${formatStartAt(appt.startAt)}`}
                     >
                       {heUi.appointments.delete}
                     </Button>

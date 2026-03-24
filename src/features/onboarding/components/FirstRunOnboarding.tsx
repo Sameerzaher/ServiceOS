@@ -34,7 +34,7 @@ export function FirstRunOnboarding({ phase }: FirstRunOnboardingProps) {
       aria-labelledby="onboarding-heading"
       role="region"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="min-w-0 flex-1 space-y-1">
           <h2
             id="onboarding-heading"
@@ -56,7 +56,7 @@ export function FirstRunOnboarding({ phase }: FirstRunOnboardingProps) {
             )
           }
           className={cn(
-            "shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-950 shadow-sm transition",
+            "min-h-[2.75rem] shrink-0 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-950 shadow-sm transition sm:min-h-0 sm:px-3",
             "hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600",
           )}
         >

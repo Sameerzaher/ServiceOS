@@ -3,12 +3,15 @@
 import type { ReactNode } from "react";
 
 import { ToastProvider } from "@/components/ui";
-import { StorageProvider } from "@/core/storage";
+import { StorageProvider, StorageBootstrapNotifier } from "@/core/storage";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <StorageProvider>
-      <ToastProvider>{children}</ToastProvider>
-    </StorageProvider>
+    <ToastProvider>
+      <StorageProvider>
+        <StorageBootstrapNotifier />
+        {children}
+      </StorageProvider>
+    </ToastProvider>
   );
 }

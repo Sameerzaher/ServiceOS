@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/Button";
 import type { BeforeInstallPromptEvent } from "@/types/pwa";
 import { cn } from "@/lib/cn";
 
-const SESSION_DISMISS_KEY = "pwa-install-dismissed";
+const DISMISS_KEY = "pwa-install-dismissed";
+/** iOS has no `beforeinstallprompt`; delay the hint so it is not the first thing users see. */
+const IOS_HINT_DELAY_MS = 10_000;
 
 function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined") return true;
@@ -18,7 +20,7 @@ function isStandaloneDisplay(): boolean {
 
 function readDismissed(): boolean {
   try {
-    return sessionStorage.getItem(SESSION_DISMISS_KEY) === "1";
+    return window.localStorage.getItem(DISMISS_KEY) === "1";
   } catch {
     return false;
   }
@@ -26,13 +28,14 @@ function readDismissed(): boolean {
 
 function writeDismissed(): void {
   try {
-    sessionStorage.setItem(SESSION_DISMISS_KEY, "1");
+    window.localStorage.setItem(DISMISS_KEY, "1");
   } catch {
-    /* private mode */
+    /* private mode / quota */
   }
 }
 
 export function PwaInstallBanner() {
+  const [ready, setReady] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [installEvent, setInstallEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -40,9 +43,13 @@ export function PwaInstallBanner() {
   const installPromptSeen = useRef(false);
 
   useEffect(() => {
-    if (isStandaloneDisplay()) return;
+    if (isStandaloneDisplay()) {
+      setReady(true);
+      return;
+    }
     if (readDismissed()) {
       setDismissed(true);
+      setReady(true);
       return;
     }
 
@@ -58,6 +65,14 @@ export function PwaInstallBanner() {
       onBeforeInstall as EventListener,
     );
 
+    const onInstalled = (): void => {
+      writeDismissed();
+      setDismissed(true);
+      setInstallEvent(null);
+      setShowIosHint(false);
+    };
+    window.addEventListener("appinstalled", onInstalled);
+
     const isIos =
       /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -65,15 +80,20 @@ export function PwaInstallBanner() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     if (isIos) {
       timer = setTimeout(() => {
-        if (!installPromptSeen.current) setShowIosHint(true);
-      }, 1500);
+        if (installPromptSeen.current) return;
+        if (readDismissed()) return;
+        setShowIosHint(true);
+      }, IOS_HINT_DELAY_MS);
     }
+
+    setReady(true);
 
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         onBeforeInstall as EventListener,
       );
+      window.removeEventListener("appinstalled", onInstalled);
       if (timer) clearTimeout(timer);
     };
   }, []);
@@ -92,7 +112,7 @@ export function PwaInstallBanner() {
     setInstallEvent(null);
   };
 
-  if (dismissed || isStandaloneDisplay()) return null;
+  if (!ready || dismissed || isStandaloneDisplay()) return null;
 
   const showChrome = installEvent !== null;
   const showBanner = showChrome || showIosHint;
@@ -102,7 +122,7 @@ export function PwaInstallBanner() {
     <div
       dir="rtl"
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-[90] border-t border-neutral-200 bg-white/95 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:left-auto sm:right-4 sm:bottom-4 sm:max-w-md sm:rounded-xl sm:border sm:p-4",
+        "fixed bottom-0 left-0 right-0 z-[90] border-t border-neutral-200 bg-white/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:bottom-4 sm:left-auto sm:right-4 sm:max-w-md sm:rounded-xl sm:border sm:p-4 sm:pb-4",
       )}
       role="region"
       aria-label={heUi.pwa.installRegionLabel}

@@ -17,6 +17,10 @@ import {
 } from "@/components/ui";
 import { DEMO_SETTINGS, buildDemoDataset } from "@/core/demo/demoSeed";
 import { isDemoModeActive, setDemoModeActive } from "@/core/demo/demoMode";
+import {
+  loadFirstRunOnboardingState,
+  saveFirstRunOnboardingState,
+} from "@/core/onboarding/firstRun";
 import { PaymentStatus } from "@/core/types/appointment";
 import { isPaidStatus } from "@/core/utils/insights";
 import {
@@ -92,6 +96,8 @@ export default function HomePage() {
   const [demoResetOpen, setDemoResetOpen] = useState(false);
   const [demoLoadOpen, setDemoLoadOpen] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [remindersReviewed, setRemindersReviewed] = useState(false);
 
   const referenceDate = useMemo(() => new Date(), []);
 
@@ -135,19 +141,29 @@ export default function HomePage() {
   const hasAnyData =
     sortedClients.length > 0 || sortedAppointments.length > 0;
 
-  const onboardingPhase = useMemo((): "client" | "appointment" | null => {
-    if (!dataReady) return null;
-    if (sortedClients.length === 0) return "client";
-    if (sortedAppointments.length === 0) return "appointment";
-    return null;
-  }, [dataReady, sortedClients.length, sortedAppointments.length]);
-
   const displayTitle =
     settings.businessName.trim() || appPageTitle(preset);
 
   useEffect(() => {
     setDemoActive(isDemoModeActive());
+    const onboarding = loadFirstRunOnboardingState();
+    setOnboardingDismissed(onboarding.dismissed);
+    setRemindersReviewed(onboarding.remindersReviewed);
   }, []);
+
+  const onboardingCompleted =
+    sortedClients.length > 0 && sortedAppointments.length > 0 && remindersReviewed;
+  const needsFirstClient = sortedClients.length === 0;
+  const needsFirstAppointment = sortedAppointments.length === 0;
+
+  useEffect(() => {
+    if (!dataReady) return;
+    if (!onboardingDismissed && onboardingCompleted) {
+      const next = { dismissed: true, remindersReviewed: true };
+      saveFirstRunOnboardingState(next);
+      setOnboardingDismissed(true);
+    }
+  }, [dataReady, onboardingDismissed, onboardingCompleted]);
 
   useEffect(() => {
     if (!dataReady) return;
@@ -328,8 +344,22 @@ export default function HomePage() {
           </section>
         ) : null}
 
-        {onboardingPhase ? (
-          <FirstRunOnboarding phase={onboardingPhase} />
+        {!onboardingDismissed ? (
+          <FirstRunOnboarding
+            hasClient={sortedClients.length > 0}
+            hasAppointment={sortedAppointments.length > 0}
+            remindersReviewed={remindersReviewed}
+            onMarkRemindersReviewed={() => {
+              const next = { dismissed: false, remindersReviewed: true };
+              saveFirstRunOnboardingState(next);
+              setRemindersReviewed(true);
+            }}
+            onDismiss={() => {
+              const next = { dismissed: true, remindersReviewed };
+              saveFirstRunOnboardingState(next);
+              setOnboardingDismissed(true);
+            }}
+          />
         ) : null}
 
         {isStorageEmpty ? (
@@ -410,7 +440,7 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className={ui.section}>
+        <section id={ONBOARDING_ANCHORS.summary} className={ui.section}>
           <h2 className={ui.sectionHeading}>{heUi.sections.summary}</h2>
           {!dataReady ? (
             <LoadingState message={heUi.loading.summary} />
@@ -454,7 +484,7 @@ export default function HomePage() {
           id={ONBOARDING_ANCHORS.clientForm}
           className={cn(
             ui.section,
-            onboardingPhase === "client" &&
+            needsFirstClient &&
               "scroll-mt-6 rounded-xl ring-2 ring-amber-400/90 ring-offset-2 ring-offset-neutral-50",
           )}
         >
@@ -524,7 +554,7 @@ export default function HomePage() {
           id={ONBOARDING_ANCHORS.lessonForm}
           className={cn(
             ui.section,
-            onboardingPhase === "appointment" &&
+            needsFirstAppointment &&
               "scroll-mt-6 rounded-xl ring-2 ring-amber-400/90 ring-offset-2 ring-offset-neutral-50",
           )}
         >

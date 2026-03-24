@@ -31,13 +31,16 @@ export const heUi = {
 
   /** First-time flow until at least one lesson exists */
   onboarding: {
-    step1Title: "שלב 1 מתוך 2 — תלמיד ראשון",
-    step1Hint:
-      "הוסיפו רשומת תלמיד בטופס למטה: שם מלא וטלפון. ההערות אופציונליות.",
-    step2Title: "שלב 2 מתוך 2 — שיעור ראשון",
-    step2Hint:
-      "קבעו שיעור: בחרו תלמיד, תאריך ושעה. אחרי השמירה יופיעו הסיכומים והתזכורות.",
-    jumpToForm: "מעבר לטופס",
+    welcomeTitle: "ברוכים הבאים ל-ServiceOS",
+    welcomeHint:
+      "התחלה מהירה בדקה: שלושה צעדים קצרים כדי לראות את המערכת עובדת.",
+    checklistAddClient: "הוספת תלמיד ראשון",
+    checklistAddLesson: "קביעת שיעור ראשון",
+    checklistReviewReminders: "סקירת תזכורות למחר",
+    jumpToClientForm: "לטופס תלמיד",
+    jumpToLessonForm: "לטופס שיעור",
+    markRemindersReviewed: "ראיתי",
+    dismiss: "הסתרת כרטיס הפתיחה",
   },
 
   toast: {

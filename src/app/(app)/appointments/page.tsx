@@ -7,7 +7,12 @@ import {
   appPageTitle,
   heUi,
 } from "@/config";
-import { LoadingState, ui, useToast } from "@/components/ui";
+import {
+  DataLoadErrorBanner,
+  LoadingState,
+  ui,
+  useToast,
+} from "@/components/ui";
 import { AppointmentFiltersBar } from "@/features/appointments/components/AppointmentFiltersBar";
 import { AppointmentForm } from "@/features/appointments/components/AppointmentForm";
 import { AppointmentList } from "@/features/appointments/components/AppointmentList";
@@ -24,6 +29,10 @@ function AppointmentsPageContent() {
     sortedClients,
     sortedAppointments,
     appointmentsReady,
+    appointmentsLoadError,
+    appointmentsSyncError,
+    retryAppointmentsLoad,
+    retryAppointmentsSync,
     dateFilter,
     setDateFilter,
     paymentFilter,
@@ -62,6 +71,20 @@ function AppointmentsPageContent() {
       </header>
 
       <div className={ui.pageStack}>
+        {appointmentsLoadError ? (
+          <DataLoadErrorBanner
+            title={appointmentsLoadError}
+            description={heUi.data.loadFailedHint}
+            onRetry={retryAppointmentsLoad}
+          />
+        ) : null}
+        {appointmentsSyncError ? (
+          <DataLoadErrorBanner
+            title={appointmentsSyncError}
+            description={heUi.data.syncFailedHint}
+            onRetry={retryAppointmentsSync}
+          />
+        ) : null}
         <section
           id={ONBOARDING_ANCHORS.lessonForm}
           className={cn(

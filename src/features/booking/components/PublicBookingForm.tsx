@@ -11,6 +11,8 @@ export interface PublicBookingFormSubmitInput {
   notes: string;
   slotStart: string;
   slotEnd: string;
+  pickupLocation: string;
+  carType: string;
 }
 
 export interface PublicBookingFormProps {
@@ -35,6 +37,8 @@ export function PublicBookingForm({
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [carType, setCarType] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -76,12 +80,16 @@ export function PublicBookingForm({
         notes: notes.trim(),
         slotStart: selectedSlot.slotStart,
         slotEnd: selectedSlot.slotEnd,
+        pickupLocation: pickupLocation.trim(),
+        carType: carType.trim(),
       });
       if (!ok) return;
       setIsSuccess(true);
       setFullName("");
       setPhone("");
       setNotes("");
+      setPickupLocation("");
+      setCarType("");
       setErrors({});
     } finally {
       setIsSubmitting(false);
@@ -174,6 +182,34 @@ export function PublicBookingForm({
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           className={`${ui.input} min-h-[5.5rem] resize-y`}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="public-booking-pickup" className={ui.label}>
+          מיקום איסוף (אופציונלי)
+        </label>
+        <textarea
+          id="public-booking-pickup"
+          value={pickupLocation}
+          onChange={(e) => setPickupLocation(e.target.value)}
+          rows={2}
+          className={`${ui.input} min-h-[4rem] resize-y`}
+          placeholder="למשל: רחוב, שכונה"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="public-booking-car" className={ui.label}>
+          סוג רכב (אופציונלי)
+        </label>
+        <input
+          id="public-booking-car"
+          type="text"
+          value={carType}
+          onChange={(e) => setCarType(e.target.value)}
+          className={ui.input}
+          placeholder="למשל: אוטומט / ידני"
         />
       </div>
 

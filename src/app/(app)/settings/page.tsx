@@ -1,7 +1,12 @@
 "use client";
 
 import { appPageTitle, heUi } from "@/config";
-import { LoadingState, ui, useToast } from "@/components/ui";
+import {
+  DataLoadErrorBanner,
+  LoadingState,
+  ui,
+  useToast,
+} from "@/components/ui";
 import { setDemoModeActive } from "@/core/demo/demoMode";
 import { BackupRestoreSection } from "@/features/settings/components/BackupRestoreSection";
 import { SettingsPanel } from "@/features/settings/components/SettingsPanel";
@@ -14,6 +19,18 @@ export default function SettingsPage() {
     settings,
     settingsReady,
     replaceSettings,
+    settingsLoadError,
+    settingsSyncError,
+    retrySettingsLoad,
+    retrySettingsSync,
+    clientsLoadError,
+    clientsSyncError,
+    retryClientsLoad,
+    retryClientsSync,
+    appointmentsLoadError,
+    appointmentsSyncError,
+    retryAppointmentsLoad,
+    retryAppointmentsSync,
     sortedClients,
     sortedAppointments,
     replaceClients,
@@ -35,6 +52,50 @@ export default function SettingsPage() {
       </header>
 
       <div className={ui.pageStack}>
+        <div className="flex flex-col gap-3">
+          {settingsLoadError ? (
+            <DataLoadErrorBanner
+              title={settingsLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retrySettingsLoad}
+            />
+          ) : null}
+          {settingsSyncError ? (
+            <DataLoadErrorBanner
+              title={settingsSyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retrySettingsSync}
+            />
+          ) : null}
+          {clientsLoadError ? (
+            <DataLoadErrorBanner
+              title={clientsLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retryClientsLoad}
+            />
+          ) : null}
+          {clientsSyncError ? (
+            <DataLoadErrorBanner
+              title={clientsSyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retryClientsSync}
+            />
+          ) : null}
+          {appointmentsLoadError ? (
+            <DataLoadErrorBanner
+              title={appointmentsLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retryAppointmentsLoad}
+            />
+          ) : null}
+          {appointmentsSyncError ? (
+            <DataLoadErrorBanner
+              title={appointmentsSyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retryAppointmentsSync}
+            />
+          ) : null}
+        </div>
         <section className={ui.section}>
           {!settingsReady ? (
             <LoadingState message={heUi.loading.default} />

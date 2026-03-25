@@ -4,18 +4,22 @@ import { useEffect } from "react";
 
 import { useToast } from "@/components/ui";
 import { heUi } from "@/config";
+import { isSupabaseConfigured } from "@/core/config/supabaseEnv";
 import {
   ensureStorageBootstrap,
   getLastStorageBootstrapResult,
 } from "@/core/persistence";
 
 /**
- * Runs storage bootstrap once and surfaces a friendly error when the on-disk schema is unsupported.
+ * Runs LocalStorage bootstrap when domain data lives in the browser.
+ * Skipped when Supabase is the active store (no `serviceos.*` keys required).
  */
 export function StorageBootstrapNotifier(): null {
   const toast = useToast();
 
   useEffect(() => {
+    if (isSupabaseConfigured()) return;
+
     ensureStorageBootstrap();
     const r = getLastStorageBootstrapResult();
     if (r && !r.ok) {

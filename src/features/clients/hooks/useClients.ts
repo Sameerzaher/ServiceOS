@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 
+import { heUi } from "@/config";
 import type { Client, ClientId } from "@/core/types/client";
-import { useServiceStorage } from "@/core/storage";
+import { isSupabaseConfigured, useServiceStorage } from "@/core/storage";
 import { createId } from "@/core/utils/ids";
 
 export type NewClientInput = Omit<Client, "id" | "createdAt" | "updatedAt">;
@@ -15,6 +16,10 @@ export interface UseClientsResult {
   /** Clients sorted by `fullName` (Hebrew locale). */
   sortedClients: Client[];
   isReady: boolean;
+  loadError: string | null;
+  syncError: string | null;
+  retryLoad: () => void;
+  retrySync: () => void;
   addClient: (input: NewClientInput) => Client | null;
   updateClient: (id: ClientId, patch: ClientPatch) => void;
   deleteClient: (id: ClientId) => void;
@@ -24,18 +29,86 @@ export interface UseClientsResult {
 
 export function useClients(): UseClientsResult {
   const storage = useServiceStorage();
+  const remote = isSupabaseConfigured();
+  const skipPersistAfterRemoteLoadRef = useRef(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
-    setClients(storage.loadClients());
-    setIsReady(true);
-  }, [storage]);
+    let cancelled = false;
+    setLoadError(null);
+    void (async () => {
+      try {
+        const rows = await storage.loadClients();
+        if (!cancelled) {
+          setClients(rows);
+          if (remote) skipPersistAfterRemoteLoadRef.current = true;
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useClients load", e);
+        if (!cancelled) setLoadError(heUi.data.loadFailedTitle);
+      } finally {
+        if (!cancelled) setIsReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [storage, loadKey, remote]);
 
   useEffect(() => {
     if (!isReady) return;
-    storage.persistClients(clients);
-  }, [clients, isReady, storage]);
+    if (remote && skipPersistAfterRemoteLoadRef.current) {
+      skipPersistAfterRemoteLoadRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        await storage.persistClients(clients);
+        if (cancelled) return;
+        setSyncError(null);
+        if (remote) {
+          skipPersistAfterRemoteLoadRef.current = true;
+          const rows = await storage.loadClients();
+          if (!cancelled) setClients(rows);
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useClients persist", e);
+        if (!cancelled) setSyncError(heUi.data.syncFailedTitle);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [clients, isReady, remote, storage]);
+
+  const retryLoad = useCallback(() => {
+    setLoadError(null);
+    setIsReady(false);
+    setLoadKey((k) => k + 1);
+  }, []);
+
+  const retrySync = useCallback(() => {
+    setSyncError(null);
+    void (async () => {
+      try {
+        await storage.persistClients(clients);
+        setSyncError(null);
+        if (remote) {
+          skipPersistAfterRemoteLoadRef.current = true;
+          const rows = await storage.loadClients();
+          setClients(rows);
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useClients retrySync", e);
+        setSyncError(heUi.data.syncFailedTitle);
+      }
+    });
+  }, [clients, remote, storage]);
 
   function addClient(input: NewClientInput): Client | null {
     const id = createId();
@@ -88,6 +161,10 @@ export function useClients(): UseClientsResult {
     clients,
     sortedClients,
     isReady,
+    loadError,
+    syncError,
+    retryLoad,
+    retrySync,
     addClient,
     updateClient,
     deleteClient,

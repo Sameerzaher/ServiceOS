@@ -64,6 +64,19 @@ export function generateAvailableSlots({
   const targetDate = new Date(`${date}T00:00`);
   if (Number.isNaN(targetDate.getTime())) return [];
 
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
+  const selectedStart = new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate(),
+  ).getTime();
+  const dayOffset = Math.round((selectedStart - todayStart) / 86_400_000);
+  if (dayOffset < 0 || dayOffset >= availability.daysAhead) return [];
+
   const weekday = toWeekdayKey(targetDate);
   const dayAvailability = availability.weeklyAvailability[weekday];
   if (!dayAvailability.enabled) return [];
@@ -106,7 +119,14 @@ export function generateAvailableSlots({
     const overlapsExisting = activeAppointments.some((appt) => {
       const apptStartMs = new Date(appt.startAt).getTime();
       if (!Number.isFinite(apptStartMs)) return false;
-      const apptEndMs = apptStartMs + slotMinutes * 60_000;
+      const endRaw = appt.customFields?.bookingSlotEnd;
+      let apptEndMs: number;
+      if (typeof endRaw === "string") {
+        const t = new Date(endRaw.trim()).getTime();
+        apptEndMs = Number.isFinite(t) ? t : apptStartMs + slotMinutes * 60_000;
+      } else {
+        apptEndMs = apptStartMs + slotMinutes * 60_000;
+      }
       return rangesOverlap(slotStartMs, slotEndMs, apptStartMs, apptEndMs);
     });
     if (overlapsExisting) continue;

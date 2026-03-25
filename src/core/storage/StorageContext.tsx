@@ -7,22 +7,27 @@ import {
   useMemo,
 } from "react";
 
-import type { ServiceStorage } from "./types";
-import { localStorageAdapter } from "./localStorageAdapter";
+import type { ServiceStorage } from "@/core/types/serviceStorage";
+
+import { createServiceStorage } from "./createServiceStorage";
 
 const StorageContext = createContext<ServiceStorage | null>(null);
 
 export function StorageProvider({
   children,
-  storage = localStorageAdapter,
+  storage: storageProp,
 }: {
   children: ReactNode;
-  /** Inject mock or API-backed adapter in tests / future. */
+  /** Inject mock or alternate adapter in tests. */
   storage?: ServiceStorage;
 }) {
-  const value = useMemo(() => storage, [storage]);
+  const storage = useMemo(
+    () => storageProp ?? createServiceStorage(),
+    [storageProp],
+  );
+
   return (
-    <StorageContext.Provider value={value}>{children}</StorageContext.Provider>
+    <StorageContext.Provider value={storage}>{children}</StorageContext.Provider>
   );
 }
 

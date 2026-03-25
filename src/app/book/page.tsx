@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { ui } from "@/components/ui";
+import { heUi } from "@/config";
+import { DataLoadErrorBanner, ui } from "@/components/ui";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
 import { BookingSlotPicker } from "@/features/booking/components/BookingSlotPicker";
 import { PublicBookingForm } from "@/features/booking/components/PublicBookingForm";
@@ -18,13 +19,44 @@ function todayLocalYmd(): string {
   return `${y}-${m}-${day}`;
 }
 
+function addLocalDaysYmd(from: Date, daysToAdd: number): string {
+  const d = new Date(
+    from.getFullYear(),
+    from.getMonth(),
+    from.getDate(),
+  );
+  d.setDate(d.getDate() + daysToAdd);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export default function PublicBookingPage() {
   const [selectedDate, setSelectedDate] = useState<string>(() => todayLocalYmd());
   const [selectedSlotStart, setSelectedSlotStart] = useState<string | null>(null);
+  const [appointmentsReloadKey, setAppointmentsReloadKey] = useState(0);
 
-  const { settings: availability } = useAvailabilitySettings();
-  const { sortedAppointments } = useAppointments();
-  const { isReady, isSuccess, error, submitBooking, resetState } = useBooking();
+  const {
+    settings: availability,
+    isReady: availabilityReady,
+    loadError: availabilityLoadError,
+    syncError: availabilitySyncError,
+    retryLoad: retryAvailabilityLoad,
+    retrySync: retryAvailabilitySync,
+  } = useAvailabilitySettings();
+  const {
+    sortedAppointments,
+    isReady: appointmentsReady,
+    loadError: appointmentsLoadError,
+    syncError: appointmentsSyncError,
+    retryLoad: retryAppointmentsLoad,
+    retrySync: retryAppointmentsSync,
+  } = useAppointments(appointmentsReloadKey);
+  const { isReady, isSuccess, error, submitBooking, resetState } = useBooking({
+    onPublicBookingSuccess: () =>
+      setAppointmentsReloadKey((k) => k + 1),
+  });
 
   const availableSlots = useMemo(
     () =>
@@ -42,6 +74,25 @@ export default function PublicBookingPage() {
     [availableSlots, selectedSlotStart],
   );
 
+  const maxBookDateYmd = useMemo(() => {
+    const ahead = Math.max(1, availability.daysAhead);
+    return addLocalDaysYmd(new Date(), ahead - 1);
+  }, [availability.daysAhead]);
+
+  useEffect(() => {
+    const min = todayLocalYmd();
+    if (selectedDate < min) {
+      setSelectedDate(min);
+      setSelectedSlotStart(null);
+    }
+    if (selectedDate > maxBookDateYmd) {
+      setSelectedDate(maxBookDateYmd);
+      setSelectedSlotStart(null);
+    }
+  }, [maxBookDateYmd, selectedDate]);
+
+  const bookingDataReady = availabilityReady && appointmentsReady;
+
   return (
     <main className={ui.pageMain}>
       <header className={ui.header}>
@@ -52,10 +103,42 @@ export default function PublicBookingPage() {
       </header>
 
       <div className={ui.pageStack}>
+        <div className="flex flex-col gap-3">
+          {availabilityLoadError ? (
+            <DataLoadErrorBanner
+              title={availabilityLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retryAvailabilityLoad}
+            />
+          ) : null}
+          {availabilitySyncError ? (
+            <DataLoadErrorBanner
+              title={availabilitySyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retryAvailabilitySync}
+            />
+          ) : null}
+          {appointmentsLoadError ? (
+            <DataLoadErrorBanner
+              title={appointmentsLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retryAppointmentsLoad}
+            />
+          ) : null}
+          {appointmentsSyncError ? (
+            <DataLoadErrorBanner
+              title={appointmentsSyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retryAppointmentsSync}
+            />
+          ) : null}
+        </div>
         <section className={ui.section}>
           <h2 className={ui.sectionHeading}>בחירת תאריך</h2>
           <div className={`${ui.formCard} space-y-4`}>
-            {!availability.bookingEnabled ? (
+            {!bookingDataReady ? (
+              <p className="text-sm text-neutral-600">{heUi.loading.default}</p>
+            ) : !availability.bookingEnabled ? (
               <p className="text-sm text-neutral-700">
                 כרגע ההזמנה הציבורית סגורה. אפשר לנסות שוב מאוחר יותר.
               </p>
@@ -69,6 +152,8 @@ export default function PublicBookingPage() {
                     id="book-date"
                     type="date"
                     className={ui.input}
+                    min={todayLocalYmd()}
+                    max={maxBookDateYmd}
                     value={selectedDate}
                     onChange={(e) => {
                       setSelectedDate(e.target.value);

@@ -6,7 +6,7 @@ import {
   appPageTitle,
   heUi,
 } from "@/config";
-import { LoadingState, ui } from "@/components/ui";
+import { DataLoadErrorBanner, LoadingState, ui } from "@/components/ui";
 import { ClientForm } from "@/features/clients/components/ClientForm";
 import { ClientList } from "@/features/clients/components/ClientList";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
@@ -21,6 +21,10 @@ export default function ClientsPage() {
     sortedClients,
     sortedAppointments,
     clientsReady,
+    clientsLoadError,
+    clientsSyncError,
+    retryClientsLoad,
+    retryClientsSync,
     clientSearch,
     setClientSearch,
     filteredClients,
@@ -44,6 +48,20 @@ export default function ClientsPage() {
       </header>
 
       <div className={ui.pageStack}>
+        {clientsLoadError ? (
+          <DataLoadErrorBanner
+            title={clientsLoadError}
+            description={heUi.data.loadFailedHint}
+            onRetry={retryClientsLoad}
+          />
+        ) : null}
+        {clientsSyncError ? (
+          <DataLoadErrorBanner
+            title={clientsSyncError}
+            description={heUi.data.syncFailedHint}
+            onRetry={retryClientsSync}
+          />
+        ) : null}
         <section
           id={ONBOARDING_ANCHORS.clientForm}
           className={cn(

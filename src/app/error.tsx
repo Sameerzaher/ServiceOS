@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import { heUi } from "@/config";
 import { Button, ui } from "@/components/ui";
 
+/**
+ * Avoid `useRouter` here: when the App Router hits an internal error
+ * (`parallelRoutes` null), navigation hooks can re-enter broken state.
+ */
 export default function AppError({
   error,
   reset,
@@ -13,8 +16,6 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const router = useRouter();
-
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -29,13 +30,12 @@ export default function AppError({
         <Button type="button" variant="primary" onClick={reset}>
           {heUi.errors.tryAgain}
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => router.push("/")}
+        <a
+          href="/"
+          className="inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-neutral-200/90 bg-white px-4 py-2.5 text-base font-medium text-neutral-900 shadow-sm transition hover:border-emerald-200/80 hover:bg-emerald-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500/40"
         >
           {heUi.errors.goHome}
-        </Button>
+        </a>
       </div>
     </main>
   );

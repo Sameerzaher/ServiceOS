@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 
+import { heUi } from "@/config";
 import type { ClientId } from "@/core/types/client";
 import type {
   Appointment,
   AppointmentId,
   AppointmentRecord,
 } from "@/core/types/appointment";
-import { useServiceStorage } from "@/core/storage";
+import { isSupabaseConfigured, useServiceStorage } from "@/core/storage";
 import { createId } from "@/core/utils/ids";
 
 export type AppointmentPatch = Partial<Omit<AppointmentRecord, "id" | "createdAt">>;
@@ -18,6 +19,10 @@ export interface UseAppointmentsResult {
   /** Sorted by `startAt` ascending (earliest first). */
   sortedAppointments: AppointmentRecord[];
   isReady: boolean;
+  loadError: string | null;
+  syncError: string | null;
+  retryLoad: () => void;
+  retrySync: () => void;
   addAppointment: (input: Appointment) => AppointmentRecord | null;
   updateAppointment: (id: AppointmentId, patch: AppointmentPatch) => void;
   deleteAppointment: (id: AppointmentId) => void;
@@ -27,20 +32,91 @@ export interface UseAppointmentsResult {
   replaceAppointments: (next: AppointmentRecord[]) => void;
 }
 
-export function useAppointments(): UseAppointmentsResult {
+/**
+ * @param reloadKey Increment to force a reload from storage (e.g. after public API booking).
+ */
+export function useAppointments(reloadKey?: number): UseAppointmentsResult {
   const storage = useServiceStorage();
+  const remote = isSupabaseConfigured();
+  const skipPersistAfterRemoteLoadRef = useRef(false);
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
-    setAppointments(storage.loadAppointments());
-    setIsReady(true);
-  }, [storage]);
+    let cancelled = false;
+    setLoadError(null);
+    void (async () => {
+      try {
+        const rows = await storage.loadAppointments();
+        if (!cancelled) {
+          setAppointments(rows);
+          if (remote) skipPersistAfterRemoteLoadRef.current = true;
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useAppointments load", e);
+        if (!cancelled) setLoadError(heUi.data.loadFailedTitle);
+      } finally {
+        if (!cancelled) setIsReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [storage, reloadKey, remote, loadKey]);
 
   useEffect(() => {
     if (!isReady) return;
-    storage.persistAppointments(appointments);
-  }, [appointments, isReady, storage]);
+    if (remote && skipPersistAfterRemoteLoadRef.current) {
+      skipPersistAfterRemoteLoadRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        await storage.persistAppointments(appointments);
+        if (cancelled) return;
+        setSyncError(null);
+        if (remote) {
+          skipPersistAfterRemoteLoadRef.current = true;
+          const rows = await storage.loadAppointments();
+          if (!cancelled) setAppointments(rows);
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useAppointments persist", e);
+        if (!cancelled) setSyncError(heUi.data.syncFailedTitle);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [appointments, isReady, remote, storage]);
+
+  const retryLoad = useCallback(() => {
+    setLoadError(null);
+    setIsReady(false);
+    setLoadKey((k) => k + 1);
+  }, []);
+
+  const retrySync = useCallback(() => {
+    setSyncError(null);
+    void (async () => {
+      try {
+        await storage.persistAppointments(appointments);
+        setSyncError(null);
+        if (remote) {
+          skipPersistAfterRemoteLoadRef.current = true;
+          const rows = await storage.loadAppointments();
+          setAppointments(rows);
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useAppointments retrySync", e);
+        setSyncError(heUi.data.syncFailedTitle);
+      }
+    });
+  }, [appointments, remote, storage]);
 
   function addAppointment(input: Appointment): AppointmentRecord | null {
     const id = createId();
@@ -99,6 +175,10 @@ export function useAppointments(): UseAppointmentsResult {
     appointments,
     sortedAppointments,
     isReady,
+    loadError,
+    syncError,
+    retryLoad,
+    retrySync,
     addAppointment,
     updateAppointment,
     deleteAppointment,

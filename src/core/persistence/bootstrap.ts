@@ -1,12 +1,12 @@
-import { normalizeAvailabilitySettings } from "@/core/types/availability";
-import { normalizeAppSettings } from "@/core/types/settings";
 import { loadFromStorage, saveToStorage } from "@/core/utils/storage";
 
-import { parseAppointmentsArray, parseClientsArray } from "./entityNormalize";
 import { STORAGE_KEYS } from "./keys";
 
-/** Bump when persisted shape or semantics change; migrations run for lower values. */
-export const STORAGE_SCHEMA_VERSION = 1;
+/**
+ * Bump when local-only bootstrap semantics change.
+ * v2: drop legacy domain blobs from localStorage (business data is Supabase-only).
+ */
+export const STORAGE_SCHEMA_VERSION = 2;
 
 export type StorageBootstrapResult =
   | { ok: true; migratedFrom: number }
@@ -35,48 +35,30 @@ function writeMetaVersion(version: number): void {
   saveToStorage(STORAGE_KEYS.meta, { schemaVersion: version });
 }
 
-function clearDomainData(): void {
-  saveToStorage(STORAGE_KEYS.clients, []);
-  saveToStorage(STORAGE_KEYS.appointments, []);
-  saveToStorage(STORAGE_KEYS.settings, normalizeAppSettings(null));
-  saveToStorage(
-    STORAGE_KEYS.availability,
-    normalizeAvailabilitySettings(null),
-  );
-}
-
-/** Re-save normalized domain rows (v0 → v1 and any future pre-write cleanup). */
-function migrateToCurrentSchema(): void {
-  const clientsRaw = loadFromStorage<unknown>(STORAGE_KEYS.clients);
-  const clients = parseClientsArray(clientsRaw);
-  saveToStorage(STORAGE_KEYS.clients, clients);
-
-  const clientIds = new Set(clients.map((c) => c.id));
-  const appointmentsRaw = loadFromStorage<unknown>(STORAGE_KEYS.appointments);
-  const appointments = parseAppointmentsArray(appointmentsRaw, clientIds);
-  saveToStorage(STORAGE_KEYS.appointments, appointments);
-
-  const settingsRaw = loadFromStorage<unknown>(STORAGE_KEYS.settings);
-  saveToStorage(STORAGE_KEYS.settings, normalizeAppSettings(settingsRaw));
-
-  const availabilityRaw = loadFromStorage<unknown>(STORAGE_KEYS.availability);
-  saveToStorage(
-    STORAGE_KEYS.availability,
-    normalizeAvailabilitySettings(availabilityRaw),
-  );
+/** Remove obsolete domain keys (migrated to Supabase). */
+function clearLegacyDomainKeys(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEYS.clients);
+    window.localStorage.removeItem(STORAGE_KEYS.appointments);
+    window.localStorage.removeItem(STORAGE_KEYS.settings);
+    window.localStorage.removeItem(STORAGE_KEYS.availability);
+  } catch {
+    /* ignore */
+  }
 }
 
 function runStorageBootstrap(): StorageBootstrapResult {
   const v = readMetaVersion();
 
   if (v > STORAGE_SCHEMA_VERSION || v < 0) {
-    clearDomainData();
+    clearLegacyDomainKeys();
     writeMetaVersion(STORAGE_SCHEMA_VERSION);
     return { ok: false, reason: "unknown_schema_version", version: v };
   }
 
   if (v < STORAGE_SCHEMA_VERSION) {
-    migrateToCurrentSchema();
+    clearLegacyDomainKeys();
     writeMetaVersion(STORAGE_SCHEMA_VERSION);
     return { ok: true, migratedFrom: v };
   }
@@ -85,7 +67,7 @@ function runStorageBootstrap(): StorageBootstrapResult {
 }
 
 /**
- * Runs once per tab: migrations + schema meta. Safe to call from every adapter read/write.
+ * Runs once per tab: schema meta + one-time cleanup of legacy domain localStorage keys.
  */
 export function ensureStorageBootstrap(): void {
   if (typeof window === "undefined") return;
@@ -94,7 +76,7 @@ export function ensureStorageBootstrap(): void {
   try {
     lastBootstrapResult = runStorageBootstrap();
   } catch {
-    clearDomainData();
+    clearLegacyDomainKeys();
     writeMetaVersion(STORAGE_SCHEMA_VERSION);
     lastBootstrapResult = {
       ok: false,

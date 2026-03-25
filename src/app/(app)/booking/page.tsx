@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { appPageTitle, heUi } from "@/config";
-import { ui } from "@/components/ui";
+import { DataLoadErrorBanner, LoadingState, ui } from "@/components/ui";
 import { AvailabilitySettingsForm } from "@/features/booking/components/AvailabilitySettingsForm";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import { cn } from "@/lib/cn";
@@ -15,6 +15,11 @@ export default function BookingSettingsPage() {
     availabilitySettings,
     updateAvailabilitySettings,
     resetAvailabilitySettings,
+    availabilityReady,
+    availabilityLoadError,
+    availabilitySyncError,
+    retryAvailabilityLoad,
+    retryAvailabilitySync,
   } = useServiceApp();
 
   const displayTitle =
@@ -28,6 +33,20 @@ export default function BookingSettingsPage() {
       </header>
 
       <div className={cn(ui.pageStack, ui.section)}>
+        {availabilityLoadError ? (
+          <DataLoadErrorBanner
+            title={availabilityLoadError}
+            description={heUi.data.loadFailedHint}
+            onRetry={retryAvailabilityLoad}
+          />
+        ) : null}
+        {availabilitySyncError ? (
+          <DataLoadErrorBanner
+            title={availabilitySyncError}
+            description={heUi.data.syncFailedHint}
+            onRetry={retryAvailabilitySync}
+          />
+        ) : null}
         <p className="text-sm text-neutral-600">{heUi.settings.bookingHint}</p>
         <Link
           href="/book"
@@ -37,11 +56,15 @@ export default function BookingSettingsPage() {
         >
           {heUi.settings.bookingPublicLink}
         </Link>
-        <AvailabilitySettingsForm
-          settings={availabilitySettings}
-          onChange={(next) => updateAvailabilitySettings(next)}
-          onReset={resetAvailabilitySettings}
-        />
+        {!availabilityReady ? (
+          <LoadingState message={heUi.loading.bookingSettings} />
+        ) : (
+          <AvailabilitySettingsForm
+            settings={availabilitySettings}
+            onChange={(next) => updateAvailabilitySettings(next)}
+            onReset={resetAvailabilitySettings}
+          />
+        )}
       </div>
     </main>
   );

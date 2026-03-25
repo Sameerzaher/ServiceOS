@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 
 import { appTagline, heUi } from "@/config";
-import { EmptyState, LoadingState, ui, useToast } from "@/components/ui";
+import {
+  DataLoadErrorBanner,
+  EmptyState,
+  LoadingState,
+  ui,
+  useToast,
+} from "@/components/ui";
 import { DemoExportBar } from "@/features/demo/components/DemoExportBar";
 import { ExportLessonsPanel } from "@/features/export/components/ExportLessonsPanel";
 import { exportStudentsCsv } from "@/features/export/csvExport";
@@ -33,6 +39,22 @@ export default function DashboardPage() {
     setRemindersReviewed,
     setOnboardingDismissed,
     displayTitle,
+    clientsLoadError,
+    clientsSyncError,
+    retryClientsLoad,
+    retryClientsSync,
+    appointmentsLoadError,
+    appointmentsSyncError,
+    retryAppointmentsLoad,
+    retryAppointmentsSync,
+    settingsLoadError,
+    settingsSyncError,
+    retrySettingsLoad,
+    retrySettingsSync,
+    availabilityLoadError,
+    availabilitySyncError,
+    retryAvailabilityLoad,
+    retryAvailabilitySync,
   } = useServiceApp();
 
   return (
@@ -43,6 +65,64 @@ export default function DashboardPage() {
       </header>
 
       <div className={ui.pageStack}>
+        <div className="flex flex-col gap-3">
+          {clientsLoadError ? (
+            <DataLoadErrorBanner
+              title={clientsLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retryClientsLoad}
+            />
+          ) : null}
+          {clientsSyncError ? (
+            <DataLoadErrorBanner
+              title={clientsSyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retryClientsSync}
+            />
+          ) : null}
+          {appointmentsLoadError ? (
+            <DataLoadErrorBanner
+              title={appointmentsLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retryAppointmentsLoad}
+            />
+          ) : null}
+          {appointmentsSyncError ? (
+            <DataLoadErrorBanner
+              title={appointmentsSyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retryAppointmentsSync}
+            />
+          ) : null}
+          {settingsLoadError ? (
+            <DataLoadErrorBanner
+              title={settingsLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retrySettingsLoad}
+            />
+          ) : null}
+          {settingsSyncError ? (
+            <DataLoadErrorBanner
+              title={settingsSyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retrySettingsSync}
+            />
+          ) : null}
+          {availabilityLoadError ? (
+            <DataLoadErrorBanner
+              title={availabilityLoadError}
+              description={heUi.data.loadFailedHint}
+              onRetry={retryAvailabilityLoad}
+            />
+          ) : null}
+          {availabilitySyncError ? (
+            <DataLoadErrorBanner
+              title={availabilitySyncError}
+              description={heUi.data.syncFailedHint}
+              onRetry={retryAvailabilitySync}
+            />
+          ) : null}
+        </div>
         {demoActive ? (
           <section className="rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-3 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

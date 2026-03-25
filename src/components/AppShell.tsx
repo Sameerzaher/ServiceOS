@@ -45,18 +45,23 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.back();
   }
 
+  const linkActive =
+    "bg-neutral-100 font-semibold text-neutral-900";
+  const linkInactive =
+    "font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-neutral-200/70 bg-white/90 shadow-sm shadow-black/5 backdrop-blur-md supports-[backdrop-filter]:bg-white/85">
+      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white">
         <nav className="mx-auto max-w-5xl" aria-label="ניווט ראשי">
           <div className="flex items-center justify-between gap-4 px-4 py-2.5 sm:px-6 sm:py-3">
             <Link
               href="/"
-              className="flex min-h-[2.75rem] items-center py-1 text-lg font-semibold tracking-tight text-emerald-950"
+              className="flex min-h-[2.75rem] items-center py-1 text-lg font-semibold tracking-tight text-neutral-900"
             >
               {heUi.nav.brand}
             </Link>
-            <div className="hidden items-center gap-1 sm:flex md:flex-nowrap">
+            <div className="hidden items-center gap-0.5 sm:flex">
               {NAV_ITEMS.map((item) => {
                 const active = isNavActive(pathname, item.href);
                 return (
@@ -64,10 +69,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "min-h-[2.5rem] rounded-xl px-2.5 py-1.5 text-sm font-medium transition",
-                      active
-                        ? "bg-emerald-700 text-white shadow-sm shadow-emerald-900/20"
-                        : "text-neutral-600 hover:bg-emerald-50/80 hover:text-emerald-950",
+                      "min-h-[2.5rem] rounded-lg px-2.5 py-1.5 text-sm transition",
+                      active ? linkActive : linkInactive,
                     )}
                     aria-current={active ? "page" : undefined}
                   >
@@ -76,38 +79,35 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </div>
-            <div className="flex items-center rounded-xl border border-neutral-200/80 bg-white/60 p-1 shadow-sm">
-              <button
-                type="button"
-                onClick={handleBack}
-                disabled={!isMounted || !canGoBack}
-                className={cn(
-                  "inline-flex min-h-[2.5rem] items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition sm:min-h-0 sm:px-3 sm:py-1.5",
-                  "text-neutral-700 hover:bg-emerald-50/90 hover:text-emerald-950",
-                  !isMounted || !canGoBack
-                    ? "pointer-events-none invisible"
-                    : "",
-                )}
-              >
-                <span aria-hidden className="rtl:rotate-180">
-                  ←
-                </span>
-                <span>{heUi.nav.back}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={!isMounted || !canGoBack}
+              className={cn(
+                "inline-flex min-h-[2.5rem] items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50",
+                !isMounted || !canGoBack
+                  ? "pointer-events-none invisible"
+                  : "",
+              )}
+            >
+              <span aria-hidden className="rtl:rotate-180">
+                ←
+              </span>
+              <span>{heUi.nav.back}</span>
+            </button>
           </div>
         </nav>
       </header>
 
-      <div className="flex flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0">
+      <div className="flex flex-1 flex-col pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] sm:pb-0">
         {children}
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 rounded-t-2xl border border-neutral-200/70 border-b-0 bg-white/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_32px_-8px_rgba(15,23,42,0.12)] backdrop-blur-md supports-[backdrop-filter]:bg-white/90 sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom,0px)] sm:hidden"
         aria-label="ניווט מהיר"
       >
-        <ul className="mx-auto grid max-w-lg grid-cols-5 gap-0 px-1 pt-1.5">
+        <ul className="mx-auto grid max-w-lg grid-cols-5 gap-0">
           {NAV_ITEMS.map((item) => {
             const active = isNavActive(pathname, item.href);
             return (
@@ -115,10 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex min-h-[3.25rem] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-t-xl px-3 py-1.5 text-center text-xs font-medium leading-tight transition",
+                    "flex min-h-[3.25rem] w-full min-w-0 flex-col items-center justify-center border-t-2 px-1 py-1.5 text-center text-[11px] font-medium leading-tight transition",
                     active
-                      ? "bg-emerald-700 text-white shadow-inner shadow-emerald-900/20"
-                      : "text-neutral-600 hover:bg-emerald-50/80 hover:text-emerald-950",
+                      ? "border-neutral-900 text-neutral-900"
+                      : "border-transparent text-neutral-500 hover:text-neutral-800",
                   )}
                   aria-current={active ? "page" : undefined}
                 >

@@ -32,15 +32,28 @@ function togglePaymentStatus(current: PaymentStatus): PaymentStatus {
 
 export function useServiceAppState() {
   const toast = useToast();
-  const { settings, isReady: settingsReady, replaceSettings } = useSettings();
+  const {
+    settings,
+    isReady: settingsReady,
+    replaceSettings,
+    loadError: settingsLoadError,
+    syncError: settingsSyncError,
+    retryLoad: retrySettingsLoad,
+    retrySync: retrySettingsSync,
+  } = useSettings();
   const preset = useMemo(
     () => resolveVerticalPresetFromSettings(settings),
     [settings],
   );
   const {
     settings: availabilitySettings,
+    isReady: availabilityReady,
     updateSettings: updateAvailabilitySettings,
     resetSettings: resetAvailabilitySettings,
+    loadError: availabilityLoadError,
+    syncError: availabilitySyncError,
+    retryLoad: retryAvailabilityLoad,
+    retrySync: retryAvailabilitySync,
   } = useAvailabilitySettings();
   const {
     sortedClients,
@@ -49,6 +62,10 @@ export function useServiceAppState() {
     deleteClient,
     replaceClients,
     isReady: clientsReady,
+    loadError: clientsLoadError,
+    syncError: clientsSyncError,
+    retryLoad: retryClientsLoad,
+    retrySync: retryClientsSync,
   } = useClients();
   const {
     sortedAppointments,
@@ -58,6 +75,10 @@ export function useServiceAppState() {
     deleteAppointmentsForClient,
     replaceAppointments,
     isReady: appointmentsReady,
+    loadError: appointmentsLoadError,
+    syncError: appointmentsSyncError,
+    retryLoad: retryAppointmentsLoad,
+    retrySync: retryAppointmentsSync,
   } = useAppointments();
 
   const [clientSearch, setClientSearch] = useState("");
@@ -115,9 +136,19 @@ export function useServiceAppState() {
     ? sortedAppointments.find((a) => a.id === editingAppointmentId) ?? null
     : null;
 
-  const dataReady = clientsReady && appointmentsReady && settingsReady;
+  const dataReady =
+    clientsReady &&
+    appointmentsReady &&
+    settingsReady &&
+    availabilityReady;
+  const hasDataLoadFailure =
+    clientsLoadError != null ||
+    appointmentsLoadError != null ||
+    settingsLoadError != null ||
+    availabilityLoadError != null;
   const isStorageEmpty =
     dataReady &&
+    !hasDataLoadFailure &&
     sortedClients.length === 0 &&
     sortedAppointments.length === 0;
   const hasAnyData =
@@ -249,15 +280,28 @@ export function useServiceAppState() {
     settings,
     settingsReady,
     replaceSettings,
+    settingsLoadError,
+    settingsSyncError,
+    retrySettingsLoad,
+    retrySettingsSync,
     availabilitySettings,
     updateAvailabilitySettings,
     resetAvailabilitySettings,
+    availabilityReady,
+    availabilityLoadError,
+    availabilitySyncError,
+    retryAvailabilityLoad,
+    retryAvailabilitySync,
     sortedClients,
     addClient,
     updateClient,
     deleteClient,
     replaceClients,
     clientsReady,
+    clientsLoadError,
+    clientsSyncError,
+    retryClientsLoad,
+    retryClientsSync,
     sortedAppointments,
     addAppointment,
     updateAppointment,
@@ -265,6 +309,11 @@ export function useServiceAppState() {
     deleteAppointmentsForClient,
     replaceAppointments,
     appointmentsReady,
+    appointmentsLoadError,
+    appointmentsSyncError,
+    retryAppointmentsLoad,
+    retryAppointmentsSync,
+    hasDataLoadFailure,
     clientSearch,
     setClientSearch,
     dateFilter,

@@ -19,7 +19,21 @@ export const heUi = {
     summary: "טוען סיכום…",
     students: "טוען תלמידים…",
     lessons: "טוען שיעורים…",
+    settings: "טוען הגדרות…",
+    bookingSettings: "טוען הגדרות הזמנה…",
     default: "טוען…",
+  },
+
+  /** Load / sync failures for Supabase-backed data */
+  data: {
+    loadFailedTitle: "לא ניתן לטעון את הנתונים",
+    loadFailedHint:
+      "בדקו חיבור לרשת והרשאות. אם הבעיה נמשכת, רעננו את הדף.",
+    syncFailedTitle: "השינויים לא נשמרו בשרת",
+    syncFailedHint:
+      "הנתונים עדיין מוצגים אצלכם במסך. נסו שוב לשמור או רעננו את הדף.",
+    settingsLoadFailedTitle: "לא ניתן לטעון הגדרות מהשרת",
+    availabilityLoadFailedTitle: "לא ניתן לטעון הגדרות הזמנה מהשרת",
   },
 
   sections: {

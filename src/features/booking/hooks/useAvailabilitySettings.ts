@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useServiceStorage } from "@/core/storage";
+import { heUi } from "@/config";
+import { isSupabaseConfigured, useServiceStorage } from "@/core/storage";
 import {
   DEFAULT_AVAILABILITY_SETTINGS,
   normalizeAvailabilitySettings,
@@ -11,30 +12,116 @@ import {
 
 export interface UseAvailabilitySettingsResult {
   settings: AvailabilitySettings;
+  isReady: boolean;
+  loadError: string | null;
+  syncError: string | null;
+  retryLoad: () => void;
+  retrySync: () => void;
   updateSettings: (patch: Partial<AvailabilitySettings>) => void;
   resetSettings: () => void;
 }
 
+function safeLoadingDefaults(): AvailabilitySettings {
+  return normalizeAvailabilitySettings({ bookingEnabled: false });
+}
+
 export function useAvailabilitySettings(): UseAvailabilitySettingsResult {
   const storage = useServiceStorage();
-  const [settings, setSettings] = useState<AvailabilitySettings>(
-    DEFAULT_AVAILABILITY_SETTINGS,
+  const remote = isSupabaseConfigured();
+  const skipPersistAfterLoadRef = useRef(false);
+
+  const [settings, setSettings] = useState<AvailabilitySettings>(() =>
+    safeLoadingDefaults(),
   );
   const [isReady, setIsReady] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
-    setSettings(storage.loadAvailabilitySettings());
-    setIsReady(true);
-  }, [storage]);
+    let cancelled = false;
+    setLoadError(null);
+    void (async () => {
+      try {
+        const next = await storage.loadAvailabilitySettings();
+        if (!cancelled) {
+          setSettings(next);
+          if (remote) skipPersistAfterLoadRef.current = true;
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useAvailabilitySettings load", e);
+        if (!cancelled) {
+          setLoadError(heUi.data.availabilityLoadFailedTitle);
+          setSettings(safeLoadingDefaults());
+        }
+      } finally {
+        if (!cancelled) setIsReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [remote, storage, loadKey]);
 
   useEffect(() => {
     if (!isReady) return;
-    storage.persistAvailabilitySettings(settings);
-  }, [settings, isReady, storage]);
+    if (remote && skipPersistAfterLoadRef.current) {
+      skipPersistAfterLoadRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        await storage.persistAvailabilitySettings(settings);
+        if (cancelled) return;
+        setSyncError(null);
+        if (remote) {
+          skipPersistAfterLoadRef.current = true;
+          const next = await storage.loadAvailabilitySettings();
+          if (!cancelled) setSettings(next);
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useAvailabilitySettings persist", e);
+        if (!cancelled) setSyncError(heUi.data.syncFailedTitle);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [settings, isReady, remote, storage]);
 
-  const updateSettings = useCallback((patch: Partial<AvailabilitySettings>) => {
-    setSettings((prev) => normalizeAvailabilitySettings({ ...prev, ...patch }));
+  const retryLoad = useCallback(() => {
+    setLoadError(null);
+    setIsReady(false);
+    setLoadKey((k) => k + 1);
   }, []);
+
+  const retrySync = useCallback(() => {
+    setSyncError(null);
+    void (async () => {
+      try {
+        await storage.persistAvailabilitySettings(settings);
+        setSyncError(null);
+        if (remote) {
+          skipPersistAfterLoadRef.current = true;
+          const next = await storage.loadAvailabilitySettings();
+          setSettings(next);
+        }
+      } catch (e) {
+        console.error("[ServiceOS] useAvailabilitySettings retrySync", e);
+        setSyncError(heUi.data.syncFailedTitle);
+      }
+    });
+  }, [remote, settings, storage]);
+
+  const updateSettings = useCallback(
+    (patch: Partial<AvailabilitySettings>) => {
+      setSettings((prev) =>
+        normalizeAvailabilitySettings({ ...prev, ...patch }),
+      );
+    },
+    [],
+  );
 
   const resetSettings = useCallback(() => {
     setSettings(DEFAULT_AVAILABILITY_SETTINGS);
@@ -42,9 +129,12 @@ export function useAvailabilitySettings(): UseAvailabilitySettingsResult {
 
   return {
     settings,
+    isReady,
+    loadError,
+    syncError,
+    retryLoad,
+    retrySync,
     updateSettings,
     resetSettings,
   };
 }
-
-  

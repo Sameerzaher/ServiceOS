@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
-import { useAppointments } from "@/features/appointments/hooks/useAppointments";
-import { useClients } from "@/features/clients/hooks/useClients";
+import { isSupabaseConfigured } from "@/core/storage";
 
 export interface BookingSubmitInput {
   fullName: string;
@@ -12,6 +10,13 @@ export interface BookingSubmitInput {
   notes: string;
   slotStart: string;
   slotEnd: string;
+  pickupLocation: string;
+  carType: string;
+}
+
+export interface UseBookingOptions {
+  /** Called after a successful server booking (e.g. refresh local appointment list for slot UI). */
+  onPublicBookingSuccess?: () => void;
 }
 
 export interface UseBookingResult {
@@ -23,42 +28,24 @@ export interface UseBookingResult {
   resetState: () => void;
 }
 
-function normalizePhone(phone: string): string {
-  return phone.replace(/[^\d+]/g, "");
+interface PublicBookingResponse {
+  ok: boolean;
+  error?: string;
+  appointmentId?: string;
+  clientId?: string;
 }
 
-function rangesOverlap(
-  aStartMs: number,
-  aEndMs: number,
-  bStartMs: number,
-  bEndMs: number,
-): boolean {
-  return aStartMs < bEndMs && bStartMs < aEndMs;
-}
-
-export function useBooking(): UseBookingResult {
-  const { clients, isReady: clientsReady, addClient } = useClients();
-  const {
-    appointments,
-    isReady: appointmentsReady,
-    addAppointment,
-  } = useAppointments();
+export function useBooking(options?: UseBookingOptions): UseBookingResult {
+  const onSuccessRef = useRef(options?.onPublicBookingSuccess);
+  useEffect(() => {
+    onSuccessRef.current = options?.onPublicBookingSuccess;
+  }, [options?.onPublicBookingSuccess]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isReady = clientsReady && appointmentsReady;
-
-  const clientByPhone = useMemo(() => {
-    const map = new Map<string, (typeof clients)[number]>();
-    for (const client of clients) {
-      const key = normalizePhone(client.phone);
-      if (!key) continue;
-      if (!map.has(key)) map.set(key, client);
-    }
-    return map;
-  }, [clients]);
+  const isReady = isSupabaseConfigured();
 
   const submitBooking = useCallback(
     async (input: BookingSubmitInput): Promise<boolean> => {
@@ -66,99 +53,56 @@ export function useBooking(): UseBookingResult {
       setError(null);
       setIsSuccess(false);
 
-      if (!isReady) {
-        setError("המערכת עדיין נטענת. נסו שוב בעוד רגע.");
-        return false;
-      }
-
-      const fullName = input.fullName.trim();
-      const phone = input.phone.trim();
-      if (!fullName) {
-        setError("נא להזין שם מלא.");
-        return false;
-      }
-      if (!phone) {
-        setError("נא להזין מספר טלפון.");
-        return false;
-      }
-
-      const slotStartMs = new Date(input.slotStart).getTime();
-      const slotEndMs = new Date(input.slotEnd).getTime();
-      if (!Number.isFinite(slotStartMs) || !Number.isFinite(slotEndMs)) {
-        setError("שעת ההזמנה לא תקינה. בחרו שעה מחדש.");
-        return false;
-      }
-      if (slotEndMs <= slotStartMs) {
-        setError("טווח השעות שנבחר אינו תקין. נסו לבחור שעה אחרת.");
-        return false;
-      }
-
-      if (slotStartMs < Date.now()) {
-        setError("השעה שנבחרה כבר חלפה. בחרו שעה פנויה אחרת.");
-        return false;
-      }
-
-      const slotDurationMs = slotEndMs - slotStartMs;
-      const hasConflict = appointments.some((appt) => {
-        if (appt.status === AppointmentStatus.Cancelled) return false;
-        const apptStartMs = new Date(appt.startAt).getTime();
-        if (!Number.isFinite(apptStartMs)) return false;
-        const apptEndMs = apptStartMs + slotDurationMs;
-        return rangesOverlap(slotStartMs, slotEndMs, apptStartMs, apptEndMs);
-      });
-      if (hasConflict) {
-        setError("השעה הזו נתפסה ממש עכשיו. בחרו שעה פנויה אחרת.");
+      if (!isSupabaseConfigured()) {
+        setError(
+          "הזמנה מקוונת אינה זמינה — חסרות הגדרות מסד (Supabase).",
+        );
         return false;
       }
 
       setIsSubmitting(true);
       try {
-        const normalizedPhone = normalizePhone(phone);
-        const existingClient = normalizedPhone
-          ? clientByPhone.get(normalizedPhone) ?? null
-          : null;
-        const client =
-          existingClient ??
-          addClient({
-            fullName,
-            phone,
-            notes: input.notes.trim(),
-            customFields: {},
-          });
-
-        if (!client) {
-          setError("לא הצלחנו לשמור את פרטי התלמיד. נסו שוב.");
-          return false;
-        }
-
-        const row = addAppointment({
-          clientId: client.id,
-          startAt: input.slotStart,
-          status: AppointmentStatus.Scheduled,
-          paymentStatus: PaymentStatus.Pending,
-          amount: 0,
-          customFields: {
-            bookingSource: "public",
-            bookingSlotEnd: input.slotEnd,
-            bookingNotes: input.notes.trim(),
-          },
+        const res = await fetch("/api/public-booking", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: input.fullName,
+            phone: input.phone,
+            notes: input.notes,
+            slotStart: input.slotStart,
+            slotEnd: input.slotEnd,
+            pickupLocation: input.pickupLocation,
+            carType: input.carType,
+          }),
         });
 
-        if (!row) {
-          setError("לא הצלחנו לקבוע את השיעור. נסו שוב.");
+        let body: PublicBookingResponse | null = null;
+        try {
+          body = (await res.json()) as PublicBookingResponse;
+        } catch {
+          body = null;
+        }
+
+        if (!res.ok || !body || body.ok !== true) {
+          const msg =
+            typeof body?.error === "string" && body.error.length > 0
+              ? body.error
+              : "אירעה שגיאה בשמירת הבקשה. נסו שוב.";
+          setError(msg);
           return false;
         }
 
         setIsSuccess(true);
+        onSuccessRef.current?.();
         return true;
       } catch {
-        setError("אירעה שגיאה בלתי צפויה. נסו שוב.");
+        setError("אירעה שגיאת רשת. בדקו את החיבור ונסו שוב.");
         return false;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [isSubmitting, isReady, appointments, clientByPhone, addClient, addAppointment],
+    [isSubmitting],
   );
 
   const resetState = useCallback(() => {
@@ -175,4 +119,3 @@ export function useBooking(): UseBookingResult {
     resetState,
   };
 }
-

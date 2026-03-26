@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { appPageTitle, heUi } from "@/config";
 import {
   DataLoadErrorBanner,
@@ -11,6 +13,21 @@ import { setDemoModeActive } from "@/core/demo/demoMode";
 import { BackupRestoreSection } from "@/features/settings/components/BackupRestoreSection";
 import { SettingsPanel } from "@/features/settings/components/SettingsPanel";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
+
+type SettingsApiShape = {
+  businessName: string;
+  teacherName: string;
+  phone: string;
+  defaultLessonDuration: number;
+  bookingEnabled: boolean;
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  bufferBetweenLessons: number;
+};
+
+type SettingsApiResponse =
+  | { ok: true; settings: SettingsApiShape }
+  | { ok: false; error: string };
 
 export default function SettingsPage() {
   const toast = useToast();
@@ -45,6 +62,40 @@ export default function SettingsPage() {
 
   const displayTitle =
     settings.businessName.trim() || appPageTitle(preset);
+  const initializedFromApiRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedFromApiRef.current) return;
+    initializedFromApiRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/settings", { method: "GET" });
+        const data = (await res.json()) as SettingsApiResponse;
+        if (!res.ok || data.ok !== true) return;
+        if (cancelled) return;
+        replaceSettings({
+          ...settings,
+          businessName: data.settings.businessName,
+          teacherName: data.settings.teacherName,
+          businessPhone: data.settings.phone,
+          defaultLessonDurationMinutes: data.settings.defaultLessonDuration,
+          lessonBufferMinutes: data.settings.bufferBetweenLessons,
+          workingHoursStart: data.settings.workingHoursStart,
+          workingHoursEnd: data.settings.workingHoursEnd,
+        });
+        updateAvailabilitySettings({
+          ...availabilitySettings,
+          bookingEnabled: data.settings.bookingEnabled,
+        });
+      } catch (e) {
+        console.error("[ServiceOS] settings page load", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [replaceSettings, settings, updateAvailabilitySettings, availabilitySettings]);
 
   return (
     <main className={ui.pageMain}>
@@ -106,10 +157,40 @@ export default function SettingsPage() {
               <SettingsPanel
                 settings={settings}
                 availabilitySettings={availabilitySettings}
-                onSave={(next, nextAvailability) => {
-                  replaceSettings(next);
-                  updateAvailabilitySettings(nextAvailability);
-                  toast(heUi.toast.settingsSaved);
+                onSave={async (next, nextAvailability) => {
+                  const payload: SettingsApiShape = {
+                    businessName: next.businessName,
+                    teacherName: next.teacherName,
+                    phone: next.businessPhone,
+                    defaultLessonDuration: next.defaultLessonDurationMinutes,
+                    bookingEnabled: nextAvailability.bookingEnabled,
+                    workingHoursStart: next.workingHoursStart,
+                    workingHoursEnd: next.workingHoursEnd,
+                    bufferBetweenLessons: next.lessonBufferMinutes,
+                  };
+                  try {
+                    const res = await fetch("/api/settings", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload),
+                    });
+                    const data = (await res.json()) as SettingsApiResponse;
+                    if (!res.ok || data.ok !== true) {
+                      toast(
+                        data.ok === false ? data.error : heUi.data.syncFailedTitle,
+                        "error",
+                      );
+                      return false;
+                    }
+                    replaceSettings(next);
+                    updateAvailabilitySettings(nextAvailability);
+                    toast(heUi.toast.settingsSaved);
+                    return true;
+                  } catch (e) {
+                    console.error("[ServiceOS] settings page save", e);
+                    toast(heUi.data.syncFailedTitle, "error");
+                    return false;
+                  }
                 }}
               />
               <BackupRestoreSection

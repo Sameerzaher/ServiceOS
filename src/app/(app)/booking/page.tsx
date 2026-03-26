@@ -6,6 +6,7 @@ import Link from "next/link";
 import { appPageTitle, heUi } from "@/config";
 import { Button, DataLoadErrorBanner, LoadingState, ui, useToast } from "@/components/ui";
 import { AvailabilitySettingsForm } from "@/features/booking/components/AvailabilitySettingsForm";
+import { BookingRequestsPanel } from "@/features/dashboard/components/BookingRequestsPanel";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import { cn } from "@/lib/cn";
 
@@ -114,6 +115,7 @@ export default function BookingSettingsPage() {
             onReset={resetAvailabilitySettings}
           />
         )}
+        <BookingRequestsPanel />
       </div>
     </main>
   );

@@ -37,47 +37,61 @@ type ClientRow = {
 };
 
 type BookingPayload = {
-  name: string;
+  fullName: string;
   phone: string;
   pickupLocation: string;
   carType: string;
-  date: string;
-  time: string;
+  preferredDate: string;
+  preferredTime: string;
   notes: string;
   status: "pending";
+  createdAt?: string;
   slotStart: string;
   slotEnd: string;
 };
 
 type BookingListRow = {
   id: string;
-  name: string;
+  fullName: string;
   phone: string;
-  dateTime: string;
+  pickupLocation: string;
+  carType: string;
+  preferredDate: string;
+  preferredTime: string;
+  notes: string;
   status: "pending" | "confirmed" | "cancelled";
+  createdAt: string;
 };
 
 function parsePayload(raw: unknown): BookingPayload | null {
   if (!raw || typeof raw !== "object") return null;
   const b = raw as Record<string, unknown>;
 
-  const name = typeof b.name === "string" ? b.name.trim() : "";
+  const fullName = typeof b.fullName === "string" ? b.fullName.trim() : "";
   const phone = typeof b.phone === "string" ? b.phone.trim() : "";
   const pickupLocation =
     typeof b.pickupLocation === "string" ? b.pickupLocation.trim() : "";
   const carType = typeof b.carType === "string" ? b.carType.trim() : "";
-  const date = typeof b.date === "string" ? b.date.trim() : "";
-  const time = typeof b.time === "string" ? b.time.trim() : "";
+  const preferredDate =
+    typeof b.preferredDate === "string" ? b.preferredDate.trim() : "";
+  const preferredTime =
+    typeof b.preferredTime === "string" ? b.preferredTime.trim() : "";
   const notes = typeof b.notes === "string" ? b.notes.trim() : "";
   const status = b.status === "pending" ? "pending" : null;
+  const createdAt =
+    typeof b.createdAt === "string" && b.createdAt.trim().length > 0
+      ? b.createdAt.trim()
+      : undefined;
 
   const slotStartRaw = typeof b.slotStart === "string" ? b.slotStart : "";
   const slotEndRaw = typeof b.slotEnd === "string" ? b.slotEnd : "";
 
-  if (!name || !phone || !date || !time || !status) return null;
+  if (!fullName || !phone || !preferredDate || !preferredTime || !status) {
+    return null;
+  }
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  if (!/^\d{2}:\d{2}$/.test(time)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) return null;
+  if (!/^\d{2}:\d{2}$/.test(preferredTime)) return null;
 
   let slotStart: string;
   if (slotStartRaw) {
@@ -85,7 +99,7 @@ function parsePayload(raw: unknown): BookingPayload | null {
     if (!Number.isFinite(parsed.getTime())) return null;
     slotStart = parsed.toISOString();
   } else {
-    const parsed = new Date(`${date}T${time}:00`);
+    const parsed = new Date(`${preferredDate}T${preferredTime}:00`);
     if (!Number.isFinite(parsed.getTime())) return null;
     slotStart = parsed.toISOString();
   }
@@ -103,14 +117,15 @@ function parsePayload(raw: unknown): BookingPayload | null {
   if (new Date(slotEnd).getTime() <= new Date(slotStart).getTime()) return null;
 
   return {
-    name,
+    fullName,
     phone,
     pickupLocation,
     carType,
-    date,
-    time,
+    preferredDate,
+    preferredTime,
     notes,
     status,
+    createdAt,
     slotStart,
     slotEnd,
   };
@@ -204,13 +219,13 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
     }
 
-    const now = new Date().toISOString();
+    const now = input.createdAt ?? new Date().toISOString();
     if (!clientId) {
       clientId = randomUUID();
       const { error } = await supabase.from(clientsTable).insert({
         id: clientId,
         business_id: businessId,
-        full_name: input.name,
+        full_name: input.fullName,
         phone: input.phone,
         notes: input.notes,
         custom_fields: {},
@@ -225,8 +240,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       bookingSource: "public",
       bookingApproval: "pending",
       bookingRequestStatus: input.status,
-      bookingDate: input.date,
-      bookingTime: input.time,
+      bookingDate: input.preferredDate,
+      bookingTime: input.preferredTime,
       bookingSlotEnd: input.slotEnd,
       bookingNotes: input.notes,
     };
@@ -295,7 +310,7 @@ export async function GET(): Promise<NextResponse> {
 
     const { data: apptRows, error: apptErr } = await supabase
       .from(appointmentsTable)
-      .select("id, client_id, start_at, custom_fields")
+      .select("id, client_id, start_at, created_at, custom_fields")
       .eq("business_id", businessId)
       .order("start_at", { ascending: false });
     if (apptErr) throw apptErr;
@@ -322,6 +337,7 @@ export async function GET(): Promise<NextResponse> {
         id?: string;
         client_id?: string;
         start_at?: string;
+        created_at?: string;
         custom_fields?: Record<string, unknown>;
       };
       if (!r.id || !r.client_id || !r.start_at) continue;
@@ -331,12 +347,30 @@ export async function GET(): Promise<NextResponse> {
           : {};
       if (cf.bookingSource !== "public") continue;
       const client = clientById.get(r.client_id);
+      const preferredDate =
+        typeof cf.bookingDate === "string" && cf.bookingDate.trim().length > 0
+          ? cf.bookingDate.trim()
+          : r.start_at.slice(0, 10);
+      const preferredTime =
+        typeof cf.bookingTime === "string" && cf.bookingTime.trim().length > 0
+          ? cf.bookingTime.trim()
+          : "";
+      const notes =
+        typeof cf.bookingNotes === "string" ? cf.bookingNotes.trim() : "";
+      const pickupLocation =
+        typeof cf.pickupLocation === "string" ? cf.pickupLocation.trim() : "";
+      const carType = typeof cf.carType === "string" ? cf.carType.trim() : "";
       bookings.push({
         id: r.id,
-        name: client?.full_name?.trim() || "לקוח",
+        fullName: client?.full_name?.trim() || "לקוח",
         phone: client?.phone?.trim() || "",
-        dateTime: r.start_at,
+        pickupLocation,
+        carType,
+        preferredDate,
+        preferredTime,
+        notes,
         status: deriveBookingStatus(cf),
+        createdAt: typeof r.created_at === "string" ? r.created_at : r.start_at,
       });
     }
 

@@ -9,10 +9,15 @@ type BookingStatus = "pending" | "confirmed" | "cancelled";
 
 interface BookingRequestRow {
   id: string;
-  name: string;
+  fullName: string;
   phone: string;
-  dateTime: string;
+  pickupLocation: string;
+  carType: string;
+  preferredDate: string;
+  preferredTime: string;
+  notes: string;
   status: BookingStatus;
+  createdAt: string;
 }
 
 interface GetBookingsOk {
@@ -32,27 +37,52 @@ function isRecord(x: unknown): x is Record<string, unknown> {
 function parseBookingRow(raw: unknown): BookingRequestRow | null {
   if (!isRecord(raw)) return null;
   const id = typeof raw.id === "string" ? raw.id : "";
-  const name = typeof raw.name === "string" ? raw.name : "";
+  const fullName = typeof raw.fullName === "string" ? raw.fullName : "";
   const phone = typeof raw.phone === "string" ? raw.phone : "";
-  const dateTime = typeof raw.dateTime === "string" ? raw.dateTime : "";
+  const pickupLocation =
+    typeof raw.pickupLocation === "string" ? raw.pickupLocation : "";
+  const carType = typeof raw.carType === "string" ? raw.carType : "";
+  const preferredDate =
+    typeof raw.preferredDate === "string" ? raw.preferredDate : "";
+  const preferredTime =
+    typeof raw.preferredTime === "string" ? raw.preferredTime : "";
+  const notes = typeof raw.notes === "string" ? raw.notes : "";
+  const createdAt = typeof raw.createdAt === "string" ? raw.createdAt : "";
   const status =
     raw.status === "pending" ||
     raw.status === "confirmed" ||
     raw.status === "cancelled"
       ? raw.status
       : null;
-  if (!id || !name || !dateTime || !status) return null;
-  return { id, name, phone, dateTime, status };
+  if (!id || !fullName || !preferredDate || !preferredTime || !status || !createdAt) {
+    return null;
+  }
+  return {
+    id,
+    fullName,
+    phone,
+    pickupLocation,
+    carType,
+    preferredDate,
+    preferredTime,
+    notes,
+    status,
+    createdAt,
+  };
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(date: string, time: string): string {
   try {
-    return new Intl.DateTimeFormat("he-IL", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(iso));
+    const iso = `${date}T${time}:00`;
+    const parsed = new Date(iso);
+    if (!Number.isFinite(parsed.getTime())) {
+      return `${date} ${time}`;
+    }
+    return new Intl.DateTimeFormat("he-IL", { dateStyle: "medium", timeStyle: "short" }).format(
+      parsed,
+    );
   } catch {
-    return iso;
+    return `${date} ${time}`;
   }
 }
 
@@ -98,7 +128,7 @@ export function BookingRequestsPanel() {
   const sortedRows = useMemo(
     () =>
       [...rows].sort(
-        (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime(),
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       ),
     [rows],
   );
@@ -117,6 +147,7 @@ export function BookingRequestsPanel() {
       if (!res.ok || data.ok !== true) {
         throw new Error(data.error ?? heUi.data.syncFailedTitle);
       }
+      await load();
     } catch (e) {
       console.error("[ServiceOS] booking requests update", e);
       setRows(previous);
@@ -159,13 +190,14 @@ export function BookingRequestsPanel() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 space-y-1">
                     <p className="text-sm font-semibold text-neutral-900">
-                      {heUi.dashboard.bookingRequesterName}: {row.name}
+                      {heUi.dashboard.bookingRequesterName}: {row.fullName}
                     </p>
                     <p className="text-sm text-neutral-700">
                       {heUi.dashboard.bookingRequesterPhone}: {row.phone || "—"}
                     </p>
                     <p className="text-sm text-neutral-700">
-                      {heUi.dashboard.bookingRequesterDateTime}: {formatDateTime(row.dateTime)}
+                      {heUi.dashboard.bookingRequesterDateTime}:{" "}
+                      {formatDateTime(row.preferredDate, row.preferredTime)}
                     </p>
                     <p className="text-sm text-neutral-700">
                       {heUi.dashboard.bookingRequesterStatus}: {statusLabel(row.status)}

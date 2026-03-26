@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
-import { getSupabaseAppointmentsTable, getSupabaseBusinessId } from "@/core/config/supabaseEnv";
+import {
+  getSupabaseAppointmentsTable,
+  getSupabaseBusinessId,
+  getSupabaseClientsTable,
+} from "@/core/config/supabaseEnv";
 import {
   appointmentFromRow,
   type AppointmentRow,
@@ -31,6 +35,11 @@ type CreateBody = {
   customFields?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
+  clientName?: unknown;
+  phone?: unknown;
+  date?: unknown;
+  time?: unknown;
+  sourceBookingId?: unknown;
 };
 
 function isStatus(value: string): value is AppointmentStatus {
@@ -51,9 +60,20 @@ function parseCreateBody(raw: unknown): Omit<AppointmentRecord, "id" | "createdA
   if (!raw || typeof raw !== "object") return null;
   const body = raw as CreateBody;
 
-  const clientId = typeof body.clientId === "string" ? body.clientId.trim() : "";
-  const startAt = typeof body.startAt === "string" ? body.startAt.trim() : "";
-  if (!clientId || !startAt) return null;
+  const clientId =
+    typeof body.clientId === "string" ? body.clientId.trim() : "";
+  const startAtRaw =
+    typeof body.startAt === "string" ? body.startAt.trim() : "";
+  const date = typeof body.date === "string" ? body.date.trim() : "";
+  const time = typeof body.time === "string" ? body.time.trim() : "";
+  let startAt = startAtRaw;
+  if (!startAt && date && time) {
+    const parsed = new Date(`${date}T${time}:00`);
+    if (Number.isFinite(parsed.getTime())) {
+      startAt = parsed.toISOString();
+    }
+  }
+  if (!startAt) return null;
   if (!Number.isFinite(new Date(startAt).getTime())) return null;
 
   const statusRaw = typeof body.status === "string" ? body.status.trim() : "";
@@ -82,6 +102,11 @@ function parseCreateBody(raw: unknown): Omit<AppointmentRecord, "id" | "createdA
   if (notes) {
     baseCustom.notes = notes;
   }
+  const sourceBookingId =
+    typeof body.sourceBookingId === "string" ? body.sourceBookingId.trim() : "";
+  if (sourceBookingId) {
+    baseCustom.sourceBookingId = sourceBookingId;
+  }
 
   return {
     id: typeof body.id === "string" ? body.id.trim() : undefined,
@@ -98,7 +123,10 @@ function parseCreateBody(raw: unknown): Omit<AppointmentRecord, "id" | "createdA
   };
 }
 
-function toApiAppointment(row: AppointmentRecord) {
+function toApiAppointment(
+  row: AppointmentRecord,
+  client?: { fullName: string; phone: string },
+) {
   const endRaw = row.customFields?.bookingSlotEnd;
   const endAt = typeof endRaw === "string" && endRaw.trim() ? endRaw.trim() : "";
   const dateObj = new Date(row.startAt);
@@ -126,15 +154,22 @@ function toApiAppointment(row: AppointmentRecord) {
 
   const notesRaw = row.customFields?.notes;
   const notes = typeof notesRaw === "string" ? notesRaw : "";
+  const sourceBookingIdRaw = row.customFields?.sourceBookingId;
+  const sourceBookingId =
+    typeof sourceBookingIdRaw === "string" ? sourceBookingIdRaw : "";
 
   return {
     id: row.id,
+    clientName: client?.fullName ?? "",
+    phone: client?.phone ?? "",
+    time: startTime,
     studentId: row.clientId,
     date,
     startTime,
     endTime,
     status: row.status,
     notes,
+    sourceBookingId,
     clientId: row.clientId,
     startAt: row.startAt,
     endAt,
@@ -155,6 +190,7 @@ export async function GET(): Promise<NextResponse> {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
     const table = getSupabaseAppointmentsTable();
+    const clientsTable = getSupabaseClientsTable();
     const { data, error } = await supabase
       .from(table)
       .select("*")
@@ -167,9 +203,28 @@ export async function GET(): Promise<NextResponse> {
     }
 
     const appointments: ReturnType<typeof toApiAppointment>[] = [];
+    const { data: clientRows, error: clientsErr } = await supabase
+      .from(clientsTable)
+      .select("id, full_name, phone")
+      .eq("business_id", businessId);
+    if (clientsErr) {
+      console.error("[appointments/get clients]", clientsErr);
+      return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
+    }
+    const clientMap = new Map<string, { fullName: string; phone: string }>();
+    for (const row of clientRows ?? []) {
+      const r = row as { id?: string; full_name?: string; phone?: string };
+      if (!r.id) continue;
+      clientMap.set(r.id, {
+        fullName: typeof r.full_name === "string" ? r.full_name : "",
+        phone: typeof r.phone === "string" ? r.phone : "",
+      });
+    }
     for (const row of data ?? []) {
       const parsed = appointmentFromRow(row as unknown as AppointmentRow);
-      if (parsed) appointments.push(toApiAppointment(parsed));
+      if (parsed) {
+        appointments.push(toApiAppointment(parsed, clientMap.get(parsed.clientId)));
+      }
     }
     return NextResponse.json({ ok: true as const, appointments });
   } catch (e) {
@@ -206,11 +261,51 @@ export async function POST(req: Request): Promise<NextResponse> {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
     const table = getSupabaseAppointmentsTable();
+    const clientsTable = getSupabaseClientsTable();
+    const body = raw as CreateBody;
+
+    let clientId = parsed.clientId;
+    if (!clientId) {
+      const clientName =
+        typeof body.clientName === "string" ? body.clientName.trim() : "";
+      const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+      if (!clientName || !phone) {
+        return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
+      }
+      const { data: existingClientRows, error: existingClientErr } = await supabase
+        .from(clientsTable)
+        .select("id, phone")
+        .eq("business_id", businessId);
+      if (existingClientErr) throw existingClientErr;
+      const normalized = phone.replace(/\D+/g, "");
+      for (const row of existingClientRows ?? []) {
+        const r = row as { id?: string; phone?: string };
+        const candidate = (typeof r.phone === "string" ? r.phone : "").replace(/\D+/g, "");
+        if (normalized.length > 0 && normalized === candidate && r.id) {
+          clientId = r.id;
+          break;
+        }
+      }
+      if (!clientId) {
+        clientId = randomUUID();
+        const { error: insertClientErr } = await supabase.from(clientsTable).insert({
+          id: clientId,
+          business_id: businessId,
+          full_name: clientName,
+          phone,
+          notes: "",
+          custom_fields: {},
+          created_at: now,
+          updated_at: now,
+        });
+        if (insertClientErr) throw insertClientErr;
+      }
+    }
 
     const { error } = await supabase.from(table).insert({
       id,
       business_id: businessId,
-      client_id: parsed.clientId,
+      client_id: clientId,
       start_at: parsed.startAt,
       end_at: endAt,
       status: parsed.status,
@@ -227,7 +322,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     const row: AppointmentRecord = {
       id,
-      clientId: parsed.clientId,
+      clientId,
       startAt: parsed.startAt,
       status: parsed.status,
       paymentStatus: parsed.paymentStatus,

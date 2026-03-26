@@ -12,7 +12,10 @@ import { cn } from "@/lib/cn";
 export interface SettingsPanelProps {
   settings: AppSettings;
   availabilitySettings: AvailabilitySettings;
-  onSave: (next: AppSettings, nextAvailability: AvailabilitySettings) => void;
+  onSave: (
+    next: AppSettings,
+    nextAvailability: AvailabilitySettings,
+  ) => Promise<boolean> | boolean;
 }
 
 const ACTIVE_PRESET_OPTIONS: ReadonlyArray<{
@@ -107,6 +110,23 @@ export function SettingsPanel({
         <p className="mt-1 text-xs text-neutral-500">
           {heUi.settings.businessNameHint}
         </p>
+      </div>
+
+      <div>
+        <label htmlFor="settings-teacher-name" className={ui.label}>
+          {heUi.settings.teacherName}
+        </label>
+        <input
+          id="settings-teacher-name"
+          type="text"
+          value={draft.teacherName}
+          onChange={(e) =>
+            setDraft((d) => ({ ...d, teacherName: e.target.value }))
+          }
+          className={ui.input}
+          placeholder={heUi.settings.teacherNamePlaceholder}
+          autoComplete="name"
+        />
       </div>
 
       <div>
@@ -322,12 +342,17 @@ export function SettingsPanel({
                 endTime: draft.workingHoursEnd,
               };
             }
-            onSave(draft, {
-              ...availabilitySettings,
-              bookingEnabled,
-              weeklyAvailability: weekly,
-            });
-            window.setTimeout(() => setIsSaving(false), 0);
+            void (async () => {
+              try {
+                await onSave(draft, {
+                  ...availabilitySettings,
+                  bookingEnabled,
+                  weeklyAvailability: weekly,
+                });
+              } finally {
+                setIsSaving(false);
+              }
+            })();
           }}
         >
           {isSaving ? heUi.settings.saving : heUi.settings.save}

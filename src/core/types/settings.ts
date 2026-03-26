@@ -7,6 +7,8 @@ export interface AppSettings {
   activePreset: ActivePreset;
   /** Shown in header and exports; e.g. "בית ספר לנהיגה — דני". */
   businessName: string;
+  /** Owner/teacher display name for outgoing communication. */
+  teacherName: string;
   /** Default amount (₪) for new lessons in the form. */
   defaultLessonPrice: number;
   /** Suggested lesson length (minutes); used for end-time hint in the form. */
@@ -26,6 +28,7 @@ export interface AppSettings {
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   activePreset: "driving",
   businessName: "",
+  teacherName: "",
   defaultLessonPrice: 0,
   defaultLessonDurationMinutes: 45,
   lessonBufferMinutes: 0,
@@ -101,6 +104,7 @@ export function normalizeAppSettings(raw: unknown): AppSettings {
   return {
     activePreset: coerceActivePreset(o.activePreset),
     businessName: typeof o.businessName === "string" ? o.businessName : "",
+    teacherName: typeof o.teacherName === "string" ? o.teacherName : "",
     defaultLessonPrice: coerceNonNegativeNumber(
       o.defaultLessonPrice,
       DEFAULT_APP_SETTINGS.defaultLessonPrice,

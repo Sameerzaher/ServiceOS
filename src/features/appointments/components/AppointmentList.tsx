@@ -59,6 +59,29 @@ function clientNameById(clients: Client[], id: string): string {
   return clients.find((c) => c.id === id)?.fullName ?? "—";
 }
 
+function clientPhoneById(clients: Client[], id: string): string {
+  const phone = clients.find((c) => c.id === id)?.phone ?? "";
+  return phone.trim() || "—";
+}
+
+function appointmentStatusLabel(status: AppointmentStatus): string {
+  switch (status) {
+    case AppointmentStatus.Confirmed:
+      return heUi.appointments.statusConfirmed;
+    case AppointmentStatus.InProgress:
+      return heUi.appointments.statusInProgress;
+    case AppointmentStatus.Completed:
+      return heUi.appointments.statusCompleted;
+    case AppointmentStatus.Cancelled:
+      return heUi.appointments.statusCancelled;
+    case AppointmentStatus.NoShow:
+      return heUi.appointments.statusNoShow;
+    case AppointmentStatus.Scheduled:
+    default:
+      return heUi.appointments.statusScheduled;
+  }
+}
+
 function formatStartAt(iso: string): string {
   try {
     return new Intl.DateTimeFormat("he-IL", {
@@ -196,6 +219,18 @@ export function AppointmentList({
                   </div>
                   <p className="mt-1 text-sm text-neutral-700">
                     {formatStartAt(appt.startAt)}
+                  </p>
+                  <p className="mt-1 text-sm text-neutral-600">
+                    <span className="font-medium text-neutral-700">
+                      {heUi.appointments.phonePrefix}
+                    </span>
+                    {clientPhoneById(clients, appt.clientId)}
+                  </p>
+                  <p className="mt-1 text-sm text-neutral-600">
+                    <span className="font-medium text-neutral-700">
+                      {heUi.appointments.statusPrefix}
+                    </span>
+                    {appointmentStatusLabel(appt.status)}
                   </p>
                   <p className="mt-1 text-sm text-neutral-600">
                     <span className="font-medium text-neutral-700">

@@ -110,6 +110,24 @@ export async function PUT(
     if (nextStatus === "confirmed") {
       const nowIso = new Date().toISOString();
 
+      const { data: existingConfirmedRows, error: existingConfirmedErr } =
+        await supabase
+          .from(table)
+          .select("id")
+          .eq("business_id", businessId)
+          .eq("custom_fields->>sourceBookingId", id)
+          .limit(1);
+      if (existingConfirmedErr) throw existingConfirmedErr;
+      if ((existingConfirmedRows ?? []).length > 0) {
+        const { error: deleteErr } = await supabase
+          .from(table)
+          .delete()
+          .eq("id", id)
+          .eq("business_id", businessId);
+        if (deleteErr) throw deleteErr;
+        return NextResponse.json({ ok: true as const, duplicate: true });
+      }
+
       const { data: client, error: clientErr } = await supabase
         .from(clientsTable)
         .select("id, full_name, phone")
@@ -140,6 +158,7 @@ export async function PUT(
       if (typeof customFields.bookingTime === "string") {
         appointmentCustomFields.bookingTime = customFields.bookingTime;
       }
+      appointmentCustomFields.sourceBookingId = id;
 
       const { error: insertErr } = await supabase.from(table).insert({
         id: appointmentId,

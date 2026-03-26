@@ -56,62 +56,62 @@ function normalizeClient(raw: unknown): Client | null {
   };
 }
 
-async function apiGetStudents(): Promise<Client[]> {
-  const res = await fetch("/api/students", { method: "GET" });
-  const data = (await res.json()) as ApiOk<{ students?: unknown[] }> | ApiErr;
+async function apiGetClients(): Promise<Client[]> {
+  const res = await fetch("/api/clients", { method: "GET" });
+  const data = (await res.json()) as ApiOk<{ clients?: unknown[] }> | ApiErr;
   if (!res.ok || data.ok !== true) {
-    throw new Error(data.ok === false ? data.error : "GET /api/students failed");
+    throw new Error(data.ok === false ? data.error : "GET /api/clients failed");
   }
-  const students: Client[] = [];
-  for (const row of data.students ?? []) {
+  const clients: Client[] = [];
+  for (const row of data.clients ?? []) {
     const parsed = normalizeClient(row);
-    if (parsed) students.push(parsed);
+    if (parsed) clients.push(parsed);
   }
-  return students;
+  return clients;
 }
 
-async function apiCreateStudent(student: Client): Promise<void> {
-  const res = await fetch("/api/students", {
+async function apiCreateClient(client: Client): Promise<void> {
+  const res = await fetch("/api/clients", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(student),
+    body: JSON.stringify(client),
   });
-  const data = (await res.json()) as ApiOk<{ student?: unknown }> | ApiErr;
+  const data = (await res.json()) as ApiOk<{ client?: unknown }> | ApiErr;
   if (!res.ok || data.ok !== true) {
-    throw new Error(data.ok === false ? data.error : "POST /api/students failed");
+    throw new Error(data.ok === false ? data.error : "POST /api/clients failed");
   }
 }
 
-async function apiUpdateStudent(id: string, patch: ClientPatch): Promise<void> {
-  const res = await fetch(`/api/students/${encodeURIComponent(id)}`, {
+async function apiUpdateClient(id: string, patch: ClientPatch): Promise<void> {
+  const res = await fetch(`/api/clients/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
   });
   const data = (await res.json()) as ApiOk<Record<string, never>> | ApiErr;
   if (!res.ok || data.ok !== true) {
-    throw new Error(data.ok === false ? data.error : "PUT /api/students/:id failed");
+    throw new Error(data.ok === false ? data.error : "PUT /api/clients/:id failed");
   }
 }
 
-async function apiDeleteStudent(id: string): Promise<void> {
-  const res = await fetch(`/api/students/${encodeURIComponent(id)}`, {
+async function apiDeleteClient(id: string): Promise<void> {
+  const res = await fetch(`/api/clients/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
   const data = (await res.json()) as ApiOk<Record<string, never>> | ApiErr;
   if (!res.ok || data.ok !== true) {
-    throw new Error(data.ok === false ? data.error : "DELETE /api/students/:id failed");
+    throw new Error(data.ok === false ? data.error : "DELETE /api/clients/:id failed");
   }
 }
 
-async function reconcileStudentsSnapshot(next: Client[]): Promise<void> {
-  const current = await apiGetStudents();
+async function reconcileClientsSnapshot(next: Client[]): Promise<void> {
+  const current = await apiGetClients();
   const nextById = new Map(next.map((row) => [row.id, row]));
   const currentById = new Map(current.map((row) => [row.id, row]));
 
   for (const [id, row] of Array.from(nextById.entries())) {
     if (currentById.has(id)) {
-      await apiUpdateStudent(id, {
+      await apiUpdateClient(id, {
         fullName: row.fullName,
         phone: row.phone,
         notes: row.notes,
@@ -119,12 +119,12 @@ async function reconcileStudentsSnapshot(next: Client[]): Promise<void> {
         updatedAt: row.updatedAt,
       });
     } else {
-      await apiCreateStudent(row);
+      await apiCreateClient(row);
     }
   }
   for (const [id] of Array.from(currentById.entries())) {
     if (!nextById.has(id)) {
-      await apiDeleteStudent(id);
+      await apiDeleteClient(id);
     }
   }
 }
@@ -146,7 +146,7 @@ export function useClients(): UseClientsResult {
         if (!remote) {
           throw new Error("Supabase is not configured");
         }
-        const rows = await apiGetStudents();
+        const rows = await apiGetClients();
         if (!cancelled) {
           setClients(rows);
         }
@@ -175,7 +175,7 @@ export function useClients(): UseClientsResult {
         if (!remote) {
           throw new Error("Supabase is not configured");
         }
-        await reconcileStudentsSnapshot(clients);
+        await reconcileClientsSnapshot(clients);
         setSyncError(null);
       } catch (e) {
         console.error("[ServiceOS] useClients retrySync", e);
@@ -204,7 +204,7 @@ export function useClients(): UseClientsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiCreateStudent(client);
+        await apiCreateClient(client);
       } catch (e) {
         console.error("[ServiceOS] useClients add", e);
         setClients((prev) => prev.filter((row) => row.id !== client.id));
@@ -239,7 +239,7 @@ export function useClients(): UseClientsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiUpdateStudent(id, patch);
+        await apiUpdateClient(id, patch);
       } catch (e) {
         console.error("[ServiceOS] useClients update", e);
         if (before) {
@@ -263,7 +263,7 @@ export function useClients(): UseClientsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiDeleteStudent(id);
+        await apiDeleteClient(id);
       } catch (e) {
         console.error("[ServiceOS] useClients delete", e);
         if (removed) {
@@ -284,7 +284,7 @@ export function useClients(): UseClientsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await reconcileStudentsSnapshot(next);
+        await reconcileClientsSnapshot(next);
       } catch (e) {
         console.error("[ServiceOS] useClients replace", e);
         setClients(prev);

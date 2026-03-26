@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
-import { DataLoadErrorBanner, ui } from "@/components/ui";
+import { DataLoadErrorBanner, Spinner, ui } from "@/components/ui";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
 import { BookingSlotPicker } from "@/features/booking/components/BookingSlotPicker";
 import { PublicBookingForm } from "@/features/booking/components/PublicBookingForm";
@@ -138,7 +138,10 @@ export default function PublicBookingPage() {
           <h2 className={ui.sectionHeading}>{heUi.publicBooking.sectionDate}</h2>
           <div className={`${ui.formCard} space-y-4`}>
             {!bookingDataReady ? (
-              <p className="text-sm text-neutral-600">{heUi.loading.default}</p>
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <Spinner className="size-4 border-neutral-300 border-t-neutral-700" />
+                <span>{heUi.loading.default}</span>
+              </div>
             ) : !availability.bookingEnabled ? (
               <p className="text-sm text-neutral-700">
                 {heUi.publicBooking.bookingClosed}

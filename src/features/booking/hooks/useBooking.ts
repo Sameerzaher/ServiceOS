@@ -32,8 +32,25 @@ export interface UseBookingResult {
 interface PublicBookingResponse {
   ok: boolean;
   error?: string;
-  appointmentId?: string;
-  clientId?: string;
+  bookingId?: string;
+  message?: string;
+}
+
+function toLocalDate(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function toLocalTime(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
 }
 
 export function useBooking(options?: UseBookingOptions): UseBookingResult {
@@ -61,17 +78,20 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
 
       setIsSubmitting(true);
       try {
-        const res = await fetch("/api/public-booking", {
+        const res = await fetch("/api/bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fullName: input.fullName,
+            name: input.fullName,
             phone: input.phone,
-            notes: input.notes,
-            slotStart: input.slotStart,
-            slotEnd: input.slotEnd,
             pickupLocation: input.pickupLocation,
             carType: input.carType,
+            date: toLocalDate(input.slotStart),
+            time: toLocalTime(input.slotStart),
+            notes: input.notes,
+            status: "pending",
+            slotStart: input.slotStart,
+            slotEnd: input.slotEnd,
           }),
         });
 

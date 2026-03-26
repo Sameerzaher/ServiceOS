@@ -14,6 +14,7 @@ import { DemoExportBar } from "@/features/demo/components/DemoExportBar";
 import { ExportLessonsPanel } from "@/features/export/components/ExportLessonsPanel";
 import { exportStudentsCsv } from "@/features/export/csvExport";
 import { HomeQuickDashboard } from "@/features/dashboard/components/HomeQuickDashboard";
+import { BookingRequestsPanel } from "@/features/dashboard/components/BookingRequestsPanel";
 import { saveFirstRunOnboardingState } from "@/core/onboarding/firstRun";
 import {
   FirstRunOnboarding,
@@ -240,6 +241,8 @@ export default function DashboardPage() {
             />
           )}
         </section>
+
+        <BookingRequestsPanel />
       </div>
     </main>
   );

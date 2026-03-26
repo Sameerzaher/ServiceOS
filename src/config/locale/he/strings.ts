@@ -21,7 +21,7 @@ export const heUi = {
     lessons: "טוענים את היומן…",
     settings: "טוענים את ההגדרות…",
     bookingSettings: "טוענים את הגדרות ההזמנה…",
-    default: "טוענים את הנתונים…",
+    default: "טוען נתונים...",
   },
 
   /** Load / sync failures for Supabase-backed data */
@@ -245,7 +245,7 @@ export const heUi = {
     returnToEmpty: "מחיקת הדגמה ומעבר לריק",
     emptyHint:
       "עדיין אין נתונים — טענו דוגמה כדי לראות איך המסכים נראים עם לקוחות ושיעורים.",
-    bannerTitle: "התחלה מהירה עם דוגמה מוכנה",
+    bannerTitle: "הכל מוכן להתחלה",
     bannerDescription:
       "דוגמה מלאה: לקוחות, שיעורים קרובים, תשלומים ותזכורת למחר — טובה להתרשמות או הדרכה.",
   },
@@ -269,12 +269,12 @@ export const heUi = {
   empty: {
     clientsTitle: (studentsLabel: string) =>
       `עדיין אין ${studentsLabel} — בואו נוסיף את הראשון`,
-    clientsFallback: "אין עדיין רשומות",
+    clientsFallback: "אין נתונים עדיין",
     clientsDescription:
       "לקוח ראשון ברשימה = תזכורות, יומן ועקיבה אחרי תשלומים. לחצו על «הוספת לקוח» למעלה.",
     appointmentsTitle: (lessonsLabel: string) =>
       `עדיין אין ${lessonsLabel} — הגיע הזמן לקבוע`,
-    appointmentsFallback: "אין שיעורים ביומן",
+    appointmentsFallback: "אין נתונים עדיין",
     appointmentsDescription:
       "קבעו שיעור ללקוח קיים או הוסיפו לקוח חדש — וכל האירועים יופיעו כאן.",
     noStudentsForAppointmentTitle: "קודם צריך לקוח ברשימה",
@@ -350,6 +350,18 @@ export const heUi = {
     emptyDebtList: "אין יתרות לגבייה — הכול שולם.",
     emptyUpcoming: "אין שיעורים מתוכננים קדימה — הגיע הזמן לסגור תורים.",
     unpaidBadge: "טרם שולם",
+    bookingRequestsTitle: "בקשות הזמנה",
+    bookingRequestsLoading: "טוענים בקשות הזמנה…",
+    bookingRequestsEmpty: "אין נתונים עדיין",
+    bookingRequesterName: "שם",
+    bookingRequesterPhone: "טלפון",
+    bookingRequesterDateTime: "מועד",
+    bookingRequesterStatus: "סטטוס",
+    bookingStatusPending: "ממתין",
+    bookingStatusConfirmed: "אושר",
+    bookingStatusCancelled: "בוטל",
+    bookingActionConfirm: "אשר",
+    bookingActionCancel: "בטל",
   },
 
   appointments: {

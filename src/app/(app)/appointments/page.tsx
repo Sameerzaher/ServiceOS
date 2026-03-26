@@ -46,6 +46,9 @@ function AppointmentsPageContent() {
     setAppointmentPrefillClientId,
     editingAppointment,
     handleToggleAppointmentPaid,
+    handleApprovePublicBooking,
+    handleApproveAndSendPublicBookingWhatsapp,
+    handleRejectPublicBooking,
     setConfirm,
     addAppointment,
     updateAppointment,
@@ -159,6 +162,9 @@ function AppointmentsPageContent() {
                   setAppointmentPrefillClientId(null);
                 }}
                 onTogglePaid={handleToggleAppointmentPaid}
+                onApproveRequest={handleApprovePublicBooking}
+                onApproveAndSendWhatsapp={handleApproveAndSendPublicBookingWhatsapp}
+                onRejectRequest={handleRejectPublicBooking}
               />
             </>
           )}

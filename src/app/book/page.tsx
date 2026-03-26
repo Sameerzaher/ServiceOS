@@ -53,7 +53,7 @@ export default function PublicBookingPage() {
     retryLoad: retryAppointmentsLoad,
     retrySync: retryAppointmentsSync,
   } = useAppointments(appointmentsReloadKey);
-  const { isReady, isSuccess, error, submitBooking, resetState } = useBooking({
+  const { isReady, error, submitBooking, resetState } = useBooking({
     onPublicBookingSuccess: () =>
       setAppointmentsReloadKey((k) => k + 1),
   });
@@ -96,9 +96,10 @@ export default function PublicBookingPage() {
   return (
     <main className={ui.pageMain}>
       <header className={ui.header}>
-        <h1 className={ui.pageTitle}>הזמנת שיעור נהיגה</h1>
-        <p className={ui.pageSubtitle}>
-          בחרו תאריך, שעה פנויה והשאירו פרטים. נחזור אליכם לאישור סופי.
+        <h1 className={ui.pageTitle}>{heUi.publicBooking.pageTitle}</h1>
+        <p className={ui.pageSubtitle}>{heUi.publicBooking.pageSubtitle}</p>
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-neutral-600">
+          {heUi.publicBooking.trustLine}
         </p>
       </header>
 
@@ -134,19 +135,19 @@ export default function PublicBookingPage() {
           ) : null}
         </div>
         <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>בחירת תאריך</h2>
+          <h2 className={ui.sectionHeading}>{heUi.publicBooking.sectionDate}</h2>
           <div className={`${ui.formCard} space-y-4`}>
             {!bookingDataReady ? (
               <p className="text-sm text-neutral-600">{heUi.loading.default}</p>
             ) : !availability.bookingEnabled ? (
               <p className="text-sm text-neutral-700">
-                כרגע ההזמנה הציבורית סגורה. אפשר לנסות שוב מאוחר יותר.
+                {heUi.publicBooking.bookingClosed}
               </p>
             ) : (
               <>
                 <div>
                   <label htmlFor="book-date" className={ui.label}>
-                    תאריך מבוקש
+                    {heUi.publicBooking.dateLabel}
                   </label>
                   <input
                     id="book-date"
@@ -177,18 +178,15 @@ export default function PublicBookingPage() {
         </section>
 
         <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>פרטי יצירת קשר</h2>
+          <h2 className={ui.sectionHeading}>
+            {heUi.publicBooking.sectionContact}
+          </h2>
           <PublicBookingForm
             selectedSlot={selectedSlot}
             submitError={error}
             onSubmit={(input) => submitBooking(input)}
             className={!isReady ? "opacity-80" : ""}
           />
-          {isSuccess ? (
-            <p className="text-sm text-emerald-700" role="status">
-              הבקשה נשמרה במערכת בהצלחה.
-            </p>
-          ) : null}
         </section>
       </div>
     </main>

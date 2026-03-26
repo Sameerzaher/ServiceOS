@@ -31,6 +31,11 @@ export function AppDialogs() {
             ? heUi.dialog.deleteClientMessage
             : heUi.dialog.deleteAppointmentMessage
         }
+        confirmLabel={
+          confirm?.kind === "client"
+            ? heUi.dialog.confirmDeleteClient
+            : heUi.dialog.confirmDeleteAppointment
+        }
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirm(null)}
       />
@@ -39,7 +44,7 @@ export function AppDialogs() {
         open={demoResetOpen}
         title={heUi.dialog.resetDemoTitle}
         message={heUi.dialog.resetDemoMessage}
-        confirmLabel={heUi.dialog.confirm}
+        confirmLabel={heUi.dialog.confirmResetDemo}
         confirmVariant="danger"
         onConfirm={handleConfirmDemoReset}
         onCancel={() => setDemoResetOpen(false)}

@@ -11,6 +11,12 @@ export interface AppSettings {
   defaultLessonPrice: number;
   /** Suggested lesson length (minutes); used for end-time hint in the form. */
   defaultLessonDurationMinutes: number;
+  /** Minutes to leave between lessons (operational planning hint). */
+  lessonBufferMinutes: number;
+  /** Default working day start (HH:mm). */
+  workingHoursStart: string;
+  /** Default working day end (HH:mm). */
+  workingHoursEnd: string;
   /** Business contact for reminders (WhatsApp / SMS). */
   businessPhone: string;
   /** WhatsApp reminder; supports {{name}}, {{time}}, {{business}}, {{businessPhone}}. */
@@ -22,6 +28,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   businessName: "",
   defaultLessonPrice: 0,
   defaultLessonDurationMinutes: 45,
+  lessonBufferMinutes: 0,
+  workingHoursStart: "09:00",
+  workingHoursEnd: "17:00",
   businessPhone: "",
   reminderTemplate: "היי {{name}}, תזכורת לשיעור מחר ב-{{time}}",
 };
@@ -59,6 +68,23 @@ function coerceDurationMinutes(v: unknown, fallback: number): number {
   return clampDurationMinutes(n);
 }
 
+function coerceBufferMinutes(v: unknown, fallback: number): number {
+  const n =
+    typeof v === "number" && Number.isFinite(v)
+      ? v
+      : typeof v === "string"
+        ? parseFloat(v.replace(",", ".").trim())
+        : Number.NaN;
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(120, Math.max(0, Math.round(n)));
+}
+
+function coerceHHmm(v: unknown, fallback: string): string {
+  if (typeof v !== "string") return fallback;
+  const next = v.trim();
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(next) ? next : fallback;
+}
+
 /**
  * Merges persisted or partial settings with defaults (migration-safe).
  */
@@ -82,6 +108,18 @@ export function normalizeAppSettings(raw: unknown): AppSettings {
     defaultLessonDurationMinutes: coerceDurationMinutes(
       o.defaultLessonDurationMinutes,
       DEFAULT_APP_SETTINGS.defaultLessonDurationMinutes,
+    ),
+    lessonBufferMinutes: coerceBufferMinutes(
+      o.lessonBufferMinutes,
+      DEFAULT_APP_SETTINGS.lessonBufferMinutes,
+    ),
+    workingHoursStart: coerceHHmm(
+      o.workingHoursStart,
+      DEFAULT_APP_SETTINGS.workingHoursStart,
+    ),
+    workingHoursEnd: coerceHHmm(
+      o.workingHoursEnd,
+      DEFAULT_APP_SETTINGS.workingHoursEnd,
     ),
     businessPhone: typeof o.businessPhone === "string" ? o.businessPhone : "",
     reminderTemplate: template,

@@ -1,14 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 
 import { appPageTitle, heUi } from "@/config";
-import { DataLoadErrorBanner, LoadingState, ui } from "@/components/ui";
+import { Button, DataLoadErrorBanner, LoadingState, ui, useToast } from "@/components/ui";
 import { AvailabilitySettingsForm } from "@/features/booking/components/AvailabilitySettingsForm";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import { cn } from "@/lib/cn";
 
 export default function BookingSettingsPage() {
+  const toast = useToast();
   const {
     preset,
     settings,
@@ -24,6 +26,23 @@ export default function BookingSettingsPage() {
 
   const displayTitle =
     settings.businessName.trim() || appPageTitle(preset);
+  const publicUrl = useMemo(() => {
+    if (typeof window === "undefined") return "/book";
+    return `${window.location.origin}/book`;
+  }, []);
+  const whatsappShareHref = useMemo(() => {
+    const text = heUi.settings.bookingShareText(publicUrl);
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  }, [publicUrl]);
+
+  async function copyPublicLink(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast(heUi.toast.bookingLinkCopied);
+    } catch {
+      toast(heUi.reminders.clipboardError, "error");
+    }
+  }
 
   return (
     <main className={ui.pageMain}>
@@ -48,14 +67,44 @@ export default function BookingSettingsPage() {
           />
         ) : null}
         <p className="text-sm text-neutral-600">{heUi.settings.bookingHint}</p>
-        <Link
-          href="/book"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 shadow-sm transition hover:bg-neutral-50 sm:w-fit"
-        >
-          {heUi.settings.bookingPublicLink}
-        </Link>
+        <div className={`${ui.card} ${ui.cardPadding} space-y-3`}>
+          <p className="text-xs font-medium text-neutral-600">
+            {heUi.settings.bookingPublicUrlLabel}
+          </p>
+          <input
+            type="text"
+            readOnly
+            value={publicUrl}
+            className={ui.input}
+            dir="ltr"
+            aria-label={heUi.settings.bookingPublicUrlLabel}
+          />
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <Link
+              href="/book"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 shadow-sm transition hover:bg-neutral-50"
+            >
+              {heUi.settings.bookingPublicLink}
+            </Link>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void copyPublicLink()}
+            >
+              {heUi.settings.bookingCopyLink}
+            </Button>
+            <a
+              href={whatsappShareHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900 shadow-sm transition hover:bg-emerald-100"
+            >
+              {heUi.settings.bookingShareWhatsapp}
+            </a>
+          </div>
+        </div>
         {!availabilityReady ? (
           <LoadingState message={heUi.loading.bookingSettings} />
         ) : (

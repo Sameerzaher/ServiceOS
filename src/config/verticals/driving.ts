@@ -12,9 +12,9 @@ export const drivingVerticalPreset = {
     students: "תלמידים",
     lesson: "שיעור",
     lessons: "שיעורים",
-    addStudent: "הוסף תלמיד",
-    addLesson: "קבע שיעור",
-    editStudent: "ערוך תלמיד",
+    addStudent: "הוספת תלמיד",
+    addLesson: "קביעת שיעור",
+    editStudent: "עריכת תלמיד",
     nextLesson: "שיעור הבא",
     transmission: "תיבת הילוכים",
     pickup: "איסוף",
@@ -23,7 +23,7 @@ export const drivingVerticalPreset = {
     appTitle: "ניהול",
     /** Hero subtitle on the home screen for this vertical. */
     appTagline:
-      "הוסיפו תלמידים וצפו ברשימה — הכל נשמר מקומית בדפדפן.",
+      "יומן, לקוחות ותזכורות במקום אחד — מוכנים ליום עבודה אמיתי.",
   },
   clientFields: [
     {

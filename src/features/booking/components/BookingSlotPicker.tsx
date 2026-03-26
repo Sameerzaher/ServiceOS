@@ -1,5 +1,6 @@
 "use client";
 
+import { heUi } from "@/config";
 import { EmptyState, ui } from "@/components/ui";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
 
@@ -40,7 +41,9 @@ export function BookingSlotPicker({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-neutral-900">בחירת שעה פנויה</h3>
+      <h3 className="text-sm font-semibold text-neutral-900">
+        {heUi.publicBooking.slotHeading}
+      </h3>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {availableSlots.map((slot) => {
           const selected = selectedSlotStart === slot.slotStart;

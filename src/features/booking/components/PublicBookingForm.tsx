@@ -2,6 +2,7 @@
 
 import { type FormEvent, useMemo, useState } from "react";
 
+import { heUi } from "@/config";
 import { Button, EmptyState, ui } from "@/components/ui";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
 
@@ -56,10 +57,11 @@ export function PublicBookingForm({
   }, [selectedSlot]);
 
   function validate(): FieldErrors {
+    const pb = heUi.publicBooking;
     const next: FieldErrors = {};
-    if (!fullName.trim()) next.fullName = "נא להזין שם מלא.";
-    if (!phone.trim()) next.phone = "נא להזין מספר טלפון.";
-    if (!selectedSlot) next.slot = "נא לבחור שעה פנויה לפני שליחת הבקשה.";
+    if (!fullName.trim()) next.fullName = pb.errFullName;
+    if (!phone.trim()) next.phone = pb.errPhone;
+    if (!selectedSlot) next.slot = pb.errSlot;
     return next;
   }
 
@@ -97,12 +99,13 @@ export function PublicBookingForm({
   }
 
   if (isSuccess) {
+    const pb = heUi.publicBooking;
     return (
       <EmptyState
         tone="muted"
         className="py-10"
-        title="הבקשה נשלחה בהצלחה"
-        description="תודה! נחזור אליכם בהקדם לאישור סופי של השיעור."
+        title={pb.successTitle}
+        description={pb.successDescription}
       />
     );
   }
@@ -114,9 +117,11 @@ export function PublicBookingForm({
       className={`${ui.formCard} space-y-5 ${className ?? ""}`}
     >
       <div className="rounded-lg border border-neutral-200 bg-neutral-50/90 px-3 py-2">
-        <p className="text-xs text-neutral-600">השעה שנבחרה</p>
+        <p className="text-xs text-neutral-600">
+          {heUi.publicBooking.selectedSlotLabel}
+        </p>
         <p className="mt-1 text-sm font-semibold text-neutral-900">
-          {selectedSlotLabel || "לא נבחרה שעה עדיין"}
+          {selectedSlotLabel || heUi.publicBooking.noSlotSelected}
         </p>
         {errors.slot ? (
           <p className="mt-1 text-sm text-red-600">{errors.slot}</p>
@@ -125,7 +130,7 @@ export function PublicBookingForm({
 
       <div>
         <label htmlFor="public-booking-name" className={ui.label}>
-          שם מלא
+          {heUi.publicBooking.fullNameLabel}
         </label>
         <input
           id="public-booking-name"
@@ -149,7 +154,7 @@ export function PublicBookingForm({
 
       <div>
         <label htmlFor="public-booking-phone" className={ui.label}>
-          טלפון
+          {heUi.publicBooking.phoneLabel}
         </label>
         <input
           id="public-booking-phone"
@@ -174,7 +179,7 @@ export function PublicBookingForm({
 
       <div>
         <label htmlFor="public-booking-notes" className={ui.label}>
-          הערות (אופציונלי)
+          {heUi.publicBooking.notesLabel}
         </label>
         <textarea
           id="public-booking-notes"
@@ -187,7 +192,7 @@ export function PublicBookingForm({
 
       <div>
         <label htmlFor="public-booking-pickup" className={ui.label}>
-          מיקום איסוף (אופציונלי)
+          {heUi.publicBooking.pickupLabel}
         </label>
         <textarea
           id="public-booking-pickup"
@@ -195,13 +200,13 @@ export function PublicBookingForm({
           onChange={(e) => setPickupLocation(e.target.value)}
           rows={2}
           className={`${ui.input} min-h-[4rem] resize-y`}
-          placeholder="למשל: רחוב, שכונה"
+          placeholder={heUi.publicBooking.pickupPlaceholder}
         />
       </div>
 
       <div>
         <label htmlFor="public-booking-car" className={ui.label}>
-          סוג רכב (אופציונלי)
+          {heUi.publicBooking.carLabel}
         </label>
         <input
           id="public-booking-car"
@@ -209,7 +214,7 @@ export function PublicBookingForm({
           value={carType}
           onChange={(e) => setCarType(e.target.value)}
           className={ui.input}
-          placeholder="למשל: אוטומט / ידני"
+          placeholder={heUi.publicBooking.carPlaceholder}
         />
       </div>
 
@@ -220,7 +225,9 @@ export function PublicBookingForm({
         disabled={isSubmitting}
         aria-busy={isSubmitting}
       >
-        {isSubmitting ? "שולח בקשה..." : "שליחת בקשת הזמנה"}
+        {isSubmitting
+          ? heUi.publicBooking.submitSubmitting
+          : heUi.publicBooking.submitIdle}
       </Button>
       {submitError ? (
         <p className="text-sm text-red-600" role="alert">

@@ -19,6 +19,8 @@ export default function SettingsPage() {
     settings,
     settingsReady,
     replaceSettings,
+    availabilitySettings,
+    updateAvailabilitySettings,
     settingsLoadError,
     settingsSyncError,
     retrySettingsLoad,
@@ -103,8 +105,10 @@ export default function SettingsPage() {
             <>
               <SettingsPanel
                 settings={settings}
-                onSave={(next) => {
+                availabilitySettings={availabilitySettings}
+                onSave={(next, nextAvailability) => {
                   replaceSettings(next);
+                  updateAvailabilitySettings(nextAvailability);
                   toast(heUi.toast.settingsSaved);
                 }}
               />

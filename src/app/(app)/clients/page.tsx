@@ -1,12 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   appPageTitle,
   heUi,
 } from "@/config";
-import { DataLoadErrorBanner, LoadingState, ui } from "@/components/ui";
+import {
+  Button,
+  DataLoadErrorBanner,
+  LoadingState,
+  Modal,
+  ui,
+} from "@/components/ui";
 import { ClientForm } from "@/features/clients/components/ClientForm";
 import { ClientList } from "@/features/clients/components/ClientList";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
@@ -36,6 +43,23 @@ export default function ClientsPage() {
     setConfirm,
     needsFirstClient,
   } = useServiceApp();
+
+  const [addClientOpen, setAddClientOpen] = useState(false);
+
+  useEffect(() => {
+    if (needsFirstClient) setAddClientOpen(true);
+  }, [needsFirstClient]);
+
+  useEffect(() => {
+    if (editingClientId !== null) setAddClientOpen(true);
+  }, [editingClientId]);
+
+  const clientModalOpen = addClientOpen || editingClientId !== null;
+
+  function closeClientModal(): void {
+    setAddClientOpen(false);
+    setEditingClientId(null);
+  }
 
   const displayTitle =
     settings.businessName.trim() || appPageTitle(preset);
@@ -69,20 +93,50 @@ export default function ClientsPage() {
             needsFirstClient &&
               "scroll-mt-6 rounded-xl ring-2 ring-amber-400/90 ring-offset-2 ring-offset-neutral-50",
           )}
-        >
-          <h2 className={ui.sectionHeading}>
-            {editingClientId
+          aria-label={
+            editingClientId
               ? preset.labels.editStudent
-              : preset.labels.addStudent}
-          </h2>
+              : preset.labels.addStudent
+          }
+        >
+          <div
+            className={`${ui.card} ${ui.cardPadding} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}
+          >
+            <p className="text-sm leading-relaxed text-neutral-600 sm:max-w-md">
+              {heUi.clientsPage.addClientTeaser}
+            </p>
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full shrink-0 sm:w-auto sm:min-w-[12rem]"
+              onClick={() => setAddClientOpen(true)}
+            >
+              {preset.labels.addStudent}
+            </Button>
+          </div>
+        </section>
+
+        <Modal
+          open={clientModalOpen}
+          onClose={closeClientModal}
+          title={
+            editingClientId
+              ? preset.labels.editStudent
+              : preset.labels.addStudent
+          }
+          size="lg"
+        >
           <ClientForm
             key={editingClientId ?? "new-client"}
             preset={preset}
             initialClient={editingClient}
-            onCancelEdit={() => setEditingClientId(null)}
-            onSubmit={handleClientSubmit}
+            embedded
+            onCancelEdit={closeClientModal}
+            onSubmit={(data) => {
+              if (handleClientSubmit(data)) closeClientModal();
+            }}
           />
-        </section>
+        </Modal>
 
         <section className={ui.section}>
           <h2 className={ui.sectionHeading}>{preset.labels.students}</h2>

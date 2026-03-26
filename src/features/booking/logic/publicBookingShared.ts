@@ -1,3 +1,4 @@
+import { heUi } from "@/config";
 import { AppointmentStatus, type AppointmentRecord } from "@/core/types/appointment";
 
 export interface PublicBookingPayload {
@@ -63,7 +64,7 @@ export function parsePublicBookingBody(raw: unknown):
   | { ok: true; data: PublicBookingPayload }
   | { ok: false; errorHe: string } {
   if (!raw || typeof raw !== "object") {
-    return { ok: false, errorHe: "בקשה לא תקינה." };
+    return { ok: false, errorHe: heUi.publicBooking.errInvalidPayload };
   }
   const o = raw as Record<string, unknown>;
   const fullName = typeof o.fullName === "string" ? o.fullName.trim() : "";
@@ -76,33 +77,27 @@ export function parsePublicBookingBody(raw: unknown):
   const carType = typeof o.carType === "string" ? o.carType.trim() : "";
 
   if (!fullName) {
-    return { ok: false, errorHe: "נא להזין שם מלא." };
+    return { ok: false, errorHe: heUi.publicBooking.errFullName };
   }
   if (!phone) {
-    return { ok: false, errorHe: "נא להזין מספר טלפון." };
+    return { ok: false, errorHe: heUi.publicBooking.errPhone };
   }
   if (!slotStart || !slotEnd) {
-    return { ok: false, errorHe: "שעת ההזמנה לא תקינה. בחרו שעה מחדש." };
+    return { ok: false, errorHe: heUi.publicBooking.errSlotInvalid };
   }
 
   const slotStartMs = new Date(slotStart).getTime();
   const slotEndMs = new Date(slotEnd).getTime();
   if (!Number.isFinite(slotStartMs) || !Number.isFinite(slotEndMs)) {
-    return { ok: false, errorHe: "שעת ההזמנה לא תקינה. בחרו שעה מחדש." };
+    return { ok: false, errorHe: heUi.publicBooking.errSlotInvalid };
   }
   if (slotEndMs <= slotStartMs) {
-    return {
-      ok: false,
-      errorHe: "טווח השעות שנבחר אינו תקין. נסו לבחור שעה אחרת.",
-    };
+    return { ok: false, errorHe: heUi.publicBooking.errSlotRange };
   }
 
   const nowMs = Date.now();
   if (slotStartMs < nowMs) {
-    return {
-      ok: false,
-      errorHe: "השעה שנבחרה כבר חלפה. בחרו שעה פנויה אחרת.",
-    };
+    return { ok: false, errorHe: heUi.publicBooking.errSlotPast };
   }
 
   return {

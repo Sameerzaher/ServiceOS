@@ -8,6 +8,7 @@ import { getTomorrowAppointments } from "@/core/reminders";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
 import { applyReminderTemplate } from "@/core/utils/reminderTemplate";
+import { AiReminderButton } from "@/features/reminders/components/AiReminderButton";
 
 export interface RemindersPanelProps {
   appointments: AppointmentRecord[];
@@ -21,6 +22,16 @@ export interface RemindersPanelProps {
 function formatTimeShort(iso: string): string {
   try {
     return new Intl.DateTimeFormat("he-IL", { timeStyle: "short" }).format(
+      new Date(iso),
+    );
+  } catch {
+    return "";
+  }
+}
+
+function formatDateMedium(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("he-IL", { dateStyle: "medium" }).format(
       new Date(iso),
     );
   } catch {
@@ -108,20 +119,32 @@ export function RemindersPanel({
                     {formatTimeShort(appt.startAt)}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="md"
-                  className="w-full shrink-0 sm:w-auto"
-                  disabled={busyId !== null}
-                  aria-busy={isBusy}
-                  aria-label={`${heUi.reminders.copyWhatsapp} — ${name}`}
-                  onClick={() => void copyMessage(appt)}
-                >
-                  {copiedId === appt.id
-                    ? heUi.reminders.copied
-                    : heUi.reminders.copyWhatsapp}
-                </Button>
+                <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:items-stretch">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="md"
+                    className="w-full shrink-0 sm:w-auto"
+                    disabled={busyId !== null}
+                    aria-busy={isBusy}
+                    aria-label={`${heUi.reminders.copyWhatsapp} — ${name}`}
+                    onClick={() => void copyMessage(appt)}
+                  >
+                    {copiedId === appt.id
+                      ? heUi.reminders.copied
+                      : heUi.reminders.copyWhatsapp}
+                  </Button>
+                  <AiReminderButton
+                    clientName={name === "—" ? "" : name}
+                    date={
+                      formatDateMedium(appt.startAt) ||
+                      appt.startAt.slice(0, 10)
+                    }
+                    time={formatTimeShort(appt.startAt) || "00:00"}
+                    businessName={businessName}
+                    onCopied={onCopied}
+                  />
+                </div>
               </li>
             );
           })}

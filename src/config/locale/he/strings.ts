@@ -5,77 +5,84 @@
 
 export const heUi = {
   errors: {
-    pageTitle: "משהו השתבש",
+    pageTitle: "לא הצלחנו לטעון את העמוד",
     pageDescription:
-      "אירעה שגיאה בלתי צפויה. אפשר לנסות שוב או לחזור לדף הבית.",
+      "קרתה תקלה זמנית. רעננו את הדף, או חזרו לדף הראשי והמשיכו משם.",
     tryAgain: "נסו שוב",
     goHome: "חזרה לדף הבית",
-    globalTitle: "שגיאה קריטית",
+    globalTitle: "המערכת לא נטענת כרגע",
     globalDescription:
-      "לא ניתן להציג את הממשק. רעננו את הדף או נסו שוב מאוחר יותר.",
+      "רעננו את הדף או סגרו את האפליקציה ופתחו שוב. אם זה חוזר — בדקו חיבור לאינטרנט.",
   },
 
   loading: {
-    summary: "טוען סיכום…",
-    students: "טוען תלמידים…",
-    lessons: "טוען שיעורים…",
-    settings: "טוען הגדרות…",
-    bookingSettings: "טוען הגדרות הזמנה…",
-    default: "טוען…",
+    summary: "טוענים את תמונת המצב…",
+    students: "טוענים את רשימת הלקוחות…",
+    lessons: "טוענים את היומן…",
+    settings: "טוענים את ההגדרות…",
+    bookingSettings: "טוענים את הגדרות ההזמנה…",
+    default: "טוענים את הנתונים…",
   },
 
   /** Load / sync failures for Supabase-backed data */
   data: {
-    loadFailedTitle: "לא ניתן לטעון את הנתונים",
+    loadFailedTitle: "לא הצלחנו לטעון את הנתונים",
     loadFailedHint:
-      "בדקו חיבור לרשת והרשאות. אם הבעיה נמשכת, רעננו את הדף.",
-    syncFailedTitle: "השינויים לא נשמרו בשרת",
+      "בדקו שהרשת זמינה. נסו שוב — אם זה נמשך, רעננו את הדף.",
+    syncFailedTitle: "השמירה לענן לא הושלמה",
     syncFailedHint:
-      "הנתונים עדיין מוצגים אצלכם במסך. נסו שוב לשמור או רעננו את הדף.",
-    settingsLoadFailedTitle: "לא ניתן לטעון הגדרות מהשרת",
-    availabilityLoadFailedTitle: "לא ניתן לטעון הגדרות הזמנה מהשרת",
+      "מה שרואים אצלכם במסך עדיין כאן. נסו שוב לשמור, או רעננו ונסו שוב.",
+    settingsLoadFailedTitle: "לא הצלחנו לטעון הגדרות",
+    availabilityLoadFailedTitle: "לא הצלחנו לטעון זמינות להזמנות",
   },
 
   sections: {
-    summary: "סיכום",
+    summary: "סיכום ופעולות",
     reminders: "תזכורות",
     settings: "הגדרות",
-    demo: "הדגמה וייצוא",
+    demo: "כלי התחלה וייצוא",
   },
 
   /** First-time flow until at least one lesson exists */
   onboarding: {
-    welcomeTitle: "ברוכים הבאים ל-ServiceOS",
+    welcomeTitle: "התחלה חכמה בדקה",
     welcomeHint:
-      "התחלה מהירה בדקה: שלושה צעדים קצרים כדי לראות את המערכת עובדת.",
-    checklistAddClient: "הוספת תלמיד ראשון",
-    checklistAddLesson: "קביעת שיעור ראשון",
-    checklistReviewReminders: "סקירת תזכורות למחר",
-    jumpToClientForm: "לטופס תלמיד",
-    jumpToLessonForm: "לטופס שיעור",
-    markRemindersReviewed: "ראיתי",
-    dismiss: "הסתרת כרטיס הפתיחה",
+      "שלושה צעדים קצרים ואתם באוויר: לקוח ראשון, שיעור ראשון, ותזכורת מוכנה לשליחה.",
+    progressLabel: (done: number, total: number) => `התקדמות: ${done}/${total} הושלמו`,
+    checklistAddClient: "הוספת לקוח או תלמיד ראשון",
+    checklistAddLesson: "קביעת השיעור הראשון",
+    checklistReviewReminders: "תזכורת אחת למחר",
+    jumpToClientForm: "הוספת לקוח",
+    jumpToLessonForm: "קביעת שיעור",
+    markRemindersReviewed: "סימון כהושלם",
+    dismiss: "סגירה לעכשיו",
   },
 
   toast: {
-    clientCreated: "התלמיד נשמר בהצלחה",
-    clientUpdated: "התלמיד עודכן",
-    clientDeleted: "התלמיד נמחק",
-    lessonCreated: "השיעור נשמר בהצלחה",
-    lessonUpdated: "השיעור עודכן",
-    lessonDeleted: "השיעור נמחק",
-    paymentToggled: "סטטוס התשלום עודכן",
-    reminderCopied: "ההודעה הועתקה ללוח",
-    settingsSaved: "ההגדרות נשמרו",
-    demoLoaded: "נתוני הדגמה נטענו",
-    demoReset: "הנתונים אופסו",
-    exportStudents: "קובץ תלמידים הורד",
-    exportLessons: "קובץ שיעורים הורד",
-    backupExported: "גיבוי הורד בהצלחה",
-    backupRestored: "הנתונים שוחזרו מהגיבוי",
+    clientCreated:
+      "✅ הלקוח נוסף בהצלחה — אפשר לקבוע לו שיעור מהרשימה או מהפרופיל.",
+    clientUpdated: "✅ הפרטים עודכנו והשינויים נשמרו.",
+    clientDeleted: "הלקוח הוסר מהמערכת יחד עם השיעורים המשויכים אליו.",
+    lessonCreated:
+      "✅ השיעור נקבע בהצלחה — תמצאו אותו ברשימה, ביומן ובתזכורות למחר.",
+    lessonUpdated: "✅ השיעור עודכן והפרטים נשמרו.",
+    bookingApproved: "✅ הבקשה אושרה והשיעור עודכן ביומן.",
+    bookingRejected: "הבקשה נדחתה והשיעור בוטל.",
+    lessonDeleted: "השיעור הוסר מהיומן.",
+    paymentToggled: "סטטוס התשלום עודכן.",
+    reminderCopied: "ההודעה בלוח — פתחו וואטסאפ, הדביקו ושלחו.",
+    bookingLinkCopied: "קישור ההזמנה הועתק — אפשר להדביק ולשלוח לתלמידים.",
+    settingsSaved:
+      "✅ ההגדרות נשמרו. השם, הטלפון ותבנית התזכורת יופיעו הלאה בהודעות.",
+    demoLoaded: "נתוני הדגמה נטענו — אפשר לנווט בין המסכים ולהתרגל.",
+    demoReset: "המערכת הוחזרה למצב ריק.",
+    exportStudents: "הקובץ ירד — אפשר לפתוח בגיליון אלקטרוני.",
+    exportLessons: "ייצוא השיעורים הושלם — הקובץ בדרך.",
+    backupExported: "גיבוי מלא ירד למכשיר — שמרו אותו במקום בטוח.",
+    backupRestored: "הנתונים שוחזרו מהגיבוי. בדקו שסיכום המספרים נראה תקין.",
     storageSchemaReset:
-      "נתונים מקומיים אופסו — גרסת האחסון לא נתמכת או פגומה. התחילו מחדש או שחזרו מגיבוי.",
-    actionFailed: "הפעולה לא הושלמה. נסו שוב.",
+      "האחסון המקומי אופס בגלל תאימות גרסאות. אם יש לכם גיבוי — שחזרו ממנו. אחרת התחילו לבנות נתונים מחדש.",
+    actionFailed: "לא הצלחנו להשלים את הפעולה. נסו שוב בעוד רגע.",
   },
 
   /** Fallbacks when a preset omits optional label keys */
@@ -89,20 +96,24 @@ export const heUi = {
   },
 
   dialog: {
-    confirm: "אישור",
+    confirm: "הבנתי",
     cancel: "ביטול",
     backdropClose: "סגור",
-    deleteClientTitle: "מחיקת לקוח",
+    confirmDeleteClient: "מחק לקוח",
+    confirmDeleteAppointment: "מחק שיעור",
+    confirmResetDemo: "איפוס מלא",
+    deleteClientTitle: "למחוק את הלקוח?",
     deleteClientMessage:
-      "למחוק את הלקוח ואת כל השיעורים המשויכים אליו? פעולה זו לא ניתנת לביטול.",
-    deleteAppointmentTitle: "מחיקת שיעור",
-    deleteAppointmentMessage: "למחוק את השיעור? פעולה זו לא ניתנת לביטול.",
-    resetDemoTitle: "איפוס כל הנתונים",
+      "יימחקו גם כל השיעורים של הלקוח מהמערכת. אי אפשר לבטל אחרי האישור.",
+    deleteAppointmentTitle: "למחוק את השיעור?",
+    deleteAppointmentMessage:
+      "השיעור יוסר מהיומן. אם זה בטעות — אפשר לקבוע שיעור חדש מיד אחרי.",
+    resetDemoTitle: "מחיקת כל הנתונים במכשיר",
     resetDemoMessage:
-      "כל התלמידים, השיעורים וההגדרות במכשיר זה יימחקו. פעולה זו אינה הפיכה. להמשיך?",
+      "כל הלקוחות, השיעורים וההגדרות במכשיר זה יימחקו. לפני שממשיכים — מומלץ לייצא גיבוי. האם לאפס?",
     loadDemoTitle: "טעינת נתוני הדגמה",
     loadDemoMessage:
-      "טעינת הדגמה תחליף את הנתונים הקיימים במכשיר זה. מומלץ לייצא גיבוי לפני המשך. להמשיך?",
+      "הנתונים הקיימים במכשיר יוחלפו בדוגמה מוכנה. רוצים להמשיך?",
   },
 
   forms: {
@@ -110,147 +121,165 @@ export const heUi = {
     phone: "טלפון",
     phonePrefix: "טלפון: ",
     notes: "הערות",
-    save: "שמור",
-    saveChanges: "שמור שינויים",
-    cancelEdit: "בטל עריכה",
-    saveLesson: "שמור שיעור",
+    save: "שמירת פרטים",
+    saveChanges: "שמירת שינויים",
+    cancelEdit: "ביטול עריכה",
+    saveLesson: "קביעת שיעור",
     saving: "שומר…",
-    editLesson: "ערוך שיעור",
+    editLesson: "עריכת שיעור",
     amount: "סכום (₪)",
     defaultAmountHint: (ils: number) => `ברירת מחדל מההגדרות: ${ils} ₪`,
     searchClients: "חיפוש לפי שם או טלפון…",
-    selectPlaceholder: "בחר…",
-    selectStudentPlaceholder: "בחר תלמיד…",
-    appointmentStudent: "תלמיד",
+    selectPlaceholder: "בחרו מהרשימה…",
+    selectStudentPlaceholder: "בחרו לקוח…",
+    appointmentStudent: "לקוח",
     appointmentDatetime: "תאריך ושעה",
     appointmentDate: "תאריך",
     appointmentTime: "שעה",
     /** First option in the time dropdown */
-    appointmentTimePlaceholder: "בחר שעה…",
+    appointmentTimePlaceholder: "בחרו שעה…",
     paymentStatus: "סטטוס תשלום",
     /** Shown when date, time, and default duration from settings are set */
-    suggestedLessonEnd: (endTime: string) => `סיום משוער (לפי משך מההגדרות): ${endTime}`,
+    suggestedLessonEnd: (endTime: string) => `שעת סיום משוערת (לפי משך מההגדרות): ${endTime}`,
   },
 
   filters: {
-    dateAll: "הכל",
+    dateAll: "כל התאריכים",
     dateToday: "היום",
     dateTomorrow: "מחר",
     dateThisWeek: "השבוע",
-    paymentAll: "כל התשלומים",
+    paymentAll: "כל סטטוסי התשלום",
     paymentPaid: "שולם",
-    paymentUnpaid: "לא שולם",
+    paymentUnpaid: "טרם שולם",
     sort: "מיון",
-    sortByDate: "מיון: תאריך",
-    sortByName: "מיון: שם",
-    filterResultsEmpty: "אין תוצאות לפי הסינון הנוכחי.",
+    sortByDate: "תאריך (מהמרוך לרחוק)",
+    sortByName: "שם (א–ת)",
+    filterResultsEmpty: "אין תוצאות בסינון הזה — נסו טווח אחר או איפוס מסנן.",
   },
 
   validation: {
-    fullNameRequired: "נא להזין שם מלא (לפחות שני תווים).",
-    studentRequired: "נא לבחור תלמיד מהרשימה.",
-    datetimeInvalid: "נא לבחור תאריך ושעה תקינים.",
+    fullNameRequired: "נא למלא שם מלא (לפחות שני תווים).",
+    studentRequired: "בחרו לקוח מהרשימה כדי לשייך את השיעור.",
+    datetimeInvalid: "בחרו תאריך ושעה תקינים לשיעור.",
     phoneInvalid: "מספר הטלפון נראה קצר מדי — ודאו לפחות 9 ספרות.",
   },
 
   settings: {
     businessType: "סוג עסק",
     businessTypeHint:
-      "המונחים בממשק (לקוחות, שיעורים, שדות נוספים) יתאימו לתחום שבחרתם.",
-    activePresetDriving: "נהיגה — מורה / בית ספר",
+      "המילים במסך (לקוח, שיעור, שדות נוספים) יתאימו לתחום שבחרתם — נהיגה, כושר, יופי ועוד.",
+    activePresetDriving: "נהיגה — מורה פרטי / בית ספר",
     activePresetFitness: "כושר — מאמן / מכון",
     activePresetBeauty: "יופי וטיפוח",
     businessName: "שם העסק",
-    businessNameHint: "יוצג בראש המסך, בתזכורות ובייצוא.",
-    businessPhone: "טלפון העסק",
+    businessNameHint: "מוצג בראש המסך, בדף ההזמנה הציבורי ובהודעות תזכורת.",
+    businessPhone: "טלפון ליצירת קשר",
     businessPhoneHint:
-      "מוצג בתבנית תזכורת עם {{businessPhone}} — ליצירת קשר מההודעה.",
+      "ייכנס לתבנית התזכורת ({{businessPhone}}) כדי שלקוחות יהיה קל להשיב.",
     defaultLessonPrice: "מחיר ברירת מחדל לשיעור (₪)",
     defaultLessonPriceHint:
-      "ממולא אוטומטית בשדה הסכום בטופס שיעור חדש (ניתן לשנות לפני שמירה).",
+      "יתמלא בשיעור חדש — תמיד אפשר לשנות לפני השמירה.",
     defaultLessonDuration: "משך שיעור ברירת מחדל (דקות)",
     defaultLessonDurationHint:
-      "מציג בטופס שיעור «סיום משוער» לפי שעת ההתחלה — לא נשמר ביומן.",
+      "מחשב «שעת סיום משוערת» בטופס השיעור בלבד; לא נשמר כחלק מהאירוע.",
+    lessonBuffer: "מרווח בין שיעורים (דקות)",
+    lessonBufferHint:
+      "מרווח תפעולי מומלץ בין שיעור לשיעור לתכנון נוח יותר.",
+    bookingEnabled: "פתיחת עמוד ההזמנה לתלמידים",
+    workingHours: "שעות עבודה ברירת מחדל",
+    workingHoursHint:
+      "הגדרה מהירה לשעות פתיחה. תחול על חלון הזמינות השבועי במסך ההזמנות.",
+    workingHoursStart: "שעת התחלה",
+    workingHoursEnd: "שעת סיום",
     reminderTemplate: "תבנית תזכורת (וואטסאפ)",
     reminderTemplateHint:
       "משתנים: {{name}}, {{time}}, {{business}} או {{businessName}}, {{businessPhone}}.",
-    reminderPreviewTitle: "תצוגה מקדימה",
+    reminderPreviewTitle: "איך זה ייראה",
     previewStudentName: "יוסי כהן",
     previewLessonTime: "09:00",
     previewBusinessFallback: "בית ספר לנהיגה",
     previewPhoneFallback: "050-1234567",
-    save: "שמור הגדרות",
+    save: "שמירת הגדרות",
     saving: "שומר…",
-    sectionHint: "פרטי העסק והודעות התזכורת שמופיעים ללקוחות.",
-    bookingTitle: "הזמנות אונליין",
+    sectionHint: "פרטי העסק והטקסטים שיוצגו ללקוחות בהודעות ובדף ההזמנה.",
+    bookingTitle: "הזמנה אונליין",
     bookingHint:
-      "פתיחת עמוד הזמנה ציבורי שבו תלמידים יכולים לבחור שעה פנויה ולשלוח בקשה.",
-    bookingPublicLink: "פתיחת עמוד ההזמנה הציבורי",
+      "דף ציבורי שבו לקוחות בוחרים מועד פנוי ומשאירים פרטים — אתם מאשרים ומנהלים מהמערכת.",
+    bookingPublicLink: "פתיחת דף ההזמנה (לשיתוף עם לקוחות)",
+    bookingPublicUrlLabel: "קישור ציבורי לשיתוף",
+    bookingCopyLink: "העתקת קישור",
+    bookingShareWhatsapp: "שיתוף בוואטסאפ",
+    bookingShareText: (url: string) =>
+      `היי, אפשר לקבוע מועד דרך הקישור הזה:\n${url}`,
   },
 
   backup: {
     sectionTitle: "גיבוי ושחזור",
     description:
-      "ייצוא או ייבוא מלא של כל הנתונים (תלמידים, שיעורים והגדרות) כקובץ JSON — נשמר אצלך במכשיר.",
+      "ייצוא או ייבוא מלא: לקוחות, שיעורים והגדרות בקובץ JSON אחד, נשמר אצלכם במכשיר.",
     export: "ייצוא גיבוי (JSON)",
-    import: "ייבוא גיבוי",
-    importHint: "בחרו קובץ JSON שיוצא מהמערכת.",
+    import: "ייבוא מגיבוי",
+    importHint: "בחרו קובץ JSON שיוצא מהמערכת הזו.",
     actionsHint:
-      "המלצה לפני ייבוא: ייצאו קודם גיבוי עדכני כדי שתמיד תוכלו לחזור אחורה.",
+      "לפני ייבוא מומלץ לייצא גיבוי של המצב הנוכחי — כך תמיד אפשר לחזור אחורה.",
     importConfirmTitle: "שחזור מהגיבוי",
     importConfirmMessage:
-      "כל הנתונים הנוכחיים במכשיר זה יוחלפו בתוכן הקובץ. פעולה זו אינה הפיכה. להמשיך?",
-    confirmRestore: "שחזור נתונים",
+      "כל הנתונים במכשיר יוחלפו בתוכן הקובץ. לא ניתן לבטל לאחר האישור. להמשיך?",
+    confirmRestore: "שחזור עכשיו",
     errors: {
-      notObject: "הקובץ אינו בפורמט תקין.",
-      badVersion: "גרסת הגיבוי אינה נתמכת.",
-      parseJson: "לא ניתן לקרוא את הקובץ — ודאו שזה JSON תקין.",
-      invalidFileType: "יש לבחור קובץ JSON בלבד.",
-      fileTooLarge: "קובץ הגיבוי גדול מדי לייבוא בדפדפן זה.",
+      notObject: "הקובץ לא בפורמט שהמערכת מזהה.",
+      badVersion: "גרסת הגיבוי לא נתמכת בגרסה הנוכחית.",
+      parseJson: "לא הצלחנו לקרוא את הקובץ — ודאו שזה קובץ JSON תקין.",
+      invalidFileType: "יש לבחור קובץ בסיומת .json בלבד.",
+      fileTooLarge: "הקובץ גדול מדי לטעינה בדפדפן — נסו במחשב או קיצרו את הגיבוי.",
     },
   },
 
   demo: {
-    load: "טען נתוני הדגמה",
-    reset: "איפוס נתונים",
+    load: "התחלה עם נתוני דוגמה",
+    reset: "איפוס כל הנתונים",
     activeBadge: "מצב הדגמה פעיל",
     activeDescription:
-      "אתם עובדים על נתוני הדגמה מציאותיים להצגה. אפשר לטעון הדגמה מחדש או לחזור למצב ריק בכל רגע.",
+      "אתם רואים נתונים לדוגמה. אפשר לאפס ולחזור לעבודה על עסק אמיתי בכל רגע.",
     reloadDemo: "טעינה מחדש של הדגמה",
-    returnToEmpty: "חזרה למצב ריק",
+    returnToEmpty: "מחיקת הדגמה ומעבר לריק",
     emptyHint:
-      "אין עדיין נתונים — טענו הדגמה מלאה לתלמידי נהיגה (מומלץ לדמו).",
-    bannerTitle: "התחלת דמו מהירה",
+      "עדיין אין נתונים — טענו דוגמה כדי לראות איך המסכים נראים עם לקוחות ושיעורים.",
+    bannerTitle: "התחלה מהירה עם דוגמה מוכנה",
     bannerDescription:
-      "טעינת דוגמה מציאותית עם תלמידים, שיעורים קרובים, תשלומים ותזכורות למחר — מתאים להצגה לפני לקוחות.",
+      "דוגמה מלאה: לקוחות, שיעורים קרובים, תשלומים ותזכורת למחר — טובה להתרשמות או הדרכה.",
   },
 
   export: {
-    students: "ייצוא תלמידים (CSV)",
-    noStudentsToExport: "אין תלמידים לייצוא עדיין.",
+    students: "ייצוא רשימת לקוחות (CSV)",
+    noStudentsToExport: "אין עדיין לקוחות לייצוא — הוסיפו לקוח ונסו שוב.",
     noLessonsToExport:
-      "אין שיעורים לייצוא. הוסיפו שיעורים או שינו את טווח התאריכים והסינון.",
+      "אין שיעורים בטווח שבחרתם. נסו תאריכים רחבים יותר או בטלו סינון.",
     lessonsTitle: "ייצוא שיעורים (CSV)",
     lessonsHint:
-      "בחרו טווח תאריכים (אופציונלי) וסטטוס תשלום. שדה תאריך ריק = ללא גבול באותו צד.",
+      "סננו לפי תאריכים (ריק = בלי גבול) ולפי סטטוס תשלום, ואז הורידו את הקובץ.",
     dateFrom: "מתאריך",
     dateTo: "עד תאריך",
     paymentFilterLabel: "סטטוס תשלום",
-    exportCsv: "הורד CSV",
+    exportCsv: "הורדת קובץ",
     exporting: "מייצא…",
-    invalidDateRange: "תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.",
+    invalidDateRange: "תאריך ההתחלה חייב להיות לפני או זהה לתאריך הסיום — בדקו את הבחירה.",
   },
 
   empty: {
-    clientsTitle: (studentsLabel: string) => `אין עדיין ${studentsLabel}`,
+    clientsTitle: (studentsLabel: string) =>
+      `עדיין אין ${studentsLabel} — בואו נוסיף את הראשון`,
     clientsFallback: "אין עדיין רשומות",
-    clientsDescription: "הוסיפו לקוח חדש כדי שיופיע כאן.",
-    appointmentsTitle: (lessonsLabel: string) => `אין עדיין ${lessonsLabel}`,
-    appointmentsFallback: "אין עדיין שיעורים",
-    appointmentsDescription: "קבעו שיעור חדש כדי שיופיע כאן.",
-    noStudentsForAppointmentTitle: "אין תלמידים זמינים",
+    clientsDescription:
+      "לקוח ראשון ברשימה = תזכורות, יומן ועקיבה אחרי תשלומים. לחצו על «הוספת לקוח» למעלה.",
+    appointmentsTitle: (lessonsLabel: string) =>
+      `עדיין אין ${lessonsLabel} — הגיע הזמן לקבוע`,
+    appointmentsFallback: "אין שיעורים ביומן",
+    appointmentsDescription:
+      "קבעו שיעור ללקוח קיים או הוסיפו לקוח חדש — וכל האירועים יופיעו כאן.",
+    noStudentsForAppointmentTitle: "קודם צריך לקוח ברשימה",
     noStudentsForAppointmentDescription:
-      "הוסיפו תלמיד לפני קביעת שיעור.",
+      "הוסיפו לקוח אחד לפחות, ואז חזרו לכאן כדי לקבוע שיעור.",
   },
 
   boolean: {
@@ -259,24 +288,26 @@ export const heUi = {
   },
 
   dashboard: {
-    quickActionsTitle: "פעולות מהירות",
-    quickAddClient: "הוספת תלמיד",
-    quickAddAppointment: "הוספת שיעור",
-    remindersSectionTitle: "תזכורות קרובות",
-    todaySectionHint: "השיעורים של היום לפי שעה, כדי לדעת מה מחכה עכשיו.",
-    remindersSectionHint: "תזכורות למחר להעתקה מהירה ושליחה בוואטסאפ.",
+    quickActionsTitle: "פעולה מהירה להתחלה",
+    quickAddClient: "הוספת לקוח",
+    quickAddAppointment: "קביעת שיעור",
+    remindersSectionTitle: "תזכורות למחר",
+    todaySectionHint:
+      "רשימת השיעורים להיום לפי שעה — מבט מהיר על מה שמחכה עכשיו.",
+    remindersSectionHint:
+      "העתיקו טקסט מוכן לוואטסאפ, או נסחו מחדש עם AI — ושלחו ללקוח בלחיצה.",
     kpiToday: "שיעורים היום",
     kpiTomorrow: "שיעורים מחר",
-    kpiUnpaid: "שיעורים לא משולמים",
-    kpiClients: "סה״כ תלמידים",
+    kpiUnpaid: "ממתינים לתשלום",
+    kpiClients: "סה״כ לקוחות",
     statTotal: (lessonsWord: string) => `סה״כ ${lessonsWord}`,
     statToday: "היום",
-    statUnpaid: "לא שולמו",
+    statUnpaid: "טרם שולם",
     statTotalIncome: "הכנסות (שולמו)",
     statUnpaidAmount: "יתרה לגבייה",
     statTodayRevenue: "הכנסות היום",
-    statStudentsWithDebt: "תלמידים עם חוב",
-    statPartialAmount: "סכום בשיעורים חלקיים",
+    statStudentsWithDebt: "עם יתרה לגבייה",
+    statPartialAmount: "סכום בתשלומים חלקיים",
     summaryParagraph: (args: {
       total: number;
       lessonWord: string;
@@ -301,11 +332,10 @@ export const heUi = {
       const unpaidNoun =
         unpaidCount === 1 ? `${lessonWord} ללא תשלום` : `${lessonsWord} ללא תשלום`;
       let text =
-        `סה״כ ${total} ${lessonNoun}, מתוכם ${todayCount} מתוכננים להיום, ו־ ${unpaidCount} ${unpaidNoun}.`;
+        `סה״כ ${total} ${lessonNoun}: ${todayCount} מתוכננים להיום, ו־${unpaidCount} ${unpaidNoun}.`;
       if (clientsCount > 0) {
-        const people =
-          clientsCount === 1 ? studentWord : studentsWord;
-        text += ` נרשמו ${clientsCount} ${people}.`;
+        const people = clientsCount === 1 ? studentWord : studentsWord;
+        text += ` ברשימה ${clientsCount} ${people}.`;
       }
       return text;
     },
@@ -313,63 +343,81 @@ export const heUi = {
     emptyTodayTitle: (lessonsWord: string) =>
       `אין ${lessonsWord} מתוכננים להיום`,
     emptyTodayDescription:
-      "אין שיעורים להיום עדיין. אפשר לקבוע שיעור חדש בלחיצה מהירה למעלה.",
+      "היום ריק ביומן — אפשר לקבוע שיעור מהיר מהכפתור למעלה.",
     statWeeklyRevenue: "הכנסות השבוע",
-    debtListTitle: "תלמידים עם חוב — חמשת המובילים",
+    debtListTitle: "חמשת הלקוחות המובילים ביתרה",
     upcomingListTitle: "שיעורים קרובים",
-    emptyDebtList: "אין תלמידים עם חוב — הכל מסודר.",
-    emptyUpcoming: "אין שיעורים מתוכננים קדימה.",
-    unpaidBadge: "לא שולם",
+    emptyDebtList: "אין יתרות לגבייה — הכול שולם.",
+    emptyUpcoming: "אין שיעורים מתוכננים קדימה — הגיע הזמן לסגור תורים.",
+    unpaidBadge: "טרם שולם",
   },
 
   appointments: {
     paymentPrefix: "תשלום: ",
     amountPrefix: "סכום: ",
-    delete: "מחק",
-    edit: "ערוך",
+    delete: "מחיקה",
+    edit: "עריכה",
     markPaid: "סמן כשולם",
-    markUnpaid: "סמן כלא שולם",
+    markUnpaid: "סמן כטרם שולם",
     tomorrowBadge: "מחר",
-    tomorrowBadgeTitle: "שיעור מחר — מתאים לתזכורות",
+    tomorrowBadgeTitle: "שיעור מחר — מתאים לתזכורת",
     paidBadge: "שולם",
-    unpaidBadge: "לא שולם",
+    unpaidBadge: "טרם שולם",
+    pendingApprovalBadge: "ממתין לאישור",
+    approvedRequestBadge: "אושר",
+    rejectedRequestBadge: "נדחה",
+    approveRequest: "אשר בקשה",
+    approveAndSendWhatsapp: "אשר ושלח וואטסאפ",
+    rejectRequest: "דחה בקשה",
+    approvalWhatsappText: (args: { name: string; dateTime: string }) =>
+      `היי ${args.name}, בקשתך אושרה ✅\nנשמח לראות אותך ב-${args.dateTime}.`,
   },
 
   reminders: {
     title: "תזכורות למחר",
-    empty: "אין שיעורים מחר — אין מה לשלוח.",
+    empty: "מחר אין שיעורים ביומן",
     emptyHint:
-      "ברגע שיקבע שיעור למחר תופיע כאן הודעה מוכנה להעתקה ושליחה.",
-    copyWhatsapp: "העתק הודעת וואטסאפ",
+      "כשנקבע שיעור למחר, תופיע כאן הודעה מוכנה — או תוכלו לנסח אוטומטית.",
+    copyWhatsapp: "העתקת הודעה לוואטסאפ",
     copied: "הועתק",
     clipboardError:
-      "לא ניתן להעתיק ללוח — בדקו הרשאות הדפדפן או נסו שוב.",
+      "לא הצלחנו להעתיק — ודאו הרשאות לדפדפן או העתיקו ידנית מהתיבה.",
     templateHint:
-      'תבנית: "היי {{name}}, תזכורת לשיעור מחר ב-{{time}}"',
+      'תבנית לדוגמה: "היי {{name}}, תזכורת לשיעור מחר ב־{{time}}"',
+    aiGenerate: "ניסוח עם AI",
+    aiGenerating: "מנסחים…",
+    aiCopy: "העתקה",
+  },
+
+  clientsPage: {
+    /** כפתור לכיווץ טופס הוספת לקוח כשאין עריכה פעילה */
+    closeAddPanel: "סגור",
+    addClientTeaser: "בלחיצה נפתח טופס — הפרטים יישמרו ברשימת הלקוחות למטה.",
   },
 
   clientCard: {
-    nextLesson: "שיעור הבא",
-    noUpcoming: "אין שיעור מתוכנן",
+    nextLesson: "הפגישה הבאה",
+    noUpcoming: "אין תור מתוכנן",
   },
 
   clientProfile: {
     back: "חזרה לדף הבית",
-    notFound: "הלקוח לא נמצא",
+    notFound: "לא מצאנו את הלקוח",
     notFoundHint:
-      "ייתכן שהקישור פג תוקף או שהרשומה נמחקה. חזרו לרשימה בדף הבית.",
+      "אולי הרשומה נמחקה או שהקישור לא מעודכן. חזרו לרשימה בדף הבית.",
     lessonsTotal: "סה״כ שיעורים",
     paidTotal: "שולם (סה״כ)",
-    unpaidTotal: "לא שולם (סה״כ)",
+    unpaidTotal: "טרם שולם (סה״כ)",
     debtTitle: "יתרה לגבייה",
     paymentSummaryTitle: "סיכום תשלומים",
     detailsTitle: "פרטים",
     appointmentsTitle: "שיעורים",
-    appointmentsEmptyTitle: "עדיין אין שיעורים לתלמיד הזה",
-    appointmentsEmptyHint: "כדאי לחזור לדף הבית ולקבוע לו שיעור ראשון.",
+    appointmentsEmptyTitle: "עדיין אין שיעורים ללקוח הזה",
+    appointmentsEmptyHint:
+      "חזרו לדף הבית או למסך השיעורים כדי לקבוע את הפגישה הראשונה.",
     lastLesson: "שיעור אחרון",
-    noLastLesson: "אין שיעור קודם",
-    openWhatsapp: "וואטסאפ",
+    noLastLesson: "אין שיעור קודם ברשומה",
+    openWhatsapp: "שליחה בוואטסאפ",
   },
 
   nav: {
@@ -377,35 +425,83 @@ export const heUi = {
     back: "חזרה",
     brand: "ServiceOS",
     dashboard: "ראשי",
-    clients: "תלמידים",
+    clients: "לקוחות",
     lessons: "שיעורים",
-    booking: "הזמנות",
+    booking: "הזמנה",
     settings: "הגדרות",
   },
 
   pwa: {
-    installRegionLabel: "התקנת אפליקציה",
-    installTitle: "התקנת ServiceOS",
+    installRegionLabel: "התקנה על המסך",
+    installTitle: "הוספת ServiceOS למסך הבית",
     installChromeBody:
-      "ניתן להוסיף את האפליקציה למסך הבית לגישה מהירה ולעבודה ללא דפדפן.",
+      "תקבלו אייקון מהיר, ופתיחה נוחה יותר כמו באפליקציה.",
     installIosBody:
-      "לפתיחה מהמסך הראשי: לחצו על שיתוף ואז «הוסף למסך הבית».",
-    installAction: "התקן",
+      "ב־Safari: לחצו על שיתוף ובחרו «הוסף למסך הבית».",
+    installAction: "הוספה",
     installDismiss: "לא עכשיו",
-    offlineTitle: "אין חיבור לרשת",
+    offlineTitle: "אין חיבור לאינטרנט",
     offlineBody:
-      "לא ניתן לטעון את העמוד מהאינטרנט. אם ביקרתם כאן קודם, חלק מהממשק עלול להיות זמין במצב לא מקוון — הנתונים המקומיים במכשיר נשמרים.",
+      "לא ניתן לטעון את העמוד מהרשת. נתונים שכבר נטענו במכשיר עשויים להישאר זמינים לזמן מה.",
     offlineRetry: "נסו שוב",
     offlineHome: "דף הבית",
-    offlineStatusOnline: "מקוון",
-    offlineStatusOffline: "לא מקוון",
+    offlineStatusOnline: "מחוברים",
+    offlineStatusOffline: "לא מקוונים",
   },
 
   list: {
-    profile: "פרופיל",
-    edit: "ערוך",
-    delete: "מחק",
+    profile: "כרטיס לקוח",
+    edit: "עריכה",
+    delete: "מחיקה",
     /** Quick action on client card — opens add-lesson form with client pre-selected */
-    addLessonForClient: "שיעור לתלמיד זה",
+    addLessonForClient: "קביעת שיעור",
+  },
+
+  /** דף ההזמנה הציבורי (/book) והטפסים שלו */
+  publicBooking: {
+    pageTitle: "קביעת שיעור נהיגה",
+    pageSubtitle:
+      "בוחרים תאריך ושעה פנויה, משאירים פרטים — ואנחנו מאשרים ומעדכנים אתכם.",
+    trustLine:
+      "המועד נשמר כבקשה. ניצור קשר לאישור סופי או שינוי — אין חיוב מהדף הזה.",
+    sectionDate: "בחירת מועד",
+    sectionContact: "פרטים לאישור ויצירת קשר",
+    dateLabel: "תאריך",
+    bookingClosed:
+      "ההזמנה המקוונת סגורה כרגע. אפשר לנסות שוב מאוחר יותר או לפנות ישירות לעסק.",
+    slotHeading: "שעות פנויות",
+    slotEmptyTitle: "אין בשעה הזו שעות פנויות",
+    slotEmptyDescription: "נסו תאריך אחר באותו השבוע, או חזרו מחר לבדיקה.",
+    selectedSlotLabel: "שעה שנבחרה",
+    noSlotSelected: "עדיין לא נבחרה שעה",
+    successTitle: "✅ הבקשה התקבלה",
+    successDescription:
+      "תודה ששיתפתם פרטים. נאשר את השיעור בקרוב — שימרו את הטלפון זמין להודעה או שיחה.",
+    inlineSuccess: "הבקשה נרשמה במערכת. נעדכן אתכם לאישור.",
+    fullNameLabel: "שם מלא",
+    phoneLabel: "טלפון",
+    notesLabel: "הערות (רשות)",
+    pickupLabel: "מיקום איסוף (רשות)",
+    carLabel: "סוג רכב / גיר (רשות)",
+    pickupPlaceholder: "למשל: כתובת או שכונה",
+    carPlaceholder: "למשל: אוטומט, ידני",
+    submitSubmitting: "שולחים את הבקשה…",
+    submitIdle: "שליחת בקשה לקביעת שיעור",
+    errFullName: "נא למלא שם מלא.",
+    errPhone: "נא למלא מספר טלפון לחזרה.",
+    errSlot: "בחרו שעה מהרשימה לפני השליחה.",
+    errInvalidPayload: "משהו בשליחה לא הסתדר. רעננו את הדף ונסו שוב.",
+    errSlotInvalid: "המועד שנבחר לא תקין. בחרו שעה מחדש מהרשימה.",
+    errSlotRange: "השעות שנבחרו לא מתאימות. בחרו מועד מהאפשרויות באתר.",
+    errSlotPast: "השעה כבר עברה. בחרו מועד עתידי מהרשימה.",
+    errUnavailable: "ההזמנה דרך האתר אינה זמינה כרגע. פנו לעסק ישירות או נסו שוב מאוחר יותר.",
+    errSaveFailed: "לא הצלחנו לרשום את הבקשה. נסו שוב או בחרו מועד אחר.",
+    errNetwork: "נתקענו בחיבור לרשת. בדקו אינטרנט ונסו שוב.",
+    errSlotTaken:
+      "השעה נתפסה רגע לפני כן על ידי מישהו אחר. בחרו מועד פנוי אחר.",
+    errDateNotInRange:
+      "לא ניתן להזמין את התאריך הזה לפי מדיניות ההזמנות של העסק. בחרו תאריך אחר.",
+    errServerGeneric:
+      "לא הצלחנו להשלים את הרישום. נסו שוב בעוד רגע או פנו לעסק.",
   },
 } as const;

@@ -32,6 +32,8 @@ export interface ClientFormProps {
   /** When set, the form is prefilled for editing that client. */
   initialClient?: Client | null;
   onCancelEdit?: () => void;
+  /** בלי מסגרת כרטיס — לשימוש בתוך מודאל או הטמעה שטוחה */
+  embedded?: boolean;
 }
 
 function emptyCustomState(
@@ -202,6 +204,7 @@ export function ClientForm({
   onSubmit,
   initialClient,
   onCancelEdit,
+  embedded = false,
 }: ClientFormProps) {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -300,9 +303,12 @@ export function ClientForm({
       onSubmit={handleSubmit}
       onKeyDown={handleFormKeyDown}
       className={cn(
-        "mx-auto flex w-full max-w-lg flex-col gap-6 transition-shadow sm:gap-5",
-        ui.formCard,
+        "flex w-full flex-col",
+        embedded ? "gap-5" : "mx-auto max-w-lg gap-6 sm:gap-5",
+        !embedded && ui.formCard,
+        embedded && "border-0 bg-transparent p-0 shadow-none ring-0",
         isEditing &&
+          !embedded &&
           "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-neutral-50",
       )}
       noValidate

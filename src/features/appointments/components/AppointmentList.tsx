@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { heUi, paymentStatusLabel } from "@/config";
 import { Button, EmptyState, ui } from "@/components/ui";
+import { AppointmentStatus } from "@/core/types/appointment";
 import { isTomorrowAppointment } from "@/core/reminders";
 import type {
   AppointmentId,
@@ -27,6 +28,31 @@ export interface AppointmentListProps {
   onRequestDelete?: (id: AppointmentId) => void;
   onEdit?: (id: AppointmentId) => void;
   onTogglePaid?: (id: AppointmentId) => void;
+  onApproveRequest?: (id: AppointmentId) => void;
+  onApproveAndSendWhatsapp?: (id: AppointmentId) => void;
+  onRejectRequest?: (id: AppointmentId) => void;
+}
+
+function isPendingPublicRequest(appt: AppointmentRecord): boolean {
+  return (
+    appt.customFields?.bookingSource === "public" &&
+    appt.customFields?.bookingApproval === "pending" &&
+    appt.status === AppointmentStatus.Scheduled
+  );
+}
+
+function isApprovedPublicRequest(appt: AppointmentRecord): boolean {
+  return (
+    appt.customFields?.bookingSource === "public" &&
+    appt.customFields?.bookingApproval === "approved"
+  );
+}
+
+function isRejectedPublicRequest(appt: AppointmentRecord): boolean {
+  return (
+    appt.customFields?.bookingSource === "public" &&
+    appt.customFields?.bookingApproval === "rejected"
+  );
 }
 
 function clientNameById(clients: Client[], id: string): string {
@@ -78,6 +104,9 @@ export function AppointmentList({
   onRequestDelete,
   onEdit,
   onTogglePaid,
+  onApproveRequest,
+  onApproveAndSendWhatsapp,
+  onRejectRequest,
 }: AppointmentListProps) {
   const lessonsLabel = preset.labels.lessons;
 
@@ -106,6 +135,9 @@ export function AppointmentList({
         const paid = isPaidStatus(appt.paymentStatus);
         const debt = isDebtStatus(appt.paymentStatus);
         const tomorrow = isTomorrowAppointment(appt);
+        const pendingRequest = isPendingPublicRequest(appt);
+        const approvedRequest = isApprovedPublicRequest(appt);
+        const rejectedRequest = isRejectedPublicRequest(appt);
 
         return (
           <li key={appt.id}>
@@ -146,6 +178,21 @@ export function AppointmentList({
                         {heUi.appointments.unpaidBadge}
                       </span>
                     ) : null}
+                    {pendingRequest ? (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-900">
+                        {heUi.appointments.pendingApprovalBadge}
+                      </span>
+                    ) : null}
+                    {approvedRequest ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900">
+                        {heUi.appointments.approvedRequestBadge}
+                      </span>
+                    ) : null}
+                    {rejectedRequest ? (
+                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-900">
+                        {heUi.appointments.rejectedRequestBadge}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-sm text-neutral-700">
                     {formatStartAt(appt.startAt)}
@@ -164,6 +211,36 @@ export function AppointmentList({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2.5 sm:gap-2 sm:shrink-0 sm:justify-end">
+                  {pendingRequest && onApproveRequest ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => onApproveRequest(appt.id)}
+                    >
+                      {heUi.appointments.approveRequest}
+                    </Button>
+                  ) : null}
+                  {pendingRequest && onApproveAndSendWhatsapp ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onApproveAndSendWhatsapp(appt.id)}
+                    >
+                      {heUi.appointments.approveAndSendWhatsapp}
+                    </Button>
+                  ) : null}
+                  {pendingRequest && onRejectRequest ? (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => onRejectRequest(appt.id)}
+                    >
+                      {heUi.appointments.rejectRequest}
+                    </Button>
+                  ) : null}
                   {onTogglePaid ? (
                     <Button
                       type="button"

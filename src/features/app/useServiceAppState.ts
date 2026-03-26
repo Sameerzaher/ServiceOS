@@ -10,7 +10,7 @@ import {
   loadFirstRunOnboardingState,
   saveFirstRunOnboardingState,
 } from "@/core/onboarding/firstRun";
-import { PaymentStatus } from "@/core/types/appointment";
+import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import { isPaidStatus } from "@/core/utils/insights";
 import {
   filterAppointments,
@@ -20,6 +20,8 @@ import {
   type PaymentFilter,
 } from "@/core/utils/appointmentFilters";
 import type { AppointmentDateFilter } from "@/core/utils/dateRange";
+import type { AppointmentRecord } from "@/core/types/appointment";
+import { buildWhatsAppHref } from "@/core/utils/whatsapp";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
 import { useAvailabilitySettings } from "@/features/booking/hooks/useAvailabilitySettings";
 import { useClients } from "@/features/clients/hooks/useClients";
@@ -28,6 +30,24 @@ import { useSettings } from "@/features/settings/hooks/useSettings";
 
 function togglePaymentStatus(current: PaymentStatus): PaymentStatus {
   return isPaidStatus(current) ? PaymentStatus.Unpaid : PaymentStatus.Paid;
+}
+
+function isPendingPublicApproval(customFields: Record<string, unknown>): boolean {
+  return (
+    customFields.bookingSource === "public" &&
+    customFields.bookingApproval === "pending"
+  );
+}
+
+function formatAppointmentDateTime(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("he-IL", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
 }
 
 export function useServiceAppState() {
@@ -227,19 +247,65 @@ export function useServiceAppState() {
     toast(heUi.toast.paymentToggled);
   }
 
-  function handleClientSubmit(data: NewClientInput): void {
+  function handleApprovePublicBooking(id: string): void {
+    const row = sortedAppointments.find((a) => a.id === id);
+    if (!row) return;
+    if (!isPendingPublicApproval(row.customFields)) return;
+    updateAppointment(id, {
+      // Keep DB-compatible lesson status; approval state is tracked in customFields.
+      status: row.status,
+      customFields: {
+        ...row.customFields,
+        bookingApproval: "approved",
+      },
+    });
+    toast(heUi.toast.bookingApproved);
+  }
+
+  function handleApproveAndSendPublicBookingWhatsapp(id: string): void {
+    const row = sortedAppointments.find((a) => a.id === id);
+    if (!row) return;
+    if (!isPendingPublicApproval(row.customFields)) return;
+    updateAppointment(id, {
+      // Keep DB-compatible lesson status; approval state is tracked in customFields.
+      status: row.status,
+      customFields: {
+        ...row.customFields,
+        bookingApproval: "approved",
+      },
+    });
+    openApprovalWhatsapp(row);
+    toast(heUi.toast.bookingApproved);
+  }
+
+  function handleRejectPublicBooking(id: string): void {
+    const row = sortedAppointments.find((a) => a.id === id);
+    if (!row) return;
+    if (!isPendingPublicApproval(row.customFields)) return;
+    updateAppointment(id, {
+      status: AppointmentStatus.Cancelled,
+      customFields: {
+        ...row.customFields,
+        bookingApproval: "rejected",
+      },
+    });
+    toast(heUi.toast.bookingRejected);
+  }
+
+  function handleClientSubmit(data: NewClientInput): boolean {
     if (editingClientId) {
       updateClient(editingClientId, data);
       setEditingClientId(null);
       toast(heUi.toast.clientUpdated);
-      return;
+      return true;
     }
     const row = addClient(data);
     if (!row) {
       toast(heUi.toast.actionFailed, "error");
-      return;
+      return false;
     }
     toast(heUi.toast.clientCreated);
+    return true;
   }
 
   function loadDemo(): void {
@@ -273,6 +339,22 @@ export function useServiceAppState() {
       return;
     }
     loadDemo();
+  }
+
+  function openApprovalWhatsapp(row: AppointmentRecord): void {
+    const client = sortedClients.find((c) => c.id === row.clientId);
+    if (!client) return;
+    const baseHref = buildWhatsAppHref(client.phone);
+    if (!baseHref) return;
+    const message = heUi.appointments.approvalWhatsappText({
+      name: client.fullName.trim() || "לקוח",
+      dateTime: formatAppointmentDateTime(row.startAt),
+    });
+    const sep = baseHref.includes("?") ? "&" : "?";
+    const href = `${baseHref}${sep}text=${encodeURIComponent(message)}`;
+    if (typeof window !== "undefined") {
+      window.open(href, "_blank", "noopener,noreferrer");
+    }
   }
 
   return {
@@ -354,6 +436,9 @@ export function useServiceAppState() {
     needsFirstAppointment,
     handleConfirmDelete,
     handleToggleAppointmentPaid,
+    handleApprovePublicBooking,
+    handleApproveAndSendPublicBookingWhatsapp,
+    handleRejectPublicBooking,
     handleClientSubmit,
     loadDemo,
     resetData,

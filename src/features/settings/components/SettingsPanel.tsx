@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
 import { Button, ui } from "@/components/ui";
+import type { AvailabilitySettings } from "@/core/types/availability";
 import type { ActivePreset, AppSettings } from "@/core/types/settings";
 import { applyReminderTemplate } from "@/core/utils/reminderTemplate";
 import { cn } from "@/lib/cn";
 
 export interface SettingsPanelProps {
   settings: AppSettings;
-  onSave: (next: AppSettings) => void;
+  availabilitySettings: AvailabilitySettings;
+  onSave: (next: AppSettings, nextAvailability: AvailabilitySettings) => void;
 }
 
 const ACTIVE_PRESET_OPTIONS: ReadonlyArray<{
@@ -22,13 +24,23 @@ const ACTIVE_PRESET_OPTIONS: ReadonlyArray<{
   { value: "beauty", label: heUi.settings.activePresetBeauty },
 ];
 
-export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
+export function SettingsPanel({
+  settings,
+  availabilitySettings,
+  onSave,
+}: SettingsPanelProps) {
   const [draft, setDraft] = useState(settings);
+  const [bookingEnabled, setBookingEnabled] = useState(
+    availabilitySettings.bookingEnabled,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setDraft(settings);
   }, [settings]);
+  useEffect(() => {
+    setBookingEnabled(availabilitySettings.bookingEnabled);
+  }, [availabilitySettings.bookingEnabled]);
 
   const reminderPreview = useMemo(
     () =>
@@ -89,7 +101,7 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
             setDraft((d) => ({ ...d, businessName: e.target.value }))
           }
           className={ui.input}
-          placeholder="למשל: בית ספר לנהיגה"
+          placeholder="השם שיופיע ללקוחות — למשל: בית ספר לנהיגה «דרך בטוחה»"
           autoComplete="organization"
         />
         <p className="mt-1 text-xs text-neutral-500">
@@ -179,6 +191,90 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="settings-buffer" className={ui.label}>
+            {heUi.settings.lessonBuffer}
+          </label>
+          <input
+            id="settings-buffer"
+            type="number"
+            min={0}
+            max={120}
+            step={5}
+            inputMode="numeric"
+            value={draft.lessonBufferMinutes}
+            onChange={(e) => {
+              const v = e.target.value;
+              const n = Number.parseInt(v, 10);
+              setDraft((d) => ({
+                ...d,
+                lessonBufferMinutes: Number.isFinite(n)
+                  ? Math.min(120, Math.max(0, n))
+                  : d.lessonBufferMinutes,
+              }));
+            }}
+            className={ui.input}
+          />
+          <p className="mt-1 text-xs text-neutral-500">
+            {heUi.settings.lessonBufferHint}
+          </p>
+        </div>
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 sm:p-4">
+          <label
+            htmlFor="settings-booking-enabled"
+            className="mb-1.5 block text-sm font-medium text-neutral-800"
+          >
+            {heUi.settings.bookingEnabled}
+          </label>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-neutral-600">{heUi.settings.bookingHint}</p>
+            <input
+              id="settings-booking-enabled"
+              type="checkbox"
+              checked={bookingEnabled}
+              onChange={(e) => setBookingEnabled(e.target.checked)}
+              className="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p className={ui.label}>{heUi.settings.workingHours}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="settings-working-start" className="mb-1 block text-sm text-neutral-700">
+              {heUi.settings.workingHoursStart}
+            </label>
+            <input
+              id="settings-working-start"
+              type="time"
+              value={draft.workingHoursStart}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, workingHoursStart: e.target.value }))
+              }
+              className={ui.input}
+            />
+          </div>
+          <div>
+            <label htmlFor="settings-working-end" className="mb-1 block text-sm text-neutral-700">
+              {heUi.settings.workingHoursEnd}
+            </label>
+            <input
+              id="settings-working-end"
+              type="time"
+              value={draft.workingHoursEnd}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, workingHoursEnd: e.target.value }))
+              }
+              className={ui.input}
+            />
+          </div>
+        </div>
+        <p className="mt-1 text-xs text-neutral-500">{heUi.settings.workingHoursHint}</p>
+      </div>
+
       <div>
         <label htmlFor="settings-template" className={ui.label}>
           {heUi.settings.reminderTemplate}
@@ -218,7 +314,19 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           onClick={() => {
             if (isSaving) return;
             setIsSaving(true);
-            onSave(draft);
+            const weekly = { ...availabilitySettings.weeklyAvailability };
+            for (const day of Object.keys(weekly) as Array<keyof typeof weekly>) {
+              weekly[day] = {
+                ...weekly[day],
+                startTime: draft.workingHoursStart,
+                endTime: draft.workingHoursEnd,
+              };
+            }
+            onSave(draft, {
+              ...availabilitySettings,
+              bookingEnabled,
+              weeklyAvailability: weekly,
+            });
             window.setTimeout(() => setIsSaving(false), 0);
           }}
         >

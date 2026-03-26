@@ -12,16 +12,16 @@ export const beautyVerticalPreset = {
     students: "לקוחות",
     lesson: "טיפול",
     lessons: "טיפולים",
-    addStudent: "הוסף לקוח",
-    addLesson: "קבע טיפול",
-    editStudent: "ערוך לקוח",
+    addStudent: "הוספת לקוח",
+    addLesson: "קביעת טיפול",
+    editStudent: "עריכת לקוח",
     nextLesson: "טיפול הבא",
     skinProfile: "פרופיל עור",
     allergies: "רגישויות",
     room: "חדר",
     appTitle: "ניהול",
     appTagline:
-      "ניהול לקוחות ותורים לטיפולים — הכל נשמר מקומית בדפדפן.",
+      "לקוחות, תורים ותזכורות — נעים לנהל, קל לשמור על סדר.",
   },
   clientFields: [
     {

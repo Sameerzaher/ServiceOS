@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { heUi } from "@/config";
 import { isSupabaseConfigured } from "@/core/storage";
 
 export interface BookingSubmitInput {
@@ -54,9 +55,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
       setIsSuccess(false);
 
       if (!isSupabaseConfigured()) {
-        setError(
-          "הזמנה מקוונת אינה זמינה — חסרות הגדרות מסד (Supabase).",
-        );
+        setError(heUi.publicBooking.errUnavailable);
         return false;
       }
 
@@ -87,7 +86,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
           const msg =
             typeof body?.error === "string" && body.error.length > 0
               ? body.error
-              : "אירעה שגיאה בשמירת הבקשה. נסו שוב.";
+              : heUi.publicBooking.errSaveFailed;
           setError(msg);
           return false;
         }
@@ -96,7 +95,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
         onSuccessRef.current?.();
         return true;
       } catch {
-        setError("אירעה שגיאת רשת. בדקו את החיבור ונסו שוב.");
+        setError(heUi.publicBooking.errNetwork);
         return false;
       } finally {
         setIsSubmitting(false);

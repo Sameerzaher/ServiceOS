@@ -22,6 +22,7 @@ import {
   parsePublicBookingBody,
   publicSlotOutsideBookingHorizon,
 } from "@/features/booking/logic/publicBookingShared";
+import { heUi } from "@/config";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -40,13 +41,10 @@ type ClientRow = {
   updated_at: string;
 };
 
-const HE_ERR_GENERIC = "אירעה שגיאה בשמירת הבקשה. נסו שוב מאוחר יותר.";
-const HE_ERR_UNAVAILABLE =
-  "הזמנה מקוונת אינה זמינה כרגע. פנו לעסק ישירות.";
-const HE_ERR_CONFLICT =
-  "השעה הזו נתפסה ממש עכשיו. בחרו שעה פנויה אחרת.";
-const HE_ERR_SLOT_HORIZON =
-  "התאריך שנבחר אינו בתוך חלון ההזמנות המותר. בחרו תאריך אחר.";
+const HE_ERR_GENERIC = heUi.publicBooking.errServerGeneric;
+const HE_ERR_UNAVAILABLE = heUi.publicBooking.errUnavailable;
+const HE_ERR_CONFLICT = heUi.publicBooking.errSlotTaken;
+const HE_ERR_SLOT_HORIZON = heUi.publicBooking.errDateNotInRange;
 
 async function loadAppointmentsForOverlap(
   supabase: ReturnType<typeof getSupabaseAdminClient>,
@@ -83,7 +81,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     raw = await req.json();
   } catch {
     return NextResponse.json(
-      { ok: false as const, error: "בקשה לא תקינה." },
+      { ok: false as const, error: heUi.publicBooking.errInvalidPayload },
       { status: 400 },
     );
   }
@@ -258,6 +256,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const appointmentId = randomUUID();
     const customFields: Record<string, unknown> = {
       bookingSource: "public",
+      bookingApproval: "pending",
       bookingSlotEnd: slotEnd,
       bookingNotes: notes,
     };

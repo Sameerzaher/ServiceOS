@@ -12,16 +12,16 @@ export const fitnessVerticalPreset = {
     students: "מתאמנים",
     lesson: "אימון",
     lessons: "אימונים",
-    addStudent: "הוסף מתאמן",
-    addLesson: "קבע אימון",
-    editStudent: "ערוך מתאמן",
+    addStudent: "הוספת מתאמן",
+    addLesson: "קביעת אימון",
+    editStudent: "עריכת מתאמן",
     nextLesson: "אימון הבא",
     membership: "מנוי",
     goal: "מטרת אימון",
     trainingArea: "אזור אימון",
     appTitle: "ניהול",
     appTagline:
-      "מעקב אחר מתאמנים ואימונים — הכל נשמר מקומית בדפדפן.",
+      "תורים, מתאמנים ומעקב — בלי בלאגן, עם שליטה מלאה ביומן.",
   },
   clientFields: [
     {

@@ -9,6 +9,7 @@ export {
 } from "./DataLoadErrorBanner";
 export { EmptyState, type EmptyStateProps, type EmptyStateTone } from "./EmptyState";
 export { LoadingState, type LoadingStateProps } from "./LoadingState";
+export { Modal, type ModalProps } from "./Modal";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { ToastProvider, useToast, type ToastVariant } from "./Toast";
 export { ui } from "./theme";

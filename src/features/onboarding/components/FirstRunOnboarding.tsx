@@ -60,6 +60,8 @@ export function FirstRunOnboarding({
       actionLabel: heUi.onboarding.markRemindersReviewed,
     },
   ] as const;
+  const completed = checklist.filter((item) => item.done).length;
+  const total = checklist.length;
 
   return (
     <section
@@ -77,6 +79,9 @@ export function FirstRunOnboarding({
           </h2>
           <p className="text-sm leading-relaxed text-amber-900/95">
             {heUi.onboarding.welcomeHint}
+          </p>
+          <p className="text-xs font-medium text-amber-900/80">
+            {heUi.onboarding.progressLabel(completed, total)}
           </p>
         </div>
 
@@ -107,8 +112,8 @@ export function FirstRunOnboarding({
                   type="button"
                   onClick={item.action}
                   className={cn(
-                    "min-h-[2.25rem] shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-950 shadow-sm transition",
-                    "hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600",
+                    "min-h-[2.25rem] shrink-0 rounded-lg border border-amber-700 bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition",
+                    "hover:bg-amber-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700",
                   )}
                 >
                   {item.actionLabel}

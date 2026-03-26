@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { appTagline, heUi } from "@/config";
@@ -57,6 +58,44 @@ export default function DashboardPage() {
     retryAvailabilityLoad,
     retryAvailabilitySync,
   } = useServiceApp();
+  const [pendingBookingRequests, setPendingBookingRequests] = useState(0);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setBookingsLoading(true);
+      try {
+        const res = await fetch("/api/bookings", { method: "GET" });
+        const data = (await res.json()) as
+          | { ok: true; bookings?: Array<{ status?: string }> }
+          | { ok: false; error: string };
+        if (!res.ok || data.ok !== true) {
+          if (!cancelled) setPendingBookingRequests(0);
+          return;
+        }
+        const count = (data.bookings ?? []).filter(
+          (b) => b?.status === "pending",
+        ).length;
+        if (!cancelled) setPendingBookingRequests(count);
+      } catch {
+        if (!cancelled) setPendingBookingRequests(0);
+      } finally {
+        if (!cancelled) setBookingsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sortedAppointments.length]);
+
+  const hasHomeData = useMemo(
+    () =>
+      sortedClients.length > 0 ||
+      sortedAppointments.length > 0 ||
+      pendingBookingRequests > 0,
+    [sortedClients.length, sortedAppointments.length, pendingBookingRequests],
+  );
 
   return (
     <main className={ui.pageMain}>
@@ -195,8 +234,15 @@ export default function DashboardPage() {
 
         <section className={ui.section}>
           <h2 className={ui.sectionHeading}>{heUi.sections.demo}</h2>
-          {!dataReady ? (
+          {!dataReady || bookingsLoading ? (
             <LoadingState message={heUi.loading.default} />
+          ) : !hasHomeData ? (
+            <EmptyState
+              tone="muted"
+              title={heUi.dashboard.homeEmptyStartTitle}
+              description={heUi.dashboard.homeEmptyStartDescription}
+              className="py-8"
+            />
           ) : (
             <div className="space-y-4">
               <DemoExportBar
@@ -221,12 +267,20 @@ export default function DashboardPage() {
 
         <section id={ONBOARDING_ANCHORS.summary} className={ui.section}>
           <h2 className={ui.sectionHeading}>{heUi.sections.summary}</h2>
-          {!dataReady ? (
+          {!dataReady || bookingsLoading ? (
             <LoadingState message={heUi.loading.summary} />
+          ) : !hasHomeData ? (
+            <EmptyState
+              tone="muted"
+              title={heUi.dashboard.homeEmptySummaryTitle}
+              description={heUi.dashboard.homeEmptySummaryDescription}
+              className="py-8"
+            />
           ) : (
             <HomeQuickDashboard
               appointments={sortedAppointments}
               clients={sortedClients}
+              pendingBookingRequests={pendingBookingRequests}
               lessonLabelPlural={preset.labels.lessons}
               reminderTemplate={settings.reminderTemplate}
               businessName={settings.businessName}

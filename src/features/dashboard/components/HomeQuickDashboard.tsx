@@ -13,6 +13,7 @@ import { RemindersPanel } from "@/features/dashboard/components/RemindersPanel";
 export interface HomeQuickDashboardProps {
   appointments: AppointmentRecord[];
   clients: Client[];
+  pendingBookingRequests: number;
   lessonLabelPlural: string;
   reminderTemplate: string;
   businessName?: string;
@@ -39,6 +40,7 @@ function clientName(clients: Client[], id: string): string {
 export function HomeQuickDashboard({
   appointments,
   clients,
+  pendingBookingRequests,
   lessonLabelPlural,
   reminderTemplate,
   businessName = "",
@@ -90,34 +92,34 @@ export function HomeQuickDashboard({
       <div className="grid grid-cols-2 gap-3">
         <div className={ui.statCard}>
           <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-            {heUi.dashboard.kpiToday}
-          </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
-            {todayRows.length}
-          </p>
-        </div>
-        <div className={ui.statCard}>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-            {heUi.dashboard.kpiTomorrow}
-          </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
-            {tomorrowCount}
-          </p>
-        </div>
-        <div className={ui.statCard}>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-            {heUi.dashboard.kpiUnpaid}
-          </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-amber-800">
-            {unpaidCount}
-          </p>
-        </div>
-        <div className={ui.statCard}>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
             {heUi.dashboard.kpiClients}
           </p>
           <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
             {clients.length}
+          </p>
+        </div>
+        <div className={ui.statCard}>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            {heUi.dashboard.kpiAppointmentsTotal}
+          </p>
+          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
+            {appointments.length}
+          </p>
+        </div>
+        <div className={ui.statCard}>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            {heUi.dashboard.kpiPendingBookings}
+          </p>
+          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-violet-800">
+            {pendingBookingRequests}
+          </p>
+        </div>
+        <div className={ui.statCard}>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            {heUi.dashboard.kpiToday}
+          </p>
+          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
+            {todayRows.length}
           </p>
         </div>
       </div>

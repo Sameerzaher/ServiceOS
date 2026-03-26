@@ -302,6 +302,13 @@ export const heUi = {
     kpiTomorrow: "שיעורים מחר",
     kpiUnpaid: "ממתינים לתשלום",
     kpiClients: "סה״כ לקוחות",
+    kpiAppointmentsTotal: "סה״כ שיעורים",
+    kpiPendingBookings: "בקשות הזמנה ממתינות",
+    homeEmptyStartTitle: "עוד אין נתונים להתחלה",
+    homeEmptyStartDescription: "הוסיפו לקוח ראשון כדי להתחיל",
+    homeEmptySummaryTitle: "עוד אין נתונים להתחלה",
+    homeEmptySummaryDescription:
+      "אחרי בקשת הזמנה ראשונה תראו כאן תמונת מצב",
     statTotal: (lessonsWord: string) => `סה״כ ${lessonsWord}`,
     statToday: "היום",
     statUnpaid: "טרם שולם",

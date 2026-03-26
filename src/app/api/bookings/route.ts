@@ -280,6 +280,10 @@ export async function POST(req: Request): Promise<NextResponse> {
 function deriveBookingStatus(
   customFields: Record<string, unknown>,
 ): "pending" | "confirmed" | "cancelled" {
+  const approval = customFields.bookingApproval;
+  if (approval === "approved") return "confirmed";
+  if (approval === "rejected") return "cancelled";
+
   const explicit = customFields.bookingRequestStatus;
   if (
     explicit === "pending" ||
@@ -288,9 +292,6 @@ function deriveBookingStatus(
   ) {
     return explicit;
   }
-  const approval = customFields.bookingApproval;
-  if (approval === "approved") return "confirmed";
-  if (approval === "rejected") return "cancelled";
   return "pending";
 }
 

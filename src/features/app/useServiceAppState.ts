@@ -257,6 +257,7 @@ export function useServiceAppState() {
       customFields: {
         ...row.customFields,
         bookingApproval: "approved",
+        bookingRequestStatus: "confirmed",
       },
     });
     toast(heUi.toast.bookingApproved);
@@ -272,6 +273,7 @@ export function useServiceAppState() {
       customFields: {
         ...row.customFields,
         bookingApproval: "approved",
+        bookingRequestStatus: "confirmed",
       },
     });
     openApprovalWhatsapp(row);
@@ -287,6 +289,7 @@ export function useServiceAppState() {
       customFields: {
         ...row.customFields,
         bookingApproval: "rejected",
+        bookingRequestStatus: "cancelled",
       },
     });
     toast(heUi.toast.bookingRejected);

@@ -11,12 +11,14 @@ import {
 export async function loadAppointments(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
 ): Promise<AppointmentRecord[]> {
   const table = getSupabaseAppointmentsTable();
   const { data, error } = await supabase
     .from(table)
     .select("*")
     .eq("business_id", businessId)
+    .eq("teacher_id", teacherId)
     .order("start_at", { ascending: true });
 
   if (error) {
@@ -35,13 +37,15 @@ export async function loadAppointments(
 export async function persistAppointments(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
   appointments: AppointmentRecord[],
 ): Promise<void> {
   const table = getSupabaseAppointmentsTable();
   const { data: existing, error: selErr } = await supabase
     .from(table)
     .select("id")
-    .eq("business_id", businessId);
+    .eq("business_id", businessId)
+    .eq("teacher_id", teacherId);
 
   if (selErr) throw selErr;
 
@@ -55,6 +59,7 @@ export async function persistAppointments(
       .from(table)
       .delete()
       .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
       .in("id", toRemove);
     if (delErr) throw delErr;
   }

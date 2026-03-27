@@ -41,6 +41,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const skipMobileBottomNavOffset =
     pathname === "/book" ||
+    pathname?.startsWith("/book/") ||
     pathname === "/offline" ||
     pathname?.startsWith("/offline");
 

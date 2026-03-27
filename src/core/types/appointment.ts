@@ -23,6 +23,8 @@ export type AppointmentId = string;
 
 /** Scheduled visit or job tied to a client. */
 export interface Appointment {
+  /** Owning teacher (multi-tenant scope). */
+  teacherId: string;
   clientId: ClientId;
   /** ISO 8601 instant for the start of the appointment. */
   startAt: string;

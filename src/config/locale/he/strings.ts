@@ -16,8 +16,11 @@ export const heUi = {
   },
 
   loading: {
+    /** למסכי קוראים בלבד כשמוצג ספינר בלי טקסט גלוי */
+    ariaBusy: "טוען",
     summary: "טוען תמונת מצב עדכנית...",
-    students: "טוען את רשימת הלקוחות...",
+    /** טעינת רשימת הלקוחות (דף לקוחות ופרופיל) */
+    students: "טוען לקוחות...",
     lessons: "טוען את היומן...",
     settings: "טוען את ההגדרות...",
     bookingSettings: "טוען את הגדרות ההזמנה...",
@@ -34,13 +37,18 @@ export const heUi = {
       "מה שרואים אצלכם במסך עדיין כאן. נסו שוב לשמור, או רעננו ונסו שוב.",
     settingsLoadFailedTitle: "לא הצלחנו לטעון הגדרות",
     availabilityLoadFailedTitle: "לא הצלחנו לטעון זמינות להזמנות",
+    clientsLoadFailedTitle: "לא הצלחנו לטעון את רשימת הלקוחות",
+    clientsLoadFailedHint:
+      "בדקו חיבור לרשת ואת הגדרות Supabase בשרת. נסו שוב — ואם נדרש, רעננו את הדף.",
+    clientsSyncFailedTitle: "לא הצלחנו לשמור או לעדכן את רשימת הלקוחות",
+    clientsSyncFailedHint:
+      "השינוי לא נשמר בשרת. נסו שוב — ואם זה נמשך, רעננו את הדף ובדקו את החיבור.",
   },
 
   sections: {
     summary: "סיכום ופעולות",
     reminders: "תזכורות",
     settings: "הגדרות",
-    demo: "כלי התחלה וייצוא",
   },
 
   /** First-time flow until at least one lesson exists */
@@ -276,6 +284,8 @@ export const heUi = {
       "לקוח ראשון ברשימה = תזכורות, יומן ועקיבה אחרי תשלומים. לחצו על «הוספת לקוח» למעלה.",
     appointmentsTitle: (lessonsLabel: string) =>
       `עדיין אין ${lessonsLabel} — הגיע הזמן לקבוע`,
+    /** רשימת שיעורים ריקה (ללא סינון) */
+    lessonsListEmpty: "אין שיעורים עדיין",
     appointmentsFallback: "אין נתונים עדיין",
     appointmentsDescription:
       "קבעו שיעור ללקוח קיים או הוסיפו לקוח חדש — וכל האירועים יופיעו כאן.",
@@ -294,21 +304,14 @@ export const heUi = {
     quickAddClient: "הוספת לקוח",
     quickAddAppointment: "קביעת שיעור",
     remindersSectionTitle: "תזכורות למחר",
-    todaySectionHint:
-      "רשימת השיעורים להיום לפי שעה — מבט מהיר על מה שמחכה עכשיו.",
-    remindersSectionHint:
-      "העתיקו טקסט מוכן לוואטסאפ, או נסחו מחדש עם AI — ושלחו ללקוח בלחיצה.",
+    /** כותרת מתקפלת לייצוא ודמו בדף הבית */
+    exportToolsSummary: "ייצוא, דמו וכלים",
     kpiToday: "שיעורים היום",
     kpiTomorrow: "שיעורים מחר",
     kpiUnpaid: "ממתינים לתשלום",
     kpiClients: "סה״כ לקוחות",
     kpiAppointmentsTotal: "סה״כ שיעורים",
     kpiPendingBookings: "בקשות הזמנה ממתינות",
-    homeEmptyStartTitle: "עוד אין נתונים להתחלה",
-    homeEmptyStartDescription: "הוסיפו לקוח ראשון כדי להתחיל",
-    homeEmptySummaryTitle: "עוד אין נתונים להתחלה",
-    homeEmptySummaryDescription:
-      "אחרי בקשת הזמנה ראשונה תראו כאן תמונת מצב",
     statTotal: (lessonsWord: string) => `סה״כ ${lessonsWord}`,
     statToday: "היום",
     statUnpaid: "טרם שולם",
@@ -360,10 +363,11 @@ export const heUi = {
     emptyUpcoming: "אין שיעורים מתוכננים קדימה — הגיע הזמן לסגור תורים.",
     unpaidBadge: "טרם שולם",
     bookingRequestsTitle: "בקשות הזמנה",
-    bookingRequestsLoading: "טוענים בקשות הזמנה…",
-    bookingRequestsEmpty: "אין בקשות הזמנה כרגע — הכל מוכן להתחלה.",
+    bookingRequestsEmpty: "אין בקשות עדיין",
     bookingRequesterName: "שם",
     bookingRequesterPhone: "טלפון",
+    bookingRequesterDate: "תאריך",
+    bookingRequesterTime: "שעה",
     bookingRequesterDateTime: "מועד",
     bookingRequesterStatus: "סטטוס",
     bookingStatusPending: "ממתין",
@@ -374,6 +378,8 @@ export const heUi = {
   },
 
   appointments: {
+    listDateLabel: "תאריך:",
+    listTimeLabel: "שעה:",
     paymentPrefix: "תשלום: ",
     amountPrefix: "סכום: ",
     phonePrefix: "טלפון: ",
@@ -422,6 +428,9 @@ export const heUi = {
     /** כפתור לכיווץ טופס הוספת לקוח כשאין עריכה פעילה */
     closeAddPanel: "סגור",
     addClientTeaser: "בלחיצה נפתח טופס — הפרטים יישמרו ברשימת הלקוחות למטה.",
+    listEmptyTitle: "אין לקוחות עדיין",
+    listEmptyDescription:
+      "לחצו על כפתור ההוספה למעלה. הנתונים נשמרים בענן ואז מסתנכרנים לכל המסכים.",
   },
 
   clientCard: {
@@ -458,6 +467,7 @@ export const heUi = {
     lessons: "שיעורים",
     booking: "הזמנה",
     settings: "הגדרות",
+    teacherContext: "הקשר מורה",
   },
 
   pwa: {
@@ -486,7 +496,7 @@ export const heUi = {
     addLessonForClient: "קביעת שיעור",
   },
 
-  /** דף ההזמנה הציבורי (/book) והטפסים שלו */
+  /** דף ההזמנה הציבורי (/book/[slug]) והטפסים שלו */
   publicBooking: {
     pageTitle: "קביעת שיעור נהיגה",
     pageSubtitle:
@@ -503,9 +513,7 @@ export const heUi = {
     slotEmptyDescription: "נסו תאריך אחר באותו השבוע, או חזרו מחר לבדיקה.",
     selectedSlotLabel: "שעה שנבחרה",
     noSlotSelected: "עדיין לא נבחרה שעה",
-    successTitle: "✅ הבקשה התקבלה",
-    successDescription:
-      "תודה ששיתפתם פרטים. נאשר את השיעור בקרוב — שימרו את הטלפון זמין להודעה או שיחה.",
+    successTitle: "הבקשה נשלחה בהצלחה, ניצור איתך קשר בקרוב",
     inlineSuccess: "הבקשה נרשמה במערכת. נעדכן אתכם לאישור.",
     fullNameLabel: "שם מלא",
     phoneLabel: "טלפון",
@@ -517,8 +525,10 @@ export const heUi = {
     submitSubmitting: "שולחים את הבקשה…",
     submitIdle: "שליחת בקשה לקביעת שיעור",
     errFullName: "נא למלא שם מלא.",
+    errFullNameShort: "נא למלא שם מלא (לפחות שני תווים).",
     errPhone: "נא למלא מספר טלפון לחזרה.",
-    errSlot: "בחרו שעה מהרשימה לפני השליחה.",
+    errPhoneInvalid: "נא להזין מספר טלפון תקין (לפחות 8 ספרות).",
+    errSlot: "בחרו תאריך ושעה מהרשימה לפני השליחה.",
     errInvalidPayload: "משהו בשליחה לא הסתדר. רעננו את הדף ונסו שוב.",
     errSlotInvalid: "המועד שנבחר לא תקין. בחרו שעה מחדש מהרשימה.",
     errSlotRange: "השעות שנבחרו לא מתאימות. בחרו מועד מהאפשרויות באתר.",
@@ -532,5 +542,16 @@ export const heUi = {
       "לא ניתן להזמין את התאריך הזה לפי מדיניות ההזמנות של העסק. בחרו תאריך אחר.",
     errServerGeneric:
       "לא הצלחנו להשלים את הרישום. נסו שוב בעוד רגע או פנו לעסק.",
+    /** קישור /book/[slug] שגוי או שלא הוגדר מורה עם המזהה הזה */
+    invalidSlugTitle: "הקישור להזמנה אינו תקין",
+    invalidSlugDescription:
+      "ייתכן שהקישור פגום או שהמורה לא קיים במערכת. בקשו מהעסק קישור עדכני או נסו שוב.",
+    invalidSlugMessage:
+      "הקישור להזמנה אינו תקין. בקשו מהמורה או מהעסק קישור עדכני.",
+    bootstrapLoadFailedTitle: "לא הצלחנו לטעון את דף ההזמנה",
+    /** /book ללא slug */
+    incompleteLinkTitle: "חסר מזהה מורה בקישור",
+    incompleteLinkDescription:
+      "ההזמנה המקוונת פועלת דרך קישור אישי לכל מורה. השתמשו בקישור המלא שנשלח אליכם (למשל מהודעה או מהעסק).",
   },
 } as const;

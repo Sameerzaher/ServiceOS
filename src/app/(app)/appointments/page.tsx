@@ -9,7 +9,7 @@ import {
 } from "@/config";
 import {
   DataLoadErrorBanner,
-  LoadingState,
+  InlineLoading,
   ui,
   useToast,
 } from "@/components/ui";
@@ -136,7 +136,7 @@ function AppointmentsPageContent() {
         <section className={ui.section}>
           <h2 className={ui.sectionHeading}>{preset.labels.lessons}</h2>
           {!appointmentsReady ? (
-            <LoadingState message={heUi.loading.lessons} />
+            <InlineLoading className="py-2" />
           ) : (
             <>
               <AppointmentFiltersBar
@@ -179,7 +179,9 @@ export default function AppointmentsPage() {
     <Suspense
       fallback={
         <main className={ui.pageMain}>
-          <LoadingState message={heUi.loading.lessons} />
+          <div className="flex min-h-[40vh] items-center justify-center px-4">
+            <InlineLoading />
+          </div>
         </main>
       }
     >

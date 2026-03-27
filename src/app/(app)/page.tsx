@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { appTagline, heUi } from "@/config";
 import {
   DataLoadErrorBanner,
   EmptyState,
-  LoadingState,
+  InlineLoading,
   ui,
   useToast,
 } from "@/components/ui";
@@ -21,11 +21,14 @@ import {
   FirstRunOnboarding,
   ONBOARDING_ANCHORS,
 } from "@/features/onboarding/components/FirstRunOnboarding";
+import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
+import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 
 export default function DashboardPage() {
   const router = useRouter();
   const toast = useToast();
+  const dashboardTeacherId = useDashboardTeacherId();
   const {
     preset,
     settings,
@@ -59,12 +62,12 @@ export default function DashboardPage() {
     retryAvailabilitySync,
   } = useServiceApp();
   const [pendingBookingRequests, setPendingBookingRequests] = useState(0);
-  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const bookingRequestsDetailsRef = useRef<HTMLDetailsElement>(null);
+  const prevPendingBookingRequests = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      setBookingsLoading(true);
       try {
         const res = await fetch("/api/bookings", { method: "GET" });
         const data = (await res.json()) as
@@ -80,14 +83,29 @@ export default function DashboardPage() {
         if (!cancelled) setPendingBookingRequests(count);
       } catch {
         if (!cancelled) setPendingBookingRequests(0);
-      } finally {
-        if (!cancelled) setBookingsLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [sortedAppointments.length]);
+  }, [sortedAppointments.length, dashboardTeacherId]);
+
+  useLayoutEffect(() => {
+    const el = bookingRequestsDetailsRef.current;
+    if (!el) return;
+    const prev = prevPendingBookingRequests.current;
+    prevPendingBookingRequests.current = pendingBookingRequests;
+    if (pendingBookingRequests > 0 && (prev === null || prev === 0)) {
+      el.open = true;
+    }
+    if (
+      prev !== null &&
+      prev > 0 &&
+      pendingBookingRequests === 0
+    ) {
+      el.open = false;
+    }
+  }, [pendingBookingRequests]);
 
   const hasHomeData = useMemo(
     () =>
@@ -97,11 +115,16 @@ export default function DashboardPage() {
     [sortedClients.length, sortedAppointments.length, pendingBookingRequests],
   );
 
+  const showMainDashboardSection =
+    !dataReady || hasHomeData || !isStorageEmpty;
+
   return (
     <main className={ui.pageMain}>
       <header className={ui.header}>
         <h1 className={ui.pageTitle}>{displayTitle}</h1>
-        <p className={ui.pageSubtitle}>{appTagline(preset)}</p>
+        <p className={`${ui.pageSubtitle} hidden md:block`}>
+          {appTagline(preset)}
+        </p>
       </header>
 
       <div className={ui.pageStack}>
@@ -212,8 +235,11 @@ export default function DashboardPage() {
           />
         ) : null}
 
-        {isStorageEmpty ? (
-          <section className={ui.section}>
+        {isStorageEmpty && !hasHomeData ? (
+          <section
+            className={ui.section}
+            id={ONBOARDING_ANCHORS.summary}
+          >
             <EmptyState
               tone="muted"
               title={heUi.demo.bannerTitle}
@@ -232,71 +258,75 @@ export default function DashboardPage() {
           </section>
         ) : null}
 
-        <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>{heUi.sections.demo}</h2>
-          {!dataReady || bookingsLoading ? (
-            <LoadingState message={heUi.loading.default} />
-          ) : !hasHomeData ? (
-            <EmptyState
-              tone="muted"
-              title={heUi.dashboard.homeEmptyStartTitle}
-              description={heUi.dashboard.homeEmptyStartDescription}
-              className="py-8"
-            />
-          ) : (
-            <div className="space-y-4">
-              <DemoExportBar
-                onLoadDemo={handleRequestLoadDemo}
-                onRequestReset={() => setDemoResetOpen(true)}
-                onExportStudents={() => {
-                  if (sortedClients.length === 0) {
-                    toast(heUi.export.noStudentsToExport, "error");
-                    return;
-                  }
-                  exportStudentsCsv(sortedClients);
-                  toast(heUi.toast.exportStudents);
-                }}
-              />
-              <ExportLessonsPanel
-                appointments={sortedAppointments}
-                clients={sortedClients}
-              />
-            </div>
-          )}
-        </section>
+        {showMainDashboardSection ? (
+          <section id={ONBOARDING_ANCHORS.summary} className={ui.section}>
+            <h2 className={ui.sectionHeading}>{heUi.sections.summary}</h2>
+            {!dataReady ? (
+              <InlineLoading className="py-6" />
+            ) : (
+              <>
+                <HomeQuickDashboard
+                  appointments={sortedAppointments}
+                  clients={sortedClients}
+                  pendingBookingRequests={pendingBookingRequests}
+                  lessonLabelPlural={preset.labels.lessons}
+                  reminderTemplate={settings.reminderTemplate}
+                  businessName={settings.businessName}
+                  businessPhone={settings.businessPhone}
+                  onReminderCopied={() => toast(heUi.toast.reminderCopied)}
+                  onQuickAddClient={() => {
+                    router.push("/clients");
+                  }}
+                  onQuickAddAppointment={() => {
+                    router.push("/appointments");
+                  }}
+                />
+                <details className="mt-5 rounded-xl border border-neutral-200/80 bg-neutral-50/50 px-3 py-2 sm:px-4">
+                  <summary className="cursor-pointer list-none py-2 text-sm font-semibold text-neutral-800 [&::-webkit-details-marker]:hidden">
+                    {heUi.dashboard.exportToolsSummary}
+                  </summary>
+                  <div className="space-y-4 border-t border-neutral-200/70 pb-2 pt-4">
+                    <DemoExportBar
+                      onLoadDemo={handleRequestLoadDemo}
+                      onRequestReset={() => setDemoResetOpen(true)}
+                      onExportStudents={() => {
+                        if (sortedClients.length === 0) {
+                          toast(heUi.export.noStudentsToExport, "error");
+                          return;
+                        }
+                        exportStudentsCsv(sortedClients);
+                        toast(heUi.toast.exportStudents);
+                      }}
+                    />
+                    <ExportLessonsPanel
+                      appointments={sortedAppointments}
+                      clients={sortedClients}
+                    />
+                  </div>
+                </details>
+              </>
+            )}
+          </section>
+        ) : null}
 
-        <section id={ONBOARDING_ANCHORS.summary} className={ui.section}>
-          <h2 className={ui.sectionHeading}>{heUi.sections.summary}</h2>
-          {!dataReady || bookingsLoading ? (
-            <LoadingState message={heUi.loading.summary} />
-          ) : !hasHomeData ? (
-            <EmptyState
-              tone="muted"
-              title={heUi.dashboard.homeEmptySummaryTitle}
-              description={heUi.dashboard.homeEmptySummaryDescription}
-              className="py-8"
-            />
-          ) : (
-            <HomeQuickDashboard
-              appointments={sortedAppointments}
-              clients={sortedClients}
-              pendingBookingRequests={pendingBookingRequests}
-              lessonLabelPlural={preset.labels.lessons}
-              reminderTemplate={settings.reminderTemplate}
-              businessName={settings.businessName}
-              businessPhone={settings.businessPhone}
-              onReminderCopied={() => toast(heUi.toast.reminderCopied)}
-              onQuickAddClient={() => {
-                router.push("/clients");
-              }}
-              onQuickAddAppointment={() => {
-                router.push("/appointments");
-              }}
-            />
-          )}
-        </section>
-
-        <BookingRequestsPanel />
+        <details
+          ref={bookingRequestsDetailsRef}
+          className={`${ui.section} rounded-xl border border-neutral-200/80 bg-white/50 px-4 py-3`}
+        >
+          <summary className="cursor-pointer list-none py-1 text-lg font-semibold text-neutral-900 [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center justify-between gap-3">
+              <span>{heUi.dashboard.bookingRequestsTitle}</span>
+              {pendingBookingRequests > 0 ? (
+                <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-sm font-medium text-violet-900 tabular-nums">
+                  {pendingBookingRequests}
+                </span>
+              ) : null}
+            </span>
+          </summary>
+          <div className="mt-3 border-t border-neutral-200/80 pt-3">
+            <BookingRequestsPanel embedded />
+          </div>
+        </details>
       </div>
     </main>
   );

@@ -5,7 +5,14 @@
 export const DEFAULT_MVP_BUSINESS_ID =
   "00000000-0000-0000-0000-000000000001";
 
-function isUuid(v: string): boolean {
+/**
+ * Default teacher scope for existing rows and single-teacher deployments.
+ * Override with `NEXT_PUBLIC_DEFAULT_TEACHER_ID` (UUID). Align with `005_multitenant_teacher_scope.sql`.
+ */
+export const DEFAULT_MVP_TEACHER_ID =
+  "00000000-0000-0000-0000-000000000002";
+
+export function isUuid(v: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     v,
   );
@@ -15,6 +22,12 @@ export function getSupabaseBusinessId(): string {
   const v = process.env.NEXT_PUBLIC_BUSINESS_ID?.trim();
   if (v && isUuid(v)) return v;
   return DEFAULT_MVP_BUSINESS_ID;
+}
+
+export function getSupabaseDefaultTeacherId(): string {
+  const v = process.env.NEXT_PUBLIC_DEFAULT_TEACHER_ID?.trim();
+  if (v && isUuid(v)) return v;
+  return DEFAULT_MVP_TEACHER_ID;
 }
 
 export function isSupabaseConfigured(): boolean {

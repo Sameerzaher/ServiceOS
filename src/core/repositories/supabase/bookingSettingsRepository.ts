@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import {
   normalizeAvailabilitySettings,
   type AvailabilitySettings,
@@ -25,44 +26,83 @@ function mapRowToPartial(row: Record<string, unknown>) {
 export async function loadBookingSettings(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
 ): Promise<AvailabilitySettings> {
-  const { data, error } = await supabase
+  let data: Record<string, unknown> | null = null;
+  const res = await supabase
     .from("booking_settings")
     .select("*")
     .eq("business_id", businessId)
+    .eq("teacher_id", teacherId)
     .maybeSingle();
 
-  if (error) {
-    console.error("[ServiceOS] loadBookingSettings", error);
-    throw error;
+  if (res.error) {
+    if (isMissingColumnError(res.error)) {
+      const legacy = await supabase
+        .from("booking_settings")
+        .select("*")
+        .eq("business_id", businessId)
+        .maybeSingle();
+      if (legacy.error) {
+        console.error("[ServiceOS] loadBookingSettings (legacy)", legacy.error);
+        throw legacy.error;
+      }
+      data = legacy.data as Record<string, unknown> | null;
+    } else {
+      console.error("[ServiceOS] loadBookingSettings", res.error);
+      throw res.error;
+    }
+  } else {
+    data = res.data as Record<string, unknown> | null;
   }
 
   if (!data || typeof data !== "object") {
-    return safeLoadingDefaults();
+    return normalizeAvailabilitySettings({ bookingEnabled: false, teacherId });
   }
 
-  return normalizeAvailabilitySettings(
-    mapRowToPartial(data as Record<string, unknown>),
-  );
+  return normalizeAvailabilitySettings({
+    ...mapRowToPartial(data),
+    teacherId,
+  });
 }
 
 export async function persistBookingSettings(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
   settings: AvailabilitySettings,
 ): Promise<void> {
-  const { error } = await supabase.from("booking_settings").upsert(
-    {
+  const row = {
+    business_id: businessId,
+    teacher_id: teacherId,
+    booking_enabled: settings.bookingEnabled,
+    weekly_availability: settings.weeklyAvailability,
+    slot_duration_minutes: settings.slotDurationMinutes,
+    days_ahead: settings.daysAhead,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from("booking_settings").upsert(row, {
+    onConflict: "business_id,teacher_id",
+  });
+  if (!error) return;
+
+  if (isMissingColumnError(error)) {
+    const legacyRow = {
       business_id: businessId,
       booking_enabled: settings.bookingEnabled,
       weekly_availability: settings.weeklyAvailability,
       slot_duration_minutes: settings.slotDurationMinutes,
       days_ahead: settings.daysAhead,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "business_id" },
-  );
-  if (error) throw error;
+    };
+    const { error: legacyErr } = await supabase
+      .from("booking_settings")
+      .upsert(legacyRow, { onConflict: "business_id" });
+    if (legacyErr) throw legacyErr;
+    return;
+  }
+
+  throw error;
 }
 
 /** @deprecated Use `loadBookingSettings`; kept for `ServiceStorage` shape. */
@@ -82,16 +122,34 @@ export type PublicBookingGate =
 export async function loadPublicBookingGate(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
 ): Promise<PublicBookingGate> {
-  const { data, error } = await supabase
+  let data: Record<string, unknown> | null = null;
+  const res = await supabase
     .from("booking_settings")
     .select("booking_enabled, days_ahead")
     .eq("business_id", businessId)
+    .eq("teacher_id", teacherId)
     .maybeSingle();
 
-  if (error) {
-    console.error("[ServiceOS] loadPublicBookingGate", error);
-    return { ok: false };
+  if (res.error) {
+    if (isMissingColumnError(res.error)) {
+      const legacy = await supabase
+        .from("booking_settings")
+        .select("booking_enabled, days_ahead")
+        .eq("business_id", businessId)
+        .maybeSingle();
+      if (legacy.error) {
+        console.error("[ServiceOS] loadPublicBookingGate (legacy)", legacy.error);
+        return { ok: false };
+      }
+      data = legacy.data as Record<string, unknown> | null;
+    } else {
+      console.error("[ServiceOS] loadPublicBookingGate", res.error);
+      return { ok: false };
+    }
+  } else {
+    data = res.data as Record<string, unknown> | null;
   }
 
   if (!data || typeof data !== "object") {

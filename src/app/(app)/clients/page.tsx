@@ -10,7 +10,7 @@ import {
 import {
   Button,
   DataLoadErrorBanner,
-  LoadingState,
+  InlineLoading,
   Modal,
   ui,
 } from "@/components/ui";
@@ -75,14 +75,14 @@ export default function ClientsPage() {
         {clientsLoadError ? (
           <DataLoadErrorBanner
             title={clientsLoadError}
-            description={heUi.data.loadFailedHint}
+            description={heUi.data.clientsLoadFailedHint}
             onRetry={retryClientsLoad}
           />
         ) : null}
         {clientsSyncError ? (
           <DataLoadErrorBanner
             title={clientsSyncError}
-            description={heUi.data.syncFailedHint}
+            description={heUi.data.clientsSyncFailedHint}
             onRetry={retryClientsSync}
           />
         ) : null}
@@ -155,7 +155,7 @@ export default function ClientsPage() {
             />
           </div>
           {!clientsReady ? (
-            <LoadingState message={heUi.loading.students} />
+            <InlineLoading className="py-2" />
           ) : (
             <ClientList
               clients={filteredClients}

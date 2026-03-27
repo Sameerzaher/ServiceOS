@@ -6,7 +6,9 @@ import {
   getSupabaseBusinessId,
   getSupabaseClientsTable,
 } from "@/core/config/supabaseEnv";
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -74,15 +76,26 @@ export async function PUT(
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req, raw);
     const table = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
 
-    const { data: existing, error: loadErr } = await supabase
+    let loadRes = await supabase
       .from(table)
       .select("client_id, start_at, end_at, custom_fields, status")
       .eq("id", id)
       .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
       .maybeSingle();
+    if (loadRes.error && isMissingColumnError(loadRes.error)) {
+      loadRes = await supabase
+        .from(table)
+        .select("client_id, start_at, end_at, custom_fields, status")
+        .eq("id", id)
+        .eq("business_id", businessId)
+        .maybeSingle();
+    }
+    const { data: existing, error: loadErr } = loadRes;
     if (loadErr) throw loadErr;
     if (!existing) {
       return NextResponse.json(
@@ -110,30 +123,58 @@ export async function PUT(
     if (nextStatus === "confirmed") {
       const nowIso = new Date().toISOString();
 
-      const { data: existingConfirmedRows, error: existingConfirmedErr } =
-        await supabase
+      let dupCheck = await supabase
+        .from(table)
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("teacher_id", teacherId)
+        .eq("custom_fields->>sourceBookingId", id)
+        .limit(1);
+      if (dupCheck.error && isMissingColumnError(dupCheck.error)) {
+        dupCheck = await supabase
           .from(table)
           .select("id")
           .eq("business_id", businessId)
           .eq("custom_fields->>sourceBookingId", id)
           .limit(1);
+      }
+      const { data: existingConfirmedRows, error: existingConfirmedErr } =
+        dupCheck;
       if (existingConfirmedErr) throw existingConfirmedErr;
       if ((existingConfirmedRows ?? []).length > 0) {
-        const { error: deleteErr } = await supabase
+        let delDup = await supabase
           .from(table)
           .delete()
           .eq("id", id)
-          .eq("business_id", businessId);
-        if (deleteErr) throw deleteErr;
+          .eq("business_id", businessId)
+          .eq("teacher_id", teacherId);
+        if (delDup.error && isMissingColumnError(delDup.error)) {
+          delDup = await supabase
+            .from(table)
+            .delete()
+            .eq("id", id)
+            .eq("business_id", businessId);
+        }
+        if (delDup.error) throw delDup.error;
         return NextResponse.json({ ok: true as const, duplicate: true });
       }
 
-      const { data: client, error: clientErr } = await supabase
+      let clientRes = await supabase
         .from(clientsTable)
         .select("id, full_name, phone")
         .eq("id", existing.client_id)
         .eq("business_id", businessId)
+        .eq("teacher_id", teacherId)
         .maybeSingle();
+      if (clientRes.error && isMissingColumnError(clientRes.error)) {
+        clientRes = await supabase
+          .from(clientsTable)
+          .select("id, full_name, phone")
+          .eq("id", existing.client_id)
+          .eq("business_id", businessId)
+          .maybeSingle();
+      }
+      const { data: client, error: clientErr } = clientRes;
       if (clientErr || !client) {
         throw clientErr ?? new Error("client not found for booking request");
       }
@@ -142,9 +183,16 @@ export async function PUT(
       const nextNotes =
         typeof nextNotesRaw === "string" ? nextNotesRaw.trim() : "";
 
+      const clientFullName =
+        typeof client.full_name === "string" ? client.full_name.trim() : "";
+      const clientPhone =
+        typeof client.phone === "string" ? client.phone.trim() : "";
+
       const appointmentId = randomUUID();
       const appointmentCustomFields: Record<string, unknown> = {
         notes: nextNotes,
+        clientName: clientFullName,
+        clientPhone,
       };
       if (typeof customFields.pickupLocation === "string") {
         appointmentCustomFields.pickupLocation = customFields.pickupLocation;
@@ -160,27 +208,53 @@ export async function PUT(
       }
       appointmentCustomFields.sourceBookingId = id;
 
-      const { error: insertErr } = await supabase.from(table).insert({
+      const startIso =
+        typeof existing.start_at === "string" ? existing.start_at : nowIso;
+      const parsedStartMs = new Date(startIso).getTime();
+      const fallbackEndIso = Number.isFinite(parsedStartMs)
+        ? new Date(parsedStartMs + 40 * 60 * 1000).toISOString()
+        : startIso;
+      const endIso =
+        typeof existing.end_at === "string" && existing.end_at.trim().length > 0
+          ? existing.end_at
+          : fallbackEndIso;
+
+      const baseConfirmedAppt = {
         id: appointmentId,
         business_id: businessId,
         client_id: existing.client_id,
-        start_at: existing.start_at,
-        end_at: existing.end_at,
+        start_at: startIso,
+        end_at: endIso,
         status: AppointmentStatus.Scheduled,
         payment_status: PaymentStatus.Unpaid,
         amount: 0,
         custom_fields: appointmentCustomFields,
         created_at: nowIso,
         updated_at: nowIso,
+      };
+      let insertRes = await supabase.from(table).insert({
+        ...baseConfirmedAppt,
+        teacher_id: teacherId,
       });
-      if (insertErr) throw insertErr;
+      if (insertRes.error && isMissingColumnError(insertRes.error)) {
+        insertRes = await supabase.from(table).insert(baseConfirmedAppt);
+      }
+      if (insertRes.error) throw insertRes.error;
 
-      const { error: deleteErr } = await supabase
+      let delAfter = await supabase
         .from(table)
         .delete()
         .eq("id", id)
-        .eq("business_id", businessId);
-      if (deleteErr) throw deleteErr;
+        .eq("business_id", businessId)
+        .eq("teacher_id", teacherId);
+      if (delAfter.error && isMissingColumnError(delAfter.error)) {
+        delAfter = await supabase
+          .from(table)
+          .delete()
+          .eq("id", id)
+          .eq("business_id", businessId);
+      }
+      if (delAfter.error) throw delAfter.error;
 
       return NextResponse.json({
         ok: true as const,
@@ -195,20 +269,30 @@ export async function PUT(
       appointmentStatus = AppointmentStatus.Cancelled;
     }
 
-    const { error: updateErr } = await supabase
+    const updatePayload = {
+      status: appointmentStatus,
+      custom_fields: {
+        ...customFields,
+        bookingSource: "public",
+        bookingApproval,
+        bookingRequestStatus: nextStatus,
+      },
+      updated_at: new Date().toISOString(),
+    };
+    let updateRes = await supabase
       .from(table)
-      .update({
-        status: appointmentStatus,
-        custom_fields: {
-          ...customFields,
-          bookingSource: "public",
-          bookingApproval,
-          bookingRequestStatus: nextStatus,
-        },
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", id)
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+    if (updateRes.error && isMissingColumnError(updateRes.error)) {
+      updateRes = await supabase
+        .from(table)
+        .update(updatePayload)
+        .eq("id", id)
+        .eq("business_id", businessId);
+    }
+    const { error: updateErr } = updateRes;
     if (updateErr) throw updateErr;
 
     return NextResponse.json({ ok: true as const });

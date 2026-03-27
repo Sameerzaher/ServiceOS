@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMemo } from "react";
 
 import { heUi, paymentStatusLabel } from "@/config";
-import { Button, EmptyState, LoadingState, ui } from "@/components/ui";
+import { Button, EmptyState, InlineLoading, ui } from "@/components/ui";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import { formatIls } from "@/core/utils/currency";
@@ -103,7 +103,7 @@ export default function ClientProfilePage() {
   if (!clientsReady || !appointmentsReady) {
     return (
       <main className={ui.pageMain}>
-        <LoadingState message={heUi.loading.default} />
+        <InlineLoading className="py-8" />
       </main>
     );
   }

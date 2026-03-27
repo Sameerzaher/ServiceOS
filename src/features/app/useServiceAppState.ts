@@ -22,11 +22,13 @@ import {
 import type { AppointmentDateFilter } from "@/core/utils/dateRange";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import { buildWhatsAppHref } from "@/core/utils/whatsapp";
+import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
 import { useAvailabilitySettings } from "@/features/booking/hooks/useAvailabilitySettings";
 import { useClients } from "@/features/clients/hooks/useClients";
 import type { NewClientInput } from "@/features/clients/hooks/useClients";
 import { useSettings } from "@/features/settings/hooks/useSettings";
+import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 
 function togglePaymentStatus(current: PaymentStatus): PaymentStatus {
   return isPaidStatus(current) ? PaymentStatus.Unpaid : PaymentStatus.Paid;
@@ -52,6 +54,7 @@ function formatAppointmentDateTime(iso: string): string {
 
 export function useServiceAppState() {
   const toast = useToast();
+  const dashboardTeacherId = useDashboardTeacherId();
   const {
     settings,
     isReady: settingsReady,
@@ -94,6 +97,7 @@ export function useServiceAppState() {
     deleteAppointment,
     deleteAppointmentsForClient,
     replaceAppointments,
+    reloadAppointments,
     isReady: appointmentsReady,
     loadError: appointmentsLoadError,
     syncError: appointmentsSyncError,
@@ -247,37 +251,63 @@ export function useServiceAppState() {
     toast(heUi.toast.paymentToggled);
   }
 
-  function handleApprovePublicBooking(id: string): void {
+  async function handleApprovePublicBooking(id: string): Promise<void> {
     const row = sortedAppointments.find((a) => a.id === id);
     if (!row) return;
     if (!isPendingPublicApproval(row.customFields)) return;
-    updateAppointment(id, {
-      // Keep DB-compatible lesson status; approval state is tracked in customFields.
-      status: row.status,
-      customFields: {
-        ...row.customFields,
-        bookingApproval: "approved",
-        bookingRequestStatus: "confirmed",
-      },
-    });
-    toast(heUi.toast.bookingApproved);
+    try {
+      const res = await fetch(`/api/bookings/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: mergeTeacherScopeHeaders(dashboardTeacherId, {
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ status: "confirmed" }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || data.ok !== true) {
+        const msg =
+          typeof data.error === "string" && data.error.length > 0
+            ? data.error
+            : heUi.toast.actionFailed;
+        toast(msg, "error");
+        return;
+      }
+      await reloadAppointments();
+      toast(heUi.toast.bookingApproved);
+    } catch {
+      toast(heUi.toast.actionFailed, "error");
+    }
   }
 
-  function handleApproveAndSendPublicBookingWhatsapp(id: string): void {
+  async function handleApproveAndSendPublicBookingWhatsapp(
+    id: string,
+  ): Promise<void> {
     const row = sortedAppointments.find((a) => a.id === id);
     if (!row) return;
     if (!isPendingPublicApproval(row.customFields)) return;
-    updateAppointment(id, {
-      // Keep DB-compatible lesson status; approval state is tracked in customFields.
-      status: row.status,
-      customFields: {
-        ...row.customFields,
-        bookingApproval: "approved",
-        bookingRequestStatus: "confirmed",
-      },
-    });
-    openApprovalWhatsapp(row);
-    toast(heUi.toast.bookingApproved);
+    try {
+      const res = await fetch(`/api/bookings/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: mergeTeacherScopeHeaders(dashboardTeacherId, {
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ status: "confirmed" }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || data.ok !== true) {
+        const msg =
+          typeof data.error === "string" && data.error.length > 0
+            ? data.error
+            : heUi.toast.actionFailed;
+        toast(msg, "error");
+        return;
+      }
+      await reloadAppointments();
+      openApprovalWhatsapp(row);
+      toast(heUi.toast.bookingApproved);
+    } catch {
+      toast(heUi.toast.actionFailed, "error");
+    }
   }
 
   function handleRejectPublicBooking(id: string): void {

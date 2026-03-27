@@ -4,14 +4,23 @@ import { useMemo } from "react";
 import Link from "next/link";
 
 import { appPageTitle, heUi } from "@/config";
-import { Button, DataLoadErrorBanner, LoadingState, ui, useToast } from "@/components/ui";
+import {
+  Button,
+  DataLoadErrorBanner,
+  InlineLoading,
+  ui,
+  useToast,
+} from "@/components/ui";
 import { AvailabilitySettingsForm } from "@/features/booking/components/AvailabilitySettingsForm";
 import { BookingRequestsPanel } from "@/features/dashboard/components/BookingRequestsPanel";
+import { useDashboardTeacherSlug } from "@/features/app/DashboardTeacherContext";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
+import { publicBookingPath } from "@/lib/booking/publicBookingPath";
 import { cn } from "@/lib/cn";
 
 export default function BookingSettingsPage() {
   const toast = useToast();
+  const teacherSlug = useDashboardTeacherSlug();
   const {
     preset,
     settings,
@@ -27,10 +36,16 @@ export default function BookingSettingsPage() {
 
   const displayTitle =
     settings.businessName.trim() || appPageTitle(preset);
+
+  const publicPath = useMemo(
+    () => publicBookingPath(teacherSlug),
+    [teacherSlug],
+  );
   const publicUrl = useMemo(() => {
-    if (typeof window === "undefined") return "/book";
-    return `${window.location.origin}/book`;
-  }, []);
+    if (typeof window === "undefined") return publicPath;
+    return `${window.location.origin}${publicPath}`;
+  }, [publicPath]);
+
   const whatsappShareHref = useMemo(() => {
     const text = heUi.settings.bookingShareText(publicUrl);
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -82,7 +97,7 @@ export default function BookingSettingsPage() {
           />
           <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <Link
-              href="/book"
+              href={publicPath}
               target="_blank"
               rel="noreferrer"
               className="inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 shadow-sm transition hover:bg-neutral-50"
@@ -107,7 +122,7 @@ export default function BookingSettingsPage() {
           </div>
         </div>
         {!availabilityReady ? (
-          <LoadingState message={heUi.loading.bookingSettings} />
+          <InlineLoading className="py-4" />
         ) : (
           <AvailabilitySettingsForm
             settings={availabilitySettings}

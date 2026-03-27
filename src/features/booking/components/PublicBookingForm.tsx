@@ -3,7 +3,7 @@
 import { type FormEvent, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
-import { Button, EmptyState, ui } from "@/components/ui";
+import { Button, EmptyState, Spinner, ui } from "@/components/ui";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
 
 export interface PublicBookingFormSubmitInput {
@@ -20,6 +20,8 @@ export interface PublicBookingFormProps {
   selectedSlot: AvailableSlot | null;
   onSubmit: (input: PublicBookingFormSubmitInput) => Promise<boolean> | boolean;
   submitError?: string | null;
+  isSubmitting: boolean;
+  isSuccess: boolean;
   className?: string;
 }
 
@@ -29,10 +31,39 @@ interface FieldErrors {
   slot?: string;
 }
 
+function toLocalDate(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function toLocalTime(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+/** Validates date (YYYY-MM-DD) + time (HH:mm) derived from the selected slot. */
+function slotDateTimeValid(slot: AvailableSlot): boolean {
+  if (!Number.isFinite(new Date(slot.slotStart).getTime())) return false;
+  const date = toLocalDate(slot.slotStart);
+  const time = toLocalTime(slot.slotStart);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  if (!/^\d{2}:\d{2}$/.test(time)) return false;
+  return true;
+}
+
 export function PublicBookingForm({
   selectedSlot,
   onSubmit,
   submitError = null,
+  isSubmitting,
+  isSuccess,
   className,
 }: PublicBookingFormProps) {
   const [fullName, setFullName] = useState("");
@@ -41,8 +72,6 @@ export function PublicBookingForm({
   const [pickupLocation, setPickupLocation] = useState("");
   const [carType, setCarType] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const selectedSlotLabel = useMemo(() => {
     if (!selectedSlot) return "";
@@ -59,9 +88,18 @@ export function PublicBookingForm({
   function validate(): FieldErrors {
     const pb = heUi.publicBooking;
     const next: FieldErrors = {};
-    if (!fullName.trim()) next.fullName = pb.errFullName;
-    if (!phone.trim()) next.phone = pb.errPhone;
+
+    const name = fullName.trim();
+    if (!name) next.fullName = pb.errFullName;
+    else if (name.length < 2) next.fullName = pb.errFullNameShort;
+
+    const phoneTrim = phone.trim();
+    if (!phoneTrim) next.phone = pb.errPhone;
+    else if (phoneTrim.replace(/\D/g, "").length < 8) next.phone = pb.errPhoneInvalid;
+
     if (!selectedSlot) next.slot = pb.errSlot;
+    else if (!slotDateTimeValid(selectedSlot)) next.slot = pb.errSlotInvalid;
+
     return next;
   }
 
@@ -74,27 +112,22 @@ export function PublicBookingForm({
     if (Object.keys(nextErrors).length > 0) return;
     if (!selectedSlot) return;
 
-    setIsSubmitting(true);
-    try {
-      const ok = await onSubmit({
-        fullName: fullName.trim(),
-        phone: phone.trim(),
-        notes: notes.trim(),
-        slotStart: selectedSlot.slotStart,
-        slotEnd: selectedSlot.slotEnd,
-        pickupLocation: pickupLocation.trim(),
-        carType: carType.trim(),
-      });
-      if (!ok) return;
-      setIsSuccess(true);
+    const ok = await onSubmit({
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      notes: notes.trim(),
+      slotStart: selectedSlot.slotStart,
+      slotEnd: selectedSlot.slotEnd,
+      pickupLocation: pickupLocation.trim(),
+      carType: carType.trim(),
+    });
+    if (ok) {
       setFullName("");
       setPhone("");
       setNotes("");
       setPickupLocation("");
       setCarType("");
       setErrors({});
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -105,7 +138,6 @@ export function PublicBookingForm({
         tone="muted"
         className="py-10"
         title={pb.successTitle}
-        description={pb.successDescription}
       />
     );
   }
@@ -136,6 +168,7 @@ export function PublicBookingForm({
           id="public-booking-name"
           type="text"
           value={fullName}
+          disabled={isSubmitting}
           onChange={(e) => {
             setFullName(e.target.value);
             setErrors((prev) => ({ ...prev, fullName: undefined }));
@@ -160,6 +193,7 @@ export function PublicBookingForm({
           id="public-booking-phone"
           type="tel"
           value={phone}
+          disabled={isSubmitting}
           onChange={(e) => {
             setPhone(e.target.value);
             setErrors((prev) => ({ ...prev, phone: undefined }));
@@ -184,6 +218,7 @@ export function PublicBookingForm({
         <textarea
           id="public-booking-notes"
           value={notes}
+          disabled={isSubmitting}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           className={`${ui.input} min-h-[5.5rem] resize-y`}
@@ -197,6 +232,7 @@ export function PublicBookingForm({
         <textarea
           id="public-booking-pickup"
           value={pickupLocation}
+          disabled={isSubmitting}
           onChange={(e) => setPickupLocation(e.target.value)}
           rows={2}
           className={`${ui.input} min-h-[4rem] resize-y`}
@@ -212,6 +248,7 @@ export function PublicBookingForm({
           id="public-booking-car"
           type="text"
           value={carType}
+          disabled={isSubmitting}
           onChange={(e) => setCarType(e.target.value)}
           className={ui.input}
           placeholder={heUi.publicBooking.carPlaceholder}
@@ -225,9 +262,14 @@ export function PublicBookingForm({
         disabled={isSubmitting}
         aria-busy={isSubmitting}
       >
-        {isSubmitting
-          ? heUi.publicBooking.submitSubmitting
-          : heUi.publicBooking.submitIdle}
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <Spinner className="size-4 border-white/40 border-t-white" />
+            {heUi.publicBooking.submitSubmitting}
+          </span>
+        ) : (
+          heUi.publicBooking.submitIdle
+        )}
       </Button>
       {submitError ? (
         <p className="text-sm text-red-600" role="alert">
@@ -237,4 +279,3 @@ export function PublicBookingForm({
     </form>
   );
 }
-

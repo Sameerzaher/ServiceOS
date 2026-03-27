@@ -7,6 +7,8 @@ export type BookingRequestId = string;
 
 export interface BookingRequest {
   id: BookingRequestId;
+  /** Owning teacher for this booking request (matches appointment teacher scope). */
+  teacherId: string;
   fullName: string;
   phone: string;
   /** ISO 8601 instant when the request was created. */

@@ -18,6 +18,8 @@ export interface BookingSubmitInput {
 export interface UseBookingOptions {
   /** Called after a successful server booking (e.g. refresh local appointment list for slot UI). */
   onPublicBookingSuccess?: () => void;
+  /** Required for `/book/[slug]` — persisted on `teacher_id` for the booking request. */
+  teacherId?: string;
 }
 
 export interface UseBookingResult {
@@ -55,10 +57,15 @@ function toLocalTime(iso: string): string {
 
 export function useBooking(options?: UseBookingOptions): UseBookingResult {
   const onSuccessRef = useRef(options?.onPublicBookingSuccess);
+  const teacherIdRef = useRef(options?.teacherId);
   useEffect(() => {
     onSuccessRef.current = options?.onPublicBookingSuccess;
   }, [options?.onPublicBookingSuccess]);
+  useEffect(() => {
+    teacherIdRef.current = options?.teacherId;
+  }, [options?.teacherId]);
 
+  const submitInFlightRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,21 +74,25 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
 
   const submitBooking = useCallback(
     async (input: BookingSubmitInput): Promise<boolean> => {
-      if (isSubmitting) return false;
+      if (submitInFlightRef.current) return false;
+      submitInFlightRef.current = true;
       setError(null);
       setIsSuccess(false);
 
       if (!isSupabaseConfigured()) {
         setError(heUi.publicBooking.errUnavailable);
+        submitInFlightRef.current = false;
         return false;
       }
 
       setIsSubmitting(true);
       try {
+        const tid = teacherIdRef.current?.trim();
         const res = await fetch("/api/bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            ...(tid ? { teacherId: tid } : {}),
             fullName: input.fullName,
             phone: input.phone,
             pickupLocation: input.pickupLocation,
@@ -104,11 +115,19 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
         }
 
         if (!res.ok || !body || body.ok !== true) {
-          const msg =
+          const fromServer =
             typeof body?.error === "string" && body.error.length > 0
               ? body.error
-              : heUi.publicBooking.errSaveFailed;
-          setError(msg);
+              : null;
+          const fallback =
+            res.status === 503
+              ? heUi.publicBooking.errUnavailable
+              : res.status === 409
+                ? heUi.publicBooking.errSlotTaken
+                : res.status === 400
+                  ? heUi.publicBooking.errInvalidPayload
+                  : heUi.publicBooking.errSaveFailed;
+          setError(fromServer ?? fallback);
           return false;
         }
 
@@ -119,10 +138,11 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
         setError(heUi.publicBooking.errNetwork);
         return false;
       } finally {
+        submitInFlightRef.current = false;
         setIsSubmitting(false);
       }
     },
-    [isSubmitting],
+    [],
   );
 
   const resetState = useCallback(() => {

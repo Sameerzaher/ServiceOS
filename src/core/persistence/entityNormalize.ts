@@ -1,9 +1,11 @@
+import { getSupabaseDefaultTeacherId } from "@/core/config/supabaseEnv";
 import {
   AppointmentStatus,
   PaymentStatus,
   type AppointmentRecord,
 } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
+import type { Teacher } from "@/core/types/teacher";
 
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
@@ -73,14 +75,39 @@ export function normalizeClient(raw: unknown): Client | null {
   if (!id) return null;
 
   const now = new Date().toISOString();
+  const teacherRaw =
+    typeof raw.teacherId === "string" ? raw.teacherId.trim() : "";
+  const teacherId =
+    teacherRaw.length > 0 ? teacherRaw : getSupabaseDefaultTeacherId();
   return {
     id,
+    teacherId,
     fullName: coerceString(raw.fullName),
     phone: coerceString(raw.phone),
     notes: coerceString(raw.notes),
     customFields: normalizeCustomFields(raw.customFields),
     createdAt: coerceIsoInstant(raw.createdAt, now),
     updatedAt: coerceIsoInstant(raw.updatedAt, now),
+  };
+}
+
+/**
+ * Best-effort repair of a partial teacher row. Returns null when `id` or `slug` is unusable.
+ */
+export function normalizeTeacher(raw: unknown): Teacher | null {
+  if (!isRecord(raw)) return null;
+  const id = typeof raw.id === "string" ? raw.id.trim() : "";
+  const slug = typeof raw.slug === "string" ? raw.slug.trim() : "";
+  if (!id || !slug) return null;
+
+  const now = new Date().toISOString();
+  return {
+    id,
+    fullName: coerceString(raw.fullName),
+    businessName: coerceString(raw.businessName),
+    phone: coerceString(raw.phone),
+    slug,
+    createdAt: coerceIsoInstant(raw.createdAt, now),
   };
 }
 
@@ -94,8 +121,13 @@ export function normalizeAppointmentRow(raw: unknown): AppointmentRecord | null 
   if (!id || !clientId) return null;
 
   const now = new Date().toISOString();
+  const teacherRaw =
+    typeof raw.teacherId === "string" ? raw.teacherId.trim() : "";
+  const teacherId =
+    teacherRaw.length > 0 ? teacherRaw : getSupabaseDefaultTeacherId();
   return {
     id,
+    teacherId,
     clientId,
     startAt: coerceIsoInstant(raw.startAt, now),
     status: normalizeAppointmentStatus(raw.status),
@@ -112,6 +144,16 @@ export function parseClientsArray(raw: unknown): Client[] {
   const out: Client[] = [];
   for (const item of raw) {
     const row = normalizeClient(item);
+    if (row) out.push(row);
+  }
+  return out;
+}
+
+export function parseTeachersArray(raw: unknown): Teacher[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Teacher[] = [];
+  for (const item of raw) {
+    const row = normalizeTeacher(item);
     if (row) out.push(row);
   }
   return out;

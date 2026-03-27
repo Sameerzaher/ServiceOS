@@ -1,11 +1,17 @@
 import type { AppointmentRecord } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
-import { normalizeAppointmentRow, normalizeClient } from "@/core/persistence";
+import type { Teacher } from "@/core/types/teacher";
+import {
+  normalizeAppointmentRow,
+  normalizeClient,
+  normalizeTeacher,
+} from "@/core/persistence";
 
 /** Supabase row shape (snake_case columns). */
 export type ClientRow = {
   id: string;
   business_id: string;
+  teacher_id: string;
   full_name: string;
   phone: string;
   notes: string;
@@ -14,9 +20,20 @@ export type ClientRow = {
   updated_at: string;
 };
 
+export type TeacherRow = {
+  id: string;
+  business_id: string;
+  full_name: string;
+  business_name: string;
+  phone: string;
+  slug: string;
+  created_at: string;
+};
+
 export type AppointmentRow = {
   id: string;
   business_id: string;
+  teacher_id: string;
   client_id: string;
   start_at: string;
   /** Present when the database stores an explicit slot end (public booking, etc.). */
@@ -33,6 +50,7 @@ export function clientToRow(client: Client, businessId: string): ClientRow {
   return {
     id: client.id,
     business_id: businessId,
+    teacher_id: client.teacherId,
     full_name: client.fullName,
     phone: client.phone,
     notes: client.notes,
@@ -45,12 +63,36 @@ export function clientToRow(client: Client, businessId: string): ClientRow {
 export function clientFromRow(row: ClientRow): Client | null {
   return normalizeClient({
     id: row.id,
+    teacherId: row.teacher_id,
     fullName: row.full_name,
     phone: row.phone,
     notes: row.notes,
     customFields: row.custom_fields,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  });
+}
+
+export function teacherToRow(teacher: Teacher, businessId: string): TeacherRow {
+  return {
+    id: teacher.id,
+    business_id: businessId,
+    full_name: teacher.fullName,
+    business_name: teacher.businessName,
+    phone: teacher.phone,
+    slug: teacher.slug,
+    created_at: teacher.createdAt,
+  };
+}
+
+export function teacherFromRow(row: TeacherRow): Teacher | null {
+  return normalizeTeacher({
+    id: row.id,
+    fullName: row.full_name,
+    businessName: row.business_name,
+    phone: row.phone,
+    slug: row.slug,
+    createdAt: row.created_at,
   });
 }
 
@@ -74,6 +116,7 @@ export function appointmentToRow(
   return {
     id: row.id,
     business_id: businessId,
+    teacher_id: row.teacherId,
     client_id: row.clientId,
     start_at: row.startAt,
     end_at: appointmentEndAtIso(row),
@@ -93,6 +136,7 @@ export function appointmentFromRow(row: AppointmentRow): AppointmentRecord | nul
   }
   return normalizeAppointmentRow({
     id: row.id,
+    teacherId: row.teacher_id,
     clientId: row.client_id,
     startAt: row.start_at,
     status: row.status,

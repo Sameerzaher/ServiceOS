@@ -1,8 +1,15 @@
+import {
+  DEFAULT_MVP_TEACHER_ID,
+  getSupabaseDefaultTeacherId,
+} from "@/core/config/supabaseEnv";
+
 /** Business vertical (terminology + extra fields). Matches `VERTICAL_REGISTRY` keys. */
 export type ActivePreset = "driving" | "fitness" | "beauty";
 
 /** App preferences stored locally (no backend yet). */
 export interface AppSettings {
+  /** Owning teacher for this settings row / tenant scope. */
+  teacherId: string;
   /** Active industry preset — drives labels and custom fields in the UI. */
   activePreset: ActivePreset;
   /** Shown in header and exports; e.g. "בית ספר לנהיגה — דני". */
@@ -26,6 +33,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
+  teacherId: DEFAULT_MVP_TEACHER_ID,
   activePreset: "driving",
   businessName: "",
   teacherName: "",
@@ -101,7 +109,12 @@ export function normalizeAppSettings(raw: unknown): AppSettings {
       ? o.reminderTemplate.trim() || DEFAULT_APP_SETTINGS.reminderTemplate
       : DEFAULT_APP_SETTINGS.reminderTemplate;
 
+  const teacherIdRaw = typeof o.teacherId === "string" ? o.teacherId.trim() : "";
+  const teacherId =
+    teacherIdRaw.length > 0 ? teacherIdRaw : getSupabaseDefaultTeacherId();
+
   return {
+    teacherId,
     activePreset: coerceActivePreset(o.activePreset),
     businessName: typeof o.businessName === "string" ? o.businessName : "",
     teacherName: typeof o.teacherName === "string" ? o.teacherName : "",

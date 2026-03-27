@@ -12,6 +12,7 @@ import {
 
 import { heUi, paymentStatusLabel } from "@/config";
 import { Button, EmptyState, ui } from "@/components/ui";
+import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 import type { Appointment, AppointmentRecord } from "@/core/types/appointment";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
@@ -224,6 +225,7 @@ export function AppointmentForm({
   prefillClientId,
   defaultLessonDurationMinutes,
 }: AppointmentFormProps) {
+  const dashboardTeacherId = useDashboardTeacherId();
   const defaultMoney = defaultAmount ?? preset.defaultServices[0]?.price ?? 0;
   const [clientId, setClientId] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -361,6 +363,9 @@ export function AppointmentForm({
 
     try {
       onSubmit({
+        teacherId:
+          clients.find((c) => c.id === clientId)?.teacherId ??
+          dashboardTeacherId,
         clientId,
         startAt,
         status: initialAppointment?.status ?? AppointmentStatus.Scheduled,

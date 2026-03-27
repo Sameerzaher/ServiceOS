@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { heUi } from "@/config";
+import { useDashboardTeacherOptional } from "@/features/app/DashboardTeacherContext";
 import { cn } from "@/lib/cn";
 
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string }> = [
@@ -18,6 +19,40 @@ const NAV_ITEMS: ReadonlyArray<{ href: string; label: string }> = [
 function isNavActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function TeacherScopeSelect() {
+  const ctx = useDashboardTeacherOptional();
+  if (!ctx || !ctx.teachersReady || ctx.teachers.length <= 1) {
+    return null;
+  }
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <label
+        htmlFor="dashboard-teacher-scope"
+        className="text-[10px] font-medium text-neutral-500 sm:text-xs"
+      >
+        {heUi.nav.teacherContext}
+      </label>
+      <select
+        id="dashboard-teacher-scope"
+        className="max-w-[10rem] truncate rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-900 shadow-sm sm:max-w-[14rem] sm:text-sm"
+        dir="ltr"
+        value={ctx.teacherId}
+        onChange={(e) => ctx.setTeacherId(e.target.value)}
+      >
+        {ctx.teachers.map((t) => {
+          const label =
+            t.businessName.trim() || t.fullName.trim() || t.slug || t.id;
+          return (
+            <option key={t.id} value={t.id}>
+              {label}
+            </option>
+          );
+        })}
+      </select>
+    </div>
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -79,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </div>
+            <TeacherScopeSelect />
             <button
               type="button"
               onClick={handleBack}

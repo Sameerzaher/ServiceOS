@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  isMissingColumnError,
+  isMissingRelationError,
+} from "@/core/repositories/supabase/postgrestErrors";
+import {
   DEFAULT_APP_SETTINGS,
   normalizeAppSettings,
   type AppSettings,
@@ -32,37 +36,11 @@ function listSettingsSources(): SettingsSource[] {
   return sources;
 }
 
-function isMissingRelationError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const maybeCode =
-    "code" in error && typeof error.code === "string" ? error.code : "";
-  const maybeMessage =
-    "message" in error && typeof error.message === "string"
-      ? error.message.toLowerCase()
-      : "";
-  return maybeCode === "PGRST205" || maybeMessage.includes("could not find the table");
-}
-
-function isMissingColumnError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const maybeCode =
-    "code" in error && typeof error.code === "string" ? error.code : "";
-  const maybeMessage =
-    "message" in error && typeof error.message === "string"
-      ? error.message.toLowerCase()
-      : "";
-  return (
-    maybeCode === "42703" ||
-    maybeCode === "PGRST204" ||
-    maybeMessage.includes("column") ||
-    maybeMessage.includes("schema cache")
-  );
-}
-
 /** App preferences (`serviceos_app_settings.payload` ↔ `AppSettings`). */
 export async function loadAppSettings(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
 ): Promise<AppSettings> {
   if (probingDisabled) {
     return DEFAULT_APP_SETTINGS;
@@ -74,6 +52,7 @@ export async function loadAppSettings(
         .from(tableName)
         .select(columnName)
         .eq("business_id", businessId)
+        .eq("teacher_id", teacherId)
         .maybeSingle();
 
       if (!error) {
@@ -100,6 +79,7 @@ export async function loadAppSettings(
 export async function persistAppSettings(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
   settings: AppSettings,
 ): Promise<void> {
   if (probingDisabled) {
@@ -113,12 +93,13 @@ export async function persistAppSettings(
     const { table: tableName, column: columnName } = source;
       const payload: Record<string, unknown> = {
         business_id: businessId,
+        teacher_id: teacherId,
         [columnName]: settings,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
         .from(tableName)
-        .upsert(payload, { onConflict: "business_id" });
+        .upsert(payload, { onConflict: "business_id,teacher_id" });
       if (!error) {
         preferredSettingsSource = source;
         return;

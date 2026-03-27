@@ -78,7 +78,6 @@ export function ClientList({
   onAddLessonForClient,
 }: ClientListProps) {
   const ref = referenceDate ?? new Date();
-  const studentsLabel = preset.labels.students;
 
   if (clients.length === 0) {
     const isFilteredOut = totalClientCount > 0;
@@ -87,11 +86,11 @@ export function ClientList({
         title={
           isFilteredOut
             ? heUi.filters.filterResultsEmpty
-            : studentsLabel
-            ? heUi.empty.clientsTitle(studentsLabel)
-            : heUi.empty.clientsFallback
+            : heUi.clientsPage.listEmptyTitle
         }
-        description={isFilteredOut ? undefined : heUi.empty.clientsDescription}
+        description={
+          isFilteredOut ? undefined : heUi.clientsPage.listEmptyDescription
+        }
       />
     );
   }

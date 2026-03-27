@@ -19,6 +19,8 @@ import {
   bookingOverlapsExistingAppointments,
   normalizePhone,
 } from "@/features/booking/logic/publicBookingShared";
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -52,6 +54,7 @@ type BookingPayload = {
 
 type BookingListRow = {
   id: string;
+  teacherId: string;
   fullName: string;
   phone: string;
   pickupLocation: string;
@@ -62,6 +65,23 @@ type BookingListRow = {
   status: "pending" | "confirmed" | "cancelled";
   createdAt: string;
 };
+
+/** Local calendar date YYYY-MM-DD from stored ISO instant (for list display). */
+function localYmdFromIso(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Local HH:mm from stored ISO instant (when custom `bookingTime` is missing). */
+function localHHMMFromIso(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 
 function parsePayload(raw: unknown): BookingPayload | null {
   if (!raw || typeof raw !== "object") return null;
@@ -134,12 +154,21 @@ function parsePayload(raw: unknown): BookingPayload | null {
 async function loadAppointments(
   supabase: ReturnType<typeof getSupabaseAdminClient>,
   businessId: string,
+  teacherId: string,
   table: string,
 ): Promise<AppointmentRecord[]> {
-  const { data, error } = await supabase
+  let res = await supabase
     .from(table)
     .select("*")
-    .eq("business_id", businessId);
+    .eq("business_id", businessId)
+    .eq("teacher_id", teacherId);
+  if (res.error && isMissingColumnError(res.error)) {
+    res = await supabase
+      .from(table)
+      .select("*")
+      .eq("business_id", businessId);
+  }
+  const { data, error } = res;
   if (error) throw error;
 
   const rows: AppointmentRecord[] = [];
@@ -179,12 +208,14 @@ export async function POST(req: Request): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req, raw);
     const appointmentsTable = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
 
     const existingAppointments = await loadAppointments(
       supabase,
       businessId,
+      teacherId,
       appointmentsTable,
     );
     if (
@@ -200,10 +231,18 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
 
-    const { data: clientRows, error: clientsErr } = await supabase
+    let clientList = await supabase
       .from(clientsTable)
       .select("id, phone")
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+    if (clientList.error && isMissingColumnError(clientList.error)) {
+      clientList = await supabase
+        .from(clientsTable)
+        .select("id, phone")
+        .eq("business_id", businessId);
+    }
+    const { data: clientRows, error: clientsErr } = clientList;
     if (clientsErr) throw clientsErr;
 
     const normalizedPhone = normalizePhone(input.phone);
@@ -222,7 +261,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const now = input.createdAt ?? new Date().toISOString();
     if (!clientId) {
       clientId = randomUUID();
-      const { error } = await supabase.from(clientsTable).insert({
+      const baseClient = {
         id: clientId,
         business_id: businessId,
         full_name: input.fullName,
@@ -231,8 +270,15 @@ export async function POST(req: Request): Promise<NextResponse> {
         custom_fields: {},
         created_at: now,
         updated_at: now,
+      };
+      let ins = await supabase.from(clientsTable).insert({
+        ...baseClient,
+        teacher_id: teacherId,
       });
-      if (error) throw error;
+      if (ins.error && isMissingColumnError(ins.error)) {
+        ins = await supabase.from(clientsTable).insert(baseClient);
+      }
+      if (ins.error) throw ins.error;
     }
 
     const appointmentId = randomUUID();
@@ -248,7 +294,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (input.pickupLocation) customFields.pickupLocation = input.pickupLocation;
     if (input.carType) customFields.carType = input.carType;
 
-    const { error: insertErr } = await supabase.from(appointmentsTable).insert({
+    const baseAppt = {
       id: appointmentId,
       business_id: businessId,
       client_id: clientId,
@@ -260,8 +306,15 @@ export async function POST(req: Request): Promise<NextResponse> {
       custom_fields: customFields,
       created_at: now,
       updated_at: now,
+    };
+    let insertRes = await supabase.from(appointmentsTable).insert({
+      ...baseAppt,
+      teacher_id: teacherId,
     });
-    if (insertErr) throw insertErr;
+    if (insertRes.error && isMissingColumnError(insertRes.error)) {
+      insertRes = await supabase.from(appointmentsTable).insert(baseAppt);
+    }
+    if (insertRes.error) throw insertRes.error;
 
     return NextResponse.json({
       ok: true as const,
@@ -295,7 +348,7 @@ function deriveBookingStatus(
   return "pending";
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: Request): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_UNAVAILABLE },
@@ -306,20 +359,38 @@ export async function GET(): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req);
     const appointmentsTable = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
 
-    const { data: apptRows, error: apptErr } = await supabase
+    let apptList = await supabase
       .from(appointmentsTable)
       .select("id, client_id, start_at, created_at, custom_fields")
       .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
       .order("start_at", { ascending: false });
+    if (apptList.error && isMissingColumnError(apptList.error)) {
+      apptList = await supabase
+        .from(appointmentsTable)
+        .select("id, client_id, start_at, created_at, custom_fields")
+        .eq("business_id", businessId)
+        .order("start_at", { ascending: false });
+    }
+    const { data: apptRows, error: apptErr } = apptList;
     if (apptErr) throw apptErr;
 
-    const { data: clientRows, error: clientErr } = await supabase
+    let clientListGet = await supabase
       .from(clientsTable)
       .select("id, full_name, phone")
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+    if (clientListGet.error && isMissingColumnError(clientListGet.error)) {
+      clientListGet = await supabase
+        .from(clientsTable)
+        .select("id, full_name, phone")
+        .eq("business_id", businessId);
+    }
+    const { data: clientRows, error: clientErr } = clientListGet;
     if (clientErr) throw clientErr;
 
     const clientById = new Map<string, { full_name: string; phone: string }>();
@@ -351,11 +422,11 @@ export async function GET(): Promise<NextResponse> {
       const preferredDate =
         typeof cf.bookingDate === "string" && cf.bookingDate.trim().length > 0
           ? cf.bookingDate.trim()
-          : r.start_at.slice(0, 10);
+          : localYmdFromIso(r.start_at);
       const preferredTime =
         typeof cf.bookingTime === "string" && cf.bookingTime.trim().length > 0
           ? cf.bookingTime.trim()
-          : "";
+          : localHHMMFromIso(r.start_at);
       const notes =
         typeof cf.bookingNotes === "string" ? cf.bookingNotes.trim() : "";
       const pickupLocation =
@@ -363,6 +434,7 @@ export async function GET(): Promise<NextResponse> {
       const carType = typeof cf.carType === "string" ? cf.carType.trim() : "";
       bookings.push({
         id: r.id,
+        teacherId,
         fullName: client?.full_name?.trim() || "לקוח",
         phone: client?.phone?.trim() || "",
         pickupLocation,

@@ -93,6 +93,26 @@ function formatStartAt(iso: string): string {
   }
 }
 
+function formatAppointmentDateOnly(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("he-IL", { dateStyle: "medium" }).format(
+      new Date(iso),
+    );
+  } catch {
+    return iso;
+  }
+}
+
+function formatAppointmentTimeOnly(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("he-IL", { timeStyle: "short" }).format(
+      new Date(iso),
+    );
+  } catch {
+    return iso;
+  }
+}
+
 function formatCustomValue(
   def: CustomFieldDefinition,
   value: unknown,
@@ -131,8 +151,6 @@ export function AppointmentList({
   onApproveAndSendWhatsapp,
   onRejectRequest,
 }: AppointmentListProps) {
-  const lessonsLabel = preset.labels.lessons;
-
   if (appointments.length === 0) {
     const isFilteredOut =
       totalAppointmentCount > 0 && appointments.length === 0;
@@ -141,9 +159,7 @@ export function AppointmentList({
         title={
           isFilteredOut
             ? heUi.filters.filterResultsEmpty
-            : lessonsLabel
-              ? heUi.empty.appointmentsTitle(lessonsLabel)
-              : heUi.empty.appointmentsFallback
+            : heUi.empty.lessonsListEmpty
         }
         description={
           isFilteredOut ? undefined : heUi.empty.appointmentsDescription
@@ -218,7 +234,16 @@ export function AppointmentList({
                     ) : null}
                   </div>
                   <p className="mt-1 text-sm text-neutral-700">
-                    {formatStartAt(appt.startAt)}
+                    <span className="font-medium text-neutral-800">
+                      {heUi.appointments.listDateLabel}
+                    </span>{" "}
+                    {formatAppointmentDateOnly(appt.startAt)}
+                  </p>
+                  <p className="mt-1 text-sm text-neutral-700">
+                    <span className="font-medium text-neutral-800">
+                      {heUi.appointments.listTimeLabel}
+                    </span>{" "}
+                    {formatAppointmentTimeOnly(appt.startAt)}
                   </p>
                   <p className="mt-1 text-sm text-neutral-600">
                     <span className="font-medium text-neutral-700">

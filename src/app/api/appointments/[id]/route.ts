@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAppointmentsTable, getSupabaseBusinessId } from "@/core/config/supabaseEnv";
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -19,6 +21,10 @@ function isStatus(value: string): value is AppointmentStatus {
 
 function isPaymentStatus(value: string): value is PaymentStatus {
   return (Object.values(PaymentStatus) as string[]).includes(value);
+}
+
+function toDbPaymentStatus(value: PaymentStatus): PaymentStatus {
+  return value === PaymentStatus.Pending ? PaymentStatus.Unpaid : value;
 }
 
 function parsePatch(raw: unknown): Record<string, unknown> | null {
@@ -55,7 +61,9 @@ function parsePatch(raw: unknown): Record<string, unknown> | null {
     ) {
       return null;
     }
-    payload.payment_status = body.paymentStatus.trim();
+    payload.payment_status = toDbPaymentStatus(
+      body.paymentStatus.trim() as PaymentStatus,
+    );
   }
   if ("amount" in body) {
     const value = typeof body.amount === "number" ? body.amount : Number(body.amount);
@@ -107,13 +115,23 @@ export async function PUT(
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req, raw);
     const table = getSupabaseAppointmentsTable();
 
-    const { error } = await supabase
+    let updateRes = await supabase
       .from(table)
       .update(payload)
       .eq("id", id)
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+    if (updateRes.error && isMissingColumnError(updateRes.error)) {
+      updateRes = await supabase
+        .from(table)
+        .update(payload)
+        .eq("id", id)
+        .eq("business_id", businessId);
+    }
+    const { error } = updateRes;
     if (error) {
       console.error("[appointments/put]", error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
@@ -126,7 +144,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
@@ -141,12 +159,22 @@ export async function DELETE(
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req);
     const table = getSupabaseAppointmentsTable();
-    const { error } = await supabase
+    let deleteRes = await supabase
       .from(table)
       .delete()
       .eq("id", id)
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+    if (deleteRes.error && isMissingColumnError(deleteRes.error)) {
+      deleteRes = await supabase
+        .from(table)
+        .delete()
+        .eq("id", id)
+        .eq("business_id", businessId);
+    }
+    const { error } = deleteRes;
     if (error) {
       console.error("[appointments/delete]", error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });

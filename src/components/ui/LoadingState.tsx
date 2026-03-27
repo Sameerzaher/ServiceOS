@@ -1,4 +1,4 @@
-import { heUi } from "@/config/locale/he";
+import { heUi } from "@/config";
 import { cn } from "@/lib/cn";
 
 import { Spinner } from "./Spinner";
@@ -9,7 +9,7 @@ export interface LoadingStateProps {
 }
 
 export function LoadingState({
-  message = heUi.loading.default,
+  message = heUi.loading.ariaBusy,
   className,
 }: LoadingStateProps) {
   return (

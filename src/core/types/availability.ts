@@ -1,3 +1,8 @@
+import {
+  DEFAULT_MVP_TEACHER_ID,
+  getSupabaseDefaultTeacherId,
+} from "@/core/config/supabaseEnv";
+
 /** Local time in 24h format (HH:mm). */
 export type LocalTimeString = string;
 
@@ -28,6 +33,8 @@ export interface WeeklyAvailability {
 }
 
 export interface AvailabilitySettings {
+  /** Owning teacher for this availability / booking row. */
+  teacherId: string;
   bookingEnabled: boolean;
   slotDurationMinutes: number;
   daysAhead: number;
@@ -47,6 +54,7 @@ const DEFAULT_DAY: DayAvailability = {
 };
 
 export const DEFAULT_AVAILABILITY_SETTINGS: AvailabilitySettings = {
+  teacherId: DEFAULT_MVP_TEACHER_ID,
   bookingEnabled: false,
   slotDurationMinutes: 45,
   daysAhead: 30,
@@ -120,7 +128,13 @@ export function normalizeAvailabilitySettings(raw: unknown): AvailabilitySetting
     : {};
   const defaults = DEFAULT_AVAILABILITY_SETTINGS.weeklyAvailability;
 
+  const teacherIdRaw =
+    typeof raw.teacherId === "string" ? raw.teacherId.trim() : "";
+  const teacherId =
+    teacherIdRaw.length > 0 ? teacherIdRaw : getSupabaseDefaultTeacherId();
+
   return {
+    teacherId,
     bookingEnabled:
       typeof raw.bookingEnabled === "boolean"
         ? raw.bookingEnabled

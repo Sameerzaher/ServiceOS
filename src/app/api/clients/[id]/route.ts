@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 
-import {
-  getSupabaseBusinessId,
-  getSupabaseClientsTable,
-} from "@/core/config/supabaseEnv";
+import { getSupabaseBusinessId, getSupabaseClientsTable } from "@/core/config/supabaseEnv";
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import type { Client } from "@/core/types/client";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -38,6 +37,10 @@ function parsePatch(raw: unknown): Partial<Omit<Client, "id" | "createdAt">> | n
       return null;
     }
     next.customFields = o.customFields as Record<string, unknown>;
+  }
+  if ("teacherId" in o) {
+    if (typeof o.teacherId !== "string" || o.teacherId.trim() === "") return null;
+    next.teacherId = o.teacherId.trim();
   }
 
   return next;
@@ -80,6 +83,7 @@ export async function PUT(
 
   try {
     const businessId = getSupabaseBusinessId();
+    const scopeTeacherId = resolveTeacherIdFromRequest(req, raw);
     const table = getSupabaseClientsTable();
     const supabase = getSupabaseAdminClient();
 
@@ -90,12 +94,24 @@ export async function PUT(
     if (patch.phone !== undefined) payload.phone = patch.phone;
     if (patch.notes !== undefined) payload.notes = patch.notes;
     if (patch.customFields !== undefined) payload.custom_fields = patch.customFields;
+    if (patch.teacherId !== undefined) payload.teacher_id = patch.teacherId;
 
-    const { error } = await supabase
+    let updateRes = await supabase
       .from(table)
       .update(payload)
       .eq("id", id)
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", scopeTeacherId);
+    if (updateRes.error && isMissingColumnError(updateRes.error)) {
+      const legacyPayload = { ...payload };
+      delete legacyPayload.teacher_id;
+      updateRes = await supabase
+        .from(table)
+        .update(legacyPayload)
+        .eq("id", id)
+        .eq("business_id", businessId);
+    }
+    const { error } = updateRes;
     if (error) {
       console.error("[clients/put]", error);
       return NextResponse.json(
@@ -115,7 +131,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
@@ -134,14 +150,24 @@ export async function DELETE(
 
   try {
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req);
     const table = getSupabaseClientsTable();
     const supabase = getSupabaseAdminClient();
 
-    const { error } = await supabase
+    let deleteRes = await supabase
       .from(table)
       .delete()
       .eq("id", id)
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+    if (deleteRes.error && isMissingColumnError(deleteRes.error)) {
+      deleteRes = await supabase
+        .from(table)
+        .delete()
+        .eq("id", id)
+        .eq("business_id", businessId);
+    }
+    const { error } = deleteRes;
     if (error) {
       console.error("[clients/delete]", error);
       return NextResponse.json(

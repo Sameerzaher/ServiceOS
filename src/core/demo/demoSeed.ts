@@ -1,3 +1,4 @@
+import { getSupabaseDefaultTeacherId } from "@/core/config/supabaseEnv";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
@@ -45,6 +46,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
   appointments: AppointmentRecord[];
 } {
   const now = reference.toISOString();
+  const teacherId = getSupabaseDefaultTeacherId();
 
   const c1 = id();
   const c2 = id();
@@ -58,6 +60,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
   const clients: Client[] = [
     {
       id: c1,
+      teacherId,
       fullName: "נועה כהן",
       phone: "050-1234567",
       notes: "מתחילה, מעדיפה איסוף ליד הבית בגבעתיים.",
@@ -67,6 +70,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     },
     {
       id: c2,
+      teacherId,
       fullName: "יונתן לוי",
       phone: "052-9876543",
       notes: "מבחן פנימי בעוד שבועיים.",
@@ -76,6 +80,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     },
     {
       id: c3,
+      teacherId,
       fullName: "מיכל אברהם",
       phone: "054-5551212",
       notes: "",
@@ -85,6 +90,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     },
     {
       id: c4,
+      teacherId,
       fullName: "דניאל מזרחי",
       phone: "053-4448899",
       notes: "שעות ערב בלבד.",
@@ -94,6 +100,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     },
     {
       id: c5,
+      teacherId,
       fullName: "שירה גולדשטיין",
       phone: "050-7788990",
       notes: "רכב בית ספר בלבד.",
@@ -103,6 +110,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     },
     {
       id: c6,
+      teacherId,
       fullName: "איתי רוזן",
       phone: "052-3344556",
       notes: "מכין לטסט בחולון.",
@@ -112,6 +120,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     },
     {
       id: c7,
+      teacherId,
       fullName: "רוני שמש",
       phone: "054-2211009",
       notes: "שיעור כפול מדי פעם.",
@@ -121,6 +130,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     },
     {
       id: c8,
+      teacherId,
       fullName: "גל פרידמן",
       phone: "052-6644221",
       notes: "לחץ קל לפני טסט, מעדיף שיעורי בוקר.",
@@ -141,6 +151,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
   ): AppointmentRecord {
     return {
       id: id(),
+      teacherId,
       clientId,
       startAt,
       status,

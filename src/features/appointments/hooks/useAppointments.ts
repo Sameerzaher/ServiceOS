@@ -9,8 +9,11 @@ import type {
   AppointmentId,
   AppointmentRecord,
 } from "@/core/types/appointment";
+import { getSupabaseDefaultTeacherId } from "@/core/config/supabaseEnv";
 import { isSupabaseConfigured } from "@/core/storage";
 import { createId } from "@/core/utils/ids";
+import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
+import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 
 export type AppointmentPatch = Partial<Omit<AppointmentRecord, "id" | "createdAt">>;
 
@@ -30,6 +33,8 @@ export interface UseAppointmentsResult {
   deleteAppointmentsForClient: (clientId: ClientId) => void;
   /** Replace entire list (demo seed / reset). */
   replaceAppointments: (next: AppointmentRecord[]) => void;
+  /** Re-fetch from GET /api/appointments without toggling readiness (e.g. after booking confirm). */
+  reloadAppointments: () => Promise<void>;
 }
 
 type ApiOk<T> = { ok: true } & T;
@@ -52,11 +57,16 @@ function normalizeAppointment(raw: unknown): AppointmentRecord | null {
     isRecord(raw.customFields) ? raw.customFields : ({} as Record<string, unknown>);
   const createdAt = typeof raw.createdAt === "string" ? raw.createdAt : "";
   const updatedAt = typeof raw.updatedAt === "string" ? raw.updatedAt : "";
+  const teacherIdRaw =
+    typeof raw.teacherId === "string" ? raw.teacherId.trim() : "";
+  const teacherId =
+    teacherIdRaw.length > 0 ? teacherIdRaw : getSupabaseDefaultTeacherId();
   if (!id || !clientId || !startAt || !status || !paymentStatus || !createdAt || !updatedAt) {
     return null;
   }
   return {
     id,
+    teacherId,
     clientId,
     startAt,
     status: status as AppointmentRecord["status"],
@@ -68,8 +78,13 @@ function normalizeAppointment(raw: unknown): AppointmentRecord | null {
   };
 }
 
-async function apiGetAppointments(): Promise<AppointmentRecord[]> {
-  const res = await fetch("/api/appointments", { method: "GET" });
+async function apiGetAppointments(
+  teacherId: string,
+): Promise<AppointmentRecord[]> {
+  const res = await fetch("/api/appointments", {
+    method: "GET",
+    headers: mergeTeacherScopeHeaders(teacherId),
+  });
   const data = (await res.json()) as ApiOk<{ appointments?: unknown[] }> | ApiErr;
   if (!res.ok || data.ok !== true) {
     throw new Error(data.ok === false ? data.error : "GET /api/appointments failed");
@@ -82,12 +97,17 @@ async function apiGetAppointments(): Promise<AppointmentRecord[]> {
   return out;
 }
 
-async function apiCreateAppointment(row: AppointmentRecord): Promise<void> {
+async function apiCreateAppointment(
+  teacherId: string,
+  row: AppointmentRecord,
+): Promise<void> {
   const endAtRaw = row.customFields?.bookingSlotEnd;
   const notesRaw = row.customFields?.notes;
   const res = await fetch("/api/appointments", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeTeacherScopeHeaders(teacherId, {
+      "Content-Type": "application/json",
+    }),
     body: JSON.stringify({
       ...row,
       endAt: typeof endAtRaw === "string" ? endAtRaw : "",
@@ -100,12 +120,18 @@ async function apiCreateAppointment(row: AppointmentRecord): Promise<void> {
   }
 }
 
-async function apiUpdateAppointment(id: string, patch: AppointmentPatch): Promise<void> {
+async function apiUpdateAppointment(
+  teacherId: string,
+  id: string,
+  patch: AppointmentPatch,
+): Promise<void> {
   const endAtRaw = patch.customFields?.bookingSlotEnd;
   const notesRaw = patch.customFields?.notes;
   const res = await fetch(`/api/appointments/${encodeURIComponent(id)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeTeacherScopeHeaders(teacherId, {
+      "Content-Type": "application/json",
+    }),
     body: JSON.stringify({
       ...patch,
       endAt: typeof endAtRaw === "string" ? endAtRaw : undefined,
@@ -118,9 +144,13 @@ async function apiUpdateAppointment(id: string, patch: AppointmentPatch): Promis
   }
 }
 
-async function apiDeleteAppointment(id: string): Promise<void> {
+async function apiDeleteAppointment(
+  teacherId: string,
+  id: string,
+): Promise<void> {
   const res = await fetch(`/api/appointments/${encodeURIComponent(id)}`, {
     method: "DELETE",
+    headers: mergeTeacherScopeHeaders(teacherId),
   });
   const data = (await res.json()) as ApiOk<Record<string, never>> | ApiErr;
   if (!res.ok || data.ok !== true) {
@@ -128,14 +158,18 @@ async function apiDeleteAppointment(id: string): Promise<void> {
   }
 }
 
-async function reconcileAppointmentsSnapshot(next: AppointmentRecord[]): Promise<void> {
-  const current = await apiGetAppointments();
+async function reconcileAppointmentsSnapshot(
+  teacherId: string,
+  next: AppointmentRecord[],
+): Promise<void> {
+  const current = await apiGetAppointments(teacherId);
   const nextById = new Map(next.map((row) => [row.id, row]));
   const currentById = new Map(current.map((row) => [row.id, row]));
 
   for (const [id, row] of Array.from(nextById.entries())) {
     if (currentById.has(id)) {
-      await apiUpdateAppointment(id, {
+      await apiUpdateAppointment(teacherId, id, {
+        teacherId: row.teacherId,
         clientId: row.clientId,
         startAt: row.startAt,
         status: row.status,
@@ -145,12 +179,12 @@ async function reconcileAppointmentsSnapshot(next: AppointmentRecord[]): Promise
         updatedAt: row.updatedAt,
       });
     } else {
-      await apiCreateAppointment(row);
+      await apiCreateAppointment(teacherId, row);
     }
   }
   for (const [id] of Array.from(currentById.entries())) {
     if (!nextById.has(id)) {
-      await apiDeleteAppointment(id);
+      await apiDeleteAppointment(teacherId, id);
     }
   }
 }
@@ -159,6 +193,7 @@ async function reconcileAppointmentsSnapshot(next: AppointmentRecord[]): Promise
  * @param reloadKey Increment to force a reload from storage (e.g. after public API booking).
  */
 export function useAppointments(reloadKey?: number): UseAppointmentsResult {
+  const teacherId = useDashboardTeacherId();
   const remote = isSupabaseConfigured();
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [isReady, setIsReady] = useState(false);
@@ -175,7 +210,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
         if (!remote) {
           throw new Error("Supabase is not configured");
         }
-        const rows = await apiGetAppointments();
+        const rows = await apiGetAppointments(teacherId);
         if (!cancelled) {
           setAppointments(rows);
         }
@@ -189,7 +224,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, remote, loadKey]);
+  }, [reloadKey, remote, loadKey, teacherId]);
 
   const retryLoad = useCallback(() => {
     setLoadError(null);
@@ -204,14 +239,26 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
         if (!remote) {
           throw new Error("Supabase is not configured");
         }
-        await reconcileAppointmentsSnapshot(appointments);
+        await reconcileAppointmentsSnapshot(teacherId, appointments);
         setSyncError(null);
       } catch (e) {
         console.error("[ServiceOS] useAppointments retrySync", e);
         setSyncError(heUi.data.syncFailedTitle);
       }
     });
-  }, [appointments, remote]);
+  }, [appointments, remote, teacherId]);
+
+  const reloadAppointments = useCallback(async () => {
+    if (!remote) return;
+    try {
+      const rows = await apiGetAppointments(teacherId);
+      setAppointments(rows);
+      setLoadError(null);
+    } catch (e) {
+      console.error("[ServiceOS] useAppointments reload", e);
+      setLoadError(heUi.data.loadFailedTitle);
+    }
+  }, [remote, teacherId]);
 
   function addAppointment(input: Appointment): AppointmentRecord | null {
     if (!remote) {
@@ -234,7 +281,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiCreateAppointment(row);
+        await apiCreateAppointment(teacherId, row);
       } catch (e) {
         console.error("[ServiceOS] useAppointments add", e);
         setAppointments((prev) => prev.filter((a) => a.id !== row.id));
@@ -267,7 +314,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiUpdateAppointment(id, patch);
+        await apiUpdateAppointment(teacherId, id, patch);
       } catch (e) {
         console.error("[ServiceOS] useAppointments update", e);
         if (before) {
@@ -291,7 +338,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiDeleteAppointment(id);
+        await apiDeleteAppointment(teacherId, id);
       } catch (e) {
         console.error("[ServiceOS] useAppointments delete", e);
         if (removed) {
@@ -316,7 +363,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
     void (async () => {
       try {
         for (const row of removed) {
-          await apiDeleteAppointment(row.id);
+          await apiDeleteAppointment(teacherId, row.id);
         }
       } catch (e) {
         console.error("[ServiceOS] useAppointments deleteByClient", e);
@@ -338,7 +385,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await reconcileAppointmentsSnapshot(next);
+        await reconcileAppointmentsSnapshot(teacherId, next);
       } catch (e) {
         console.error("[ServiceOS] useAppointments replace", e);
         setAppointments(prev);
@@ -364,6 +411,7 @@ export function useAppointments(reloadKey?: number): UseAppointmentsResult {
     syncError,
     retryLoad,
     retrySync,
+    reloadAppointments,
     addAppointment,
     updateAppointment,
     deleteAppointment,

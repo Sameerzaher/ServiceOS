@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
+import { normalizeClient } from "@/core/persistence";
 import type { Client, ClientId } from "@/core/types/client";
 import { isSupabaseConfigured } from "@/core/storage";
 import { createId } from "@/core/utils/ids";
+import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
+import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 
 export type NewClientInput = Omit<Client, "id" | "createdAt" | "updatedAt">;
 
@@ -30,34 +33,11 @@ export interface UseClientsResult {
 type ApiOk<T> = { ok: true } & T;
 type ApiErr = { ok: false; error: string };
 
-function isRecord(x: unknown): x is Record<string, unknown> {
-  return typeof x === "object" && x !== null && !Array.isArray(x);
-}
-
-function normalizeClient(raw: unknown): Client | null {
-  if (!isRecord(raw)) return null;
-  const id = typeof raw.id === "string" ? raw.id : "";
-  const fullName = typeof raw.fullName === "string" ? raw.fullName : "";
-  const phone = typeof raw.phone === "string" ? raw.phone : "";
-  const notes = typeof raw.notes === "string" ? raw.notes : "";
-  const customFields =
-    isRecord(raw.customFields) ? raw.customFields : ({} as Record<string, unknown>);
-  const createdAt = typeof raw.createdAt === "string" ? raw.createdAt : "";
-  const updatedAt = typeof raw.updatedAt === "string" ? raw.updatedAt : "";
-  if (!id || fullName.trim().length < 2 || !createdAt || !updatedAt) return null;
-  return {
-    id,
-    fullName: fullName.trim(),
-    phone: phone.trim(),
-    notes: notes.trim(),
-    customFields,
-    createdAt,
-    updatedAt,
-  };
-}
-
-async function apiGetClients(): Promise<Client[]> {
-  const res = await fetch("/api/clients", { method: "GET" });
+async function apiGetClients(teacherId: string): Promise<Client[]> {
+  const res = await fetch("/api/clients", {
+    method: "GET",
+    headers: mergeTeacherScopeHeaders(teacherId),
+  });
   const data = (await res.json()) as ApiOk<{ clients?: unknown[] }> | ApiErr;
   if (!res.ok || data.ok !== true) {
     throw new Error(data.ok === false ? data.error : "GET /api/clients failed");
@@ -70,10 +50,15 @@ async function apiGetClients(): Promise<Client[]> {
   return clients;
 }
 
-async function apiCreateClient(client: Client): Promise<void> {
+async function apiCreateClient(
+  teacherId: string,
+  client: Client,
+): Promise<void> {
   const res = await fetch("/api/clients", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeTeacherScopeHeaders(teacherId, {
+      "Content-Type": "application/json",
+    }),
     body: JSON.stringify(client),
   });
   const data = (await res.json()) as ApiOk<{ client?: unknown }> | ApiErr;
@@ -82,10 +67,16 @@ async function apiCreateClient(client: Client): Promise<void> {
   }
 }
 
-async function apiUpdateClient(id: string, patch: ClientPatch): Promise<void> {
+async function apiUpdateClient(
+  teacherId: string,
+  id: string,
+  patch: ClientPatch,
+): Promise<void> {
   const res = await fetch(`/api/clients/${encodeURIComponent(id)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeTeacherScopeHeaders(teacherId, {
+      "Content-Type": "application/json",
+    }),
     body: JSON.stringify(patch),
   });
   const data = (await res.json()) as ApiOk<Record<string, never>> | ApiErr;
@@ -94,9 +85,10 @@ async function apiUpdateClient(id: string, patch: ClientPatch): Promise<void> {
   }
 }
 
-async function apiDeleteClient(id: string): Promise<void> {
+async function apiDeleteClient(teacherId: string, id: string): Promise<void> {
   const res = await fetch(`/api/clients/${encodeURIComponent(id)}`, {
     method: "DELETE",
+    headers: mergeTeacherScopeHeaders(teacherId),
   });
   const data = (await res.json()) as ApiOk<Record<string, never>> | ApiErr;
   if (!res.ok || data.ok !== true) {
@@ -104,14 +96,18 @@ async function apiDeleteClient(id: string): Promise<void> {
   }
 }
 
-async function reconcileClientsSnapshot(next: Client[]): Promise<void> {
-  const current = await apiGetClients();
+async function reconcileClientsSnapshot(
+  teacherId: string,
+  next: Client[],
+): Promise<void> {
+  const current = await apiGetClients(teacherId);
   const nextById = new Map(next.map((row) => [row.id, row]));
   const currentById = new Map(current.map((row) => [row.id, row]));
 
   for (const [id, row] of Array.from(nextById.entries())) {
     if (currentById.has(id)) {
-      await apiUpdateClient(id, {
+      await apiUpdateClient(teacherId, id, {
+        teacherId: row.teacherId,
         fullName: row.fullName,
         phone: row.phone,
         notes: row.notes,
@@ -119,17 +115,18 @@ async function reconcileClientsSnapshot(next: Client[]): Promise<void> {
         updatedAt: row.updatedAt,
       });
     } else {
-      await apiCreateClient(row);
+      await apiCreateClient(teacherId, row);
     }
   }
   for (const [id] of Array.from(currentById.entries())) {
     if (!nextById.has(id)) {
-      await apiDeleteClient(id);
+      await apiDeleteClient(teacherId, id);
     }
   }
 }
 
 export function useClients(): UseClientsResult {
+  const teacherId = useDashboardTeacherId();
   const remote = isSupabaseConfigured();
   const [clients, setClients] = useState<Client[]>([]);
   const [isReady, setIsReady] = useState(false);
@@ -146,13 +143,13 @@ export function useClients(): UseClientsResult {
         if (!remote) {
           throw new Error("Supabase is not configured");
         }
-        const rows = await apiGetClients();
+        const rows = await apiGetClients(teacherId);
         if (!cancelled) {
           setClients(rows);
         }
       } catch (e) {
         console.error("[ServiceOS] useClients load", e);
-        if (!cancelled) setLoadError(heUi.data.loadFailedTitle);
+        if (!cancelled) setLoadError(heUi.data.clientsLoadFailedTitle);
       } finally {
         if (!cancelled) setIsReady(true);
       }
@@ -160,7 +157,7 @@ export function useClients(): UseClientsResult {
     return () => {
       cancelled = true;
     };
-  }, [loadKey, remote]);
+  }, [loadKey, remote, teacherId]);
 
   const retryLoad = useCallback(() => {
     setLoadError(null);
@@ -175,18 +172,18 @@ export function useClients(): UseClientsResult {
         if (!remote) {
           throw new Error("Supabase is not configured");
         }
-        await reconcileClientsSnapshot(clients);
+        await reconcileClientsSnapshot(teacherId, clients);
         setSyncError(null);
       } catch (e) {
         console.error("[ServiceOS] useClients retrySync", e);
-        setSyncError(heUi.data.syncFailedTitle);
+        setSyncError(heUi.data.clientsSyncFailedTitle);
       }
     });
-  }, [clients, remote]);
+  }, [clients, remote, teacherId]);
 
   function addClient(input: NewClientInput): Client | null {
     if (!remote) {
-      setSyncError(heUi.data.syncFailedTitle);
+      setSyncError(heUi.data.clientsSyncFailedTitle);
       return null;
     }
     const id = createId();
@@ -204,11 +201,11 @@ export function useClients(): UseClientsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiCreateClient(client);
+        await apiCreateClient(teacherId, client);
       } catch (e) {
         console.error("[ServiceOS] useClients add", e);
         setClients((prev) => prev.filter((row) => row.id !== client.id));
-        setSyncError(heUi.data.syncFailedTitle);
+        setSyncError(heUi.data.clientsSyncFailedTitle);
       }
     })();
     return client;
@@ -216,43 +213,41 @@ export function useClients(): UseClientsResult {
 
   function updateClient(id: ClientId, patch: ClientPatch): void {
     if (!remote) {
-      setSyncError(heUi.data.syncFailedTitle);
+      setSyncError(heUi.data.clientsSyncFailedTitle);
       return;
     }
-    let before: Client | null = null;
-    let after: Client | null = null;
-    setClients((prev) => {
-      const next = prev.map((client) => {
-        if (client.id !== id) return client;
-        before = client;
-        after = {
-          ...client,
-          ...patch,
-          id: client.id,
-          createdAt: client.createdAt,
-          updatedAt: new Date().toISOString(),
-        };
-        return after;
-      });
-      return next;
-    });
+    const row = clients.find((c) => c.id === id);
+    if (!row) return;
+    const merged: Client = {
+      ...row,
+      ...patch,
+      id: row.id,
+      createdAt: row.createdAt,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setClients((prev) => prev.map((client) => (client.id === id ? merged : client)));
     setSyncError(null);
     void (async () => {
       try {
-        await apiUpdateClient(id, patch);
+        await apiUpdateClient(teacherId, id, {
+          teacherId: merged.teacherId,
+          fullName: merged.fullName,
+          phone: merged.phone,
+          notes: merged.notes,
+          customFields: merged.customFields,
+        });
       } catch (e) {
         console.error("[ServiceOS] useClients update", e);
-        if (before) {
-          setClients((prev) => prev.map((row) => (row.id === id ? before! : row)));
-        }
-        setSyncError(heUi.data.syncFailedTitle);
+        setClients((prev) => prev.map((r) => (r.id === id ? row : r)));
+        setSyncError(heUi.data.clientsSyncFailedTitle);
       }
     })();
   }
 
   function deleteClient(id: ClientId): void {
     if (!remote) {
-      setSyncError(heUi.data.syncFailedTitle);
+      setSyncError(heUi.data.clientsSyncFailedTitle);
       return;
     }
     let removed: Client | null = null;
@@ -263,13 +258,13 @@ export function useClients(): UseClientsResult {
     setSyncError(null);
     void (async () => {
       try {
-        await apiDeleteClient(id);
+        await apiDeleteClient(teacherId, id);
       } catch (e) {
         console.error("[ServiceOS] useClients delete", e);
         if (removed) {
           setClients((prev) => [...prev, removed!]);
         }
-        setSyncError(heUi.data.syncFailedTitle);
+        setSyncError(heUi.data.clientsSyncFailedTitle);
       }
     })();
   }
@@ -278,17 +273,17 @@ export function useClients(): UseClientsResult {
     const prev = clients;
     setClients(next);
     if (!remote) {
-      setSyncError(heUi.data.syncFailedTitle);
+      setSyncError(heUi.data.clientsSyncFailedTitle);
       return;
     }
     setSyncError(null);
     void (async () => {
       try {
-        await reconcileClientsSnapshot(next);
+        await reconcileClientsSnapshot(teacherId, next);
       } catch (e) {
         console.error("[ServiceOS] useClients replace", e);
         setClients(prev);
-        setSyncError(heUi.data.syncFailedTitle);
+        setSyncError(heUi.data.clientsSyncFailedTitle);
       }
     });
   }

@@ -23,6 +23,7 @@ import {
   publicSlotOutsideBookingHorizon,
 } from "@/features/booking/logic/publicBookingShared";
 import { heUi } from "@/config";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -49,12 +50,14 @@ const HE_ERR_SLOT_HORIZON = heUi.publicBooking.errDateNotInRange;
 async function loadAppointmentsForOverlap(
   supabase: ReturnType<typeof getSupabaseAdminClient>,
   businessId: string,
+  teacherId: string,
   appointmentsTable: string,
 ): Promise<{ appointments: AppointmentRecord[]; error: unknown | null }> {
   const { data: apptRows, error: apptLoadErr } = await supabase
     .from(appointmentsTable)
     .select("*")
-    .eq("business_id", businessId);
+    .eq("business_id", businessId)
+    .eq("teacher_id", teacherId);
 
   if (apptLoadErr) {
     return { appointments: [], error: apptLoadErr };
@@ -97,6 +100,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   const { fullName, phone, notes, slotStart, slotEnd, pickupLocation, carType } =
     parsed.data;
   const businessId = getSupabaseBusinessId();
+  const teacherId = resolveTeacherIdFromRequest(req, raw);
   const appointmentsTable = getSupabaseAppointmentsTable();
   const clientsTableName = getSupabaseClientsTable();
 
@@ -106,7 +110,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
 
-    const gate = await loadPublicBookingGate(supabase, businessId);
+    const gate = await loadPublicBookingGate(supabase, businessId, teacherId);
     if (!gate.ok) {
       console.error("[public-booking] booking gate load failed");
       return NextResponse.json(
@@ -134,6 +138,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const firstLoad = await loadAppointmentsForOverlap(
       supabase,
       businessId,
+      teacherId,
       appointmentsTable,
     );
     if (firstLoad.error) {
@@ -160,7 +165,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     const { data: clientRows, error: clientLoadErr } = await supabase
       .from(clientsTableName)
       .select("*")
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
 
     if (clientLoadErr) {
       console.error("[public-booking] load clients", clientLoadErr);
@@ -189,6 +195,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         .insert({
           id: clientId,
           business_id: businessId,
+          teacher_id: teacherId,
           full_name: fullName,
           phone,
           notes,
@@ -213,7 +220,8 @@ export async function POST(req: Request): Promise<NextResponse> {
           updated_at: now,
         })
         .eq("id", clientId)
-        .eq("business_id", businessId);
+        .eq("business_id", businessId)
+        .eq("teacher_id", teacherId);
 
       if (patchErr) {
         console.error("[public-booking] update client", patchErr);
@@ -227,6 +235,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const preInsertLoad = await loadAppointmentsForOverlap(
       supabase,
       businessId,
+      teacherId,
       appointmentsTable,
     );
     if (preInsertLoad.error) {
@@ -268,6 +277,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       .insert({
         id: appointmentId,
         business_id: businessId,
+        teacher_id: teacherId,
         client_id: clientId,
         start_at: slotStart,
         end_at: slotEnd,

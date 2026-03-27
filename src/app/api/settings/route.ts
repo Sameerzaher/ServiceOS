@@ -5,6 +5,7 @@ import { loadAppSettings, persistAppSettings } from "@/core/repositories/supabas
 import { loadBookingSettings, persistBookingSettings } from "@/core/repositories/supabase/bookingSettingsRepository";
 import { normalizeAppSettings, type AppSettings } from "@/core/types/settings";
 import { normalizeAvailabilitySettings } from "@/core/types/availability";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import { getSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/adminClient";
 
 export const runtime = "nodejs";
@@ -70,7 +71,7 @@ function parseBody(raw: unknown): SettingsApiResponse | null {
   };
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: Request): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ ok: false as const, error: HE_ERR_UNAVAILABLE }, { status: 503 });
   }
@@ -78,14 +79,32 @@ export async function GET(): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
-    const [appSettings, bookingSettings] = await Promise.all([
-      loadAppSettings(supabase, businessId),
-      loadBookingSettings(supabase, businessId),
+    const teacherId = resolveTeacherIdFromRequest(req);
+    const [appSettings, bookingSettings, teacherRow] = await Promise.all([
+      loadAppSettings(supabase, businessId, teacherId),
+      loadBookingSettings(supabase, businessId, teacherId),
+      supabase
+        .from("teachers")
+        .select("slug")
+        .eq("business_id", businessId)
+        .eq("id", teacherId)
+        .maybeSingle(),
     ]);
+
+    if (teacherRow.error) {
+      console.error("[settings/get] teacher slug", teacherRow.error);
+    }
+    const teacherSlug =
+      !teacherRow.error &&
+      teacherRow.data &&
+      typeof (teacherRow.data as { slug?: string }).slug === "string"
+        ? (teacherRow.data as { slug: string }).slug.trim()
+        : null;
 
     return NextResponse.json({
       ok: true as const,
       settings: toApiShape(appSettings, bookingSettings.bookingEnabled),
+      teacherSlug: teacherSlug && teacherSlug.length > 0 ? teacherSlug : null,
     });
   } catch (e) {
     console.error("[settings/get]", e);
@@ -112,11 +131,17 @@ export async function PUT(req: Request): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
-    const currentApp = await loadAppSettings(supabase, businessId);
-    const currentAvailability = await loadBookingSettings(supabase, businessId);
+    const teacherId = resolveTeacherIdFromRequest(req, raw);
+    const currentApp = await loadAppSettings(supabase, businessId, teacherId);
+    const currentAvailability = await loadBookingSettings(
+      supabase,
+      businessId,
+      teacherId,
+    );
 
     const nextApp = normalizeAppSettings({
       ...currentApp,
+      teacherId,
       businessName: parsed.businessName,
       teacherName: parsed.teacherName,
       businessPhone: parsed.phone,
@@ -127,17 +152,31 @@ export async function PUT(req: Request): Promise<NextResponse> {
     });
     const nextAvailability = normalizeAvailabilitySettings({
       ...currentAvailability,
+      teacherId,
       bookingEnabled: parsed.bookingEnabled,
     });
 
     await Promise.all([
-      persistAppSettings(supabase, businessId, nextApp),
-      persistBookingSettings(supabase, businessId, nextAvailability),
+      persistAppSettings(supabase, businessId, teacherId, nextApp),
+      persistBookingSettings(supabase, businessId, teacherId, nextAvailability),
     ]);
+
+    const { data: slugRow } = await supabase
+      .from("teachers")
+      .select("slug")
+      .eq("business_id", businessId)
+      .eq("id", teacherId)
+      .maybeSingle();
+    const slugRaw =
+      slugRow && typeof slugRow === "object" && "slug" in slugRow
+        ? String((slugRow as { slug: unknown }).slug ?? "").trim()
+        : "";
+    const teacherSlugAfter = slugRaw.length > 0 ? slugRaw : null;
 
     return NextResponse.json({
       ok: true as const,
       settings: toApiShape(nextApp, nextAvailability.bookingEnabled),
+      teacherSlug: teacherSlugAfter,
     });
   } catch (e) {
     console.error("[settings/put]", e);

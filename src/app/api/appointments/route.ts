@@ -6,12 +6,14 @@ import {
   getSupabaseBusinessId,
   getSupabaseClientsTable,
 } from "@/core/config/supabaseEnv";
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import {
   appointmentFromRow,
   type AppointmentRow,
 } from "@/core/storage/supabase/mappers";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -50,7 +52,15 @@ function isPaymentStatus(value: string): value is PaymentStatus {
   return (Object.values(PaymentStatus) as string[]).includes(value);
 }
 
-function parseCreateBody(raw: unknown): Omit<AppointmentRecord, "id" | "createdAt" | "updatedAt"> & {
+function toDbPaymentStatus(value: PaymentStatus): PaymentStatus {
+  // Legacy schemas may only allow `unpaid|paid|partial|refunded|waived`.
+  return value === PaymentStatus.Pending ? PaymentStatus.Unpaid : value;
+}
+
+function parseCreateBody(raw: unknown): Omit<
+  AppointmentRecord,
+  "id" | "createdAt" | "updatedAt" | "teacherId"
+> & {
   id?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -81,9 +91,10 @@ function parseCreateBody(raw: unknown): Omit<AppointmentRecord, "id" | "createdA
 
   const paymentRaw =
     typeof body.paymentStatus === "string" ? body.paymentStatus.trim() : "";
-  const paymentStatus = isPaymentStatus(paymentRaw)
+  const paymentStatusRaw = isPaymentStatus(paymentRaw)
     ? paymentRaw
     : PaymentStatus.Pending;
+  const paymentStatus = toDbPaymentStatus(paymentStatusRaw);
 
   const amountRaw =
     typeof body.amount === "number" ? body.amount : Number(body.amount ?? 0);
@@ -157,11 +168,18 @@ function toApiAppointment(
   const sourceBookingIdRaw = row.customFields?.sourceBookingId;
   const sourceBookingId =
     typeof sourceBookingIdRaw === "string" ? sourceBookingIdRaw : "";
+  const snapNameRaw = row.customFields?.clientName;
+  const snapPhoneRaw = row.customFields?.clientPhone;
+  const nameFromSnap =
+    typeof snapNameRaw === "string" ? snapNameRaw.trim() : "";
+  const phoneFromSnap =
+    typeof snapPhoneRaw === "string" ? snapPhoneRaw.trim() : "";
 
   return {
     id: row.id,
-    clientName: client?.fullName ?? "",
-    phone: client?.phone ?? "",
+    teacherId: row.teacherId,
+    clientName: nameFromSnap || client?.fullName || "",
+    phone: phoneFromSnap || client?.phone || "",
     time: startTime,
     studentId: row.clientId,
     date,
@@ -181,7 +199,18 @@ function toApiAppointment(
   };
 }
 
-export async function GET(): Promise<NextResponse> {
+function ensureAppointmentEndAt(startAt: string, maybeEndAt: unknown): string {
+  if (typeof maybeEndAt === "string" && maybeEndAt.trim().length > 0) {
+    return maybeEndAt.trim();
+  }
+  const startMs = new Date(startAt).getTime();
+  if (Number.isFinite(startMs)) {
+    return new Date(startMs + 40 * 60 * 1000).toISOString();
+  }
+  return startAt;
+}
+
+export async function GET(req: Request): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ ok: false as const, error: HE_ERR_UNAVAILABLE }, { status: 503 });
   }
@@ -189,13 +218,23 @@ export async function GET(): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req);
     const table = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
-    const { data, error } = await supabase
+    let apptList = await supabase
       .from(table)
       .select("*")
       .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
       .order("start_at", { ascending: true });
+    if (apptList.error && isMissingColumnError(apptList.error)) {
+      apptList = await supabase
+        .from(table)
+        .select("*")
+        .eq("business_id", businessId)
+        .order("start_at", { ascending: true });
+    }
+    const { data, error } = apptList;
 
     if (error) {
       console.error("[appointments/get]", error);
@@ -203,10 +242,18 @@ export async function GET(): Promise<NextResponse> {
     }
 
     const appointments: ReturnType<typeof toApiAppointment>[] = [];
-    const { data: clientRows, error: clientsErr } = await supabase
+    let clientsList = await supabase
       .from(clientsTable)
       .select("id, full_name, phone")
-      .eq("business_id", businessId);
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+    if (clientsList.error && isMissingColumnError(clientsList.error)) {
+      clientsList = await supabase
+        .from(clientsTable)
+        .select("id, full_name, phone")
+        .eq("business_id", businessId);
+    }
+    const { data: clientRows, error: clientsErr } = clientsList;
     if (clientsErr) {
       console.error("[appointments/get clients]", clientsErr);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
@@ -255,11 +302,12 @@ export async function POST(req: Request): Promise<NextResponse> {
   const createdAt = parsed.createdAt ?? now;
   const updatedAt = parsed.updatedAt ?? now;
   const endAtRaw = parsed.customFields.bookingSlotEnd;
-  const endAt = typeof endAtRaw === "string" && endAtRaw.trim() ? endAtRaw.trim() : null;
+  const endAt = ensureAppointmentEndAt(parsed.startAt, endAtRaw);
 
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req, raw);
     const table = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
     const body = raw as CreateBody;
@@ -272,10 +320,18 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (!clientName || !phone) {
         return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
       }
-      const { data: existingClientRows, error: existingClientErr } = await supabase
+      let existingClientsRes = await supabase
         .from(clientsTable)
         .select("id, phone")
-        .eq("business_id", businessId);
+        .eq("business_id", businessId)
+        .eq("teacher_id", teacherId);
+      if (existingClientsRes.error && isMissingColumnError(existingClientsRes.error)) {
+        existingClientsRes = await supabase
+          .from(clientsTable)
+          .select("id, phone")
+          .eq("business_id", businessId);
+      }
+      const { data: existingClientRows, error: existingClientErr } = existingClientsRes;
       if (existingClientErr) throw existingClientErr;
       const normalized = phone.replace(/\D+/g, "");
       for (const row of existingClientRows ?? []) {
@@ -288,7 +344,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
       if (!clientId) {
         clientId = randomUUID();
-        const { error: insertClientErr } = await supabase.from(clientsTable).insert({
+        const baseClient = {
           id: clientId,
           business_id: businessId,
           full_name: clientName,
@@ -297,31 +353,47 @@ export async function POST(req: Request): Promise<NextResponse> {
           custom_fields: {},
           created_at: now,
           updated_at: now,
+        };
+        let insertClientRes = await supabase.from(clientsTable).insert({
+          ...baseClient,
+          teacher_id: teacherId,
         });
-        if (insertClientErr) throw insertClientErr;
+        if (insertClientRes.error && isMissingColumnError(insertClientRes.error)) {
+          insertClientRes = await supabase.from(clientsTable).insert(baseClient);
+        }
+        if (insertClientRes.error) throw insertClientRes.error;
       }
     }
 
-    const { error } = await supabase.from(table).insert({
+    const insertEndAt = ensureAppointmentEndAt(parsed.startAt, endAt);
+    const baseAppt = {
       id,
       business_id: businessId,
       client_id: clientId,
       start_at: parsed.startAt,
-      end_at: endAt,
+      end_at: insertEndAt,
       status: parsed.status,
       payment_status: parsed.paymentStatus,
       amount: parsed.amount,
       custom_fields: parsed.customFields,
       created_at: createdAt,
       updated_at: updatedAt,
+    };
+    let insertRes = await supabase.from(table).insert({
+      ...baseAppt,
+      teacher_id: teacherId,
     });
-    if (error) {
-      console.error("[appointments/post]", error);
+    if (insertRes.error && isMissingColumnError(insertRes.error)) {
+      insertRes = await supabase.from(table).insert(baseAppt);
+    }
+    if (insertRes.error) {
+      console.error("[appointments/post]", insertRes.error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
 
     const row: AppointmentRecord = {
       id,
+      teacherId,
       clientId,
       startAt: parsed.startAt,
       status: parsed.status,

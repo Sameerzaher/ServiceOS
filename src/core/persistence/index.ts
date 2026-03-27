@@ -7,7 +7,9 @@ export {
 export {
   normalizeAppointmentRow,
   normalizeClient,
+  normalizeTeacher,
   parseAppointmentsArray,
   parseClientsArray,
+  parseTeachersArray,
 } from "./entityNormalize";
 export { STORAGE_KEYS } from "./keys";

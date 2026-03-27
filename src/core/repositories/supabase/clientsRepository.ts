@@ -7,12 +7,14 @@ import { clientFromRow, clientToRow, type ClientRow } from "@/core/storage/supab
 export async function loadClients(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
 ): Promise<Client[]> {
   const table = getSupabaseClientsTable();
   const { data, error } = await supabase
     .from(table)
     .select("*")
     .eq("business_id", businessId)
+    .eq("teacher_id", teacherId)
     .order("full_name", { ascending: true });
 
   if (error) {
@@ -31,13 +33,15 @@ export async function loadClients(
 export async function persistClients(
   supabase: SupabaseClient,
   businessId: string,
+  teacherId: string,
   clients: Client[],
 ): Promise<void> {
   const table = getSupabaseClientsTable();
   const { data: existing, error: selErr } = await supabase
     .from(table)
     .select("id")
-    .eq("business_id", businessId);
+    .eq("business_id", businessId)
+    .eq("teacher_id", teacherId);
 
   if (selErr) throw selErr;
 
@@ -51,6 +55,7 @@ export async function persistClients(
       .from(table)
       .delete()
       .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
       .in("id", toRemove);
     if (delErr) throw delErr;
   }

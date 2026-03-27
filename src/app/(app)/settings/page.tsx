@@ -5,14 +5,16 @@ import { useEffect, useRef } from "react";
 import { appPageTitle, heUi } from "@/config";
 import {
   DataLoadErrorBanner,
-  LoadingState,
+  InlineLoading,
   ui,
   useToast,
 } from "@/components/ui";
 import { setDemoModeActive } from "@/core/demo/demoMode";
+import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 import { BackupRestoreSection } from "@/features/settings/components/BackupRestoreSection";
 import { SettingsPanel } from "@/features/settings/components/SettingsPanel";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
+import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 
 type SettingsApiShape = {
   businessName: string;
@@ -31,6 +33,7 @@ type SettingsApiResponse =
 
 export default function SettingsPage() {
   const toast = useToast();
+  const dashboardTeacherId = useDashboardTeacherId();
   const {
     preset,
     settings,
@@ -95,7 +98,13 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [replaceSettings, settings, updateAvailabilitySettings, availabilitySettings]);
+  }, [
+    dashboardTeacherId,
+    replaceSettings,
+    settings,
+    updateAvailabilitySettings,
+    availabilitySettings,
+  ]);
 
   return (
     <main className={ui.pageMain}>
@@ -151,7 +160,7 @@ export default function SettingsPage() {
         </div>
         <section className={ui.section}>
           {!settingsReady ? (
-            <LoadingState message={heUi.loading.default} />
+            <InlineLoading className="py-4" />
           ) : (
             <>
               <SettingsPanel
@@ -171,7 +180,9 @@ export default function SettingsPage() {
                   try {
                     const res = await fetch("/api/settings", {
                       method: "PUT",
-                      headers: { "Content-Type": "application/json" },
+                      headers: mergeTeacherScopeHeaders(dashboardTeacherId, {
+                        "Content-Type": "application/json",
+                      }),
                       body: JSON.stringify(payload),
                     });
                     const data = (await res.json()) as SettingsApiResponse;

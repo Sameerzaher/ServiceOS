@@ -12,6 +12,7 @@ import {
 
 import { heUi } from "@/config";
 import { Button, ui } from "@/components/ui";
+import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 import type { Client } from "@/core/types/client";
 import { customFieldsToRaw } from "@/core/utils/customFieldForm";
 import { cn } from "@/lib/cn";
@@ -206,6 +207,7 @@ export function ClientForm({
   onCancelEdit,
   embedded = false,
 }: ClientFormProps) {
+  const dashboardTeacherId = useDashboardTeacherId();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -275,6 +277,7 @@ export function ClientForm({
 
     try {
       onSubmit({
+        teacherId: initialClient?.teacherId ?? dashboardTeacherId,
         fullName: trimmedName,
         phone: trimmedPhone,
         notes: notes.trim(),

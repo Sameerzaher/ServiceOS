@@ -1,12 +1,11 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
-import {
-  getSupabaseBusinessId,
-  getSupabaseClientsTable,
-} from "@/core/config/supabaseEnv";
+import { getSupabaseBusinessId, getSupabaseClientsTable } from "@/core/config/supabaseEnv";
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { clientFromRow, type ClientRow } from "@/core/storage/supabase/mappers";
 import type { Client } from "@/core/types/client";
+import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -20,7 +19,7 @@ const HE_ERR_GENERIC = "אירעה תקלה בשמירת הלקוח. נסו שו
 
 function parseNewClient(
   raw: unknown,
-): Omit<Client, "id" | "createdAt" | "updatedAt"> & {
+): Omit<Client, "id" | "createdAt" | "updatedAt" | "teacherId"> & {
   id?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -48,7 +47,7 @@ function parseNewClient(
   };
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: Request): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_UNAVAILABLE },
@@ -59,12 +58,22 @@ export async function GET(): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req);
     const table = getSupabaseClientsTable();
-    const { data, error } = await supabase
+    let listRes = await supabase
       .from(table)
       .select("*")
       .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
       .order("full_name", { ascending: true });
+    if (listRes.error && isMissingColumnError(listRes.error)) {
+      listRes = await supabase
+        .from(table)
+        .select("*")
+        .eq("business_id", businessId)
+        .order("full_name", { ascending: true });
+    }
+    const { data, error } = listRes;
 
     if (error) {
       console.error("[clients/get]", error);
@@ -122,9 +131,10 @@ export async function POST(req: Request): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+    const teacherId = resolveTeacherIdFromRequest(req, raw);
     const table = getSupabaseClientsTable();
 
-    const { error } = await supabase.from(table).insert({
+    const basePayload = {
       id,
       business_id: businessId,
       full_name: parsed.fullName,
@@ -133,9 +143,16 @@ export async function POST(req: Request): Promise<NextResponse> {
       custom_fields: parsed.customFields,
       created_at: createdAt,
       updated_at: updatedAt,
+    };
+    let insertRes = await supabase.from(table).insert({
+      ...basePayload,
+      teacher_id: teacherId,
     });
-    if (error) {
-      console.error("[clients/post]", error);
+    if (insertRes.error && isMissingColumnError(insertRes.error)) {
+      insertRes = await supabase.from(table).insert(basePayload);
+    }
+    if (insertRes.error) {
+      console.error("[clients/post]", insertRes.error);
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_GENERIC },
         { status: 500 },
@@ -146,6 +163,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       ok: true as const,
       client: {
         id,
+        teacherId,
         fullName: parsed.fullName,
         phone: parsed.phone,
         notes: parsed.notes,

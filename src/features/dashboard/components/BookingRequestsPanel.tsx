@@ -147,7 +147,7 @@ export function BookingRequestsPanel({
         setLoading(false);
       }
     }
-  }, []);
+  }, [teacherId]);
 
   useEffect(() => {
     void load();

@@ -6,18 +6,21 @@ export {
   PWA_THEME_COLOR,
 } from "./pwa";
 export { heUi, paymentStatusLabel, PAYMENT_STATUS_LABELS_HE } from "./locale/he";
-export { resolveVerticalPresetFromSettings } from "./resolveVerticalPreset";
 export {
+  resolveVerticalPresetFromSettings,
+  resolveVerticalPresetMerged,
+} from "./resolveVerticalPreset";
+export {
+  cosmeticClinicVerticalPreset,
   DEFAULT_VERTICAL_ID,
   VERTICAL_REGISTRY,
-  beautyVerticalPreset,
   drivingVerticalPreset,
-  fitnessVerticalPreset,
   getVerticalPreset,
   listVerticalIds,
   type VerticalId,
 } from "./verticals";
 export type { ActivePreset } from "@/core/types/settings";
+export type { BusinessType } from "@/core/types/teacher";
 export {
   appPageTitle,
   appTagline,

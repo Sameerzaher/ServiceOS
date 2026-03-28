@@ -5,6 +5,8 @@ export {
   listVerticalIds,
   type VerticalId,
 } from "./registry";
-export { beautyVerticalPreset, type BeautyVerticalPreset } from "./beauty";
+export {
+  cosmeticClinicVerticalPreset,
+  type CosmeticClinicVerticalPreset,
+} from "./cosmetic_clinic";
 export { drivingVerticalPreset, type DrivingVerticalPreset } from "./driving";
-export { fitnessVerticalPreset, type FitnessVerticalPreset } from "./fitness";

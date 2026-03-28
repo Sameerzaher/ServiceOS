@@ -11,8 +11,7 @@ export interface BookingSubmitInput {
   notes: string;
   slotStart: string;
   slotEnd: string;
-  pickupLocation: string;
-  carType: string;
+  bookingCustomFields: Record<string, string>;
 }
 
 export interface UseBookingOptions {
@@ -95,8 +94,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
             ...(tid ? { teacherId: tid } : {}),
             fullName: input.fullName,
             phone: input.phone,
-            pickupLocation: input.pickupLocation,
-            carType: input.carType,
+            bookingCustomFields: input.bookingCustomFields,
             preferredDate: toLocalDate(input.slotStart),
             preferredTime: toLocalTime(input.slotStart),
             notes: input.notes,

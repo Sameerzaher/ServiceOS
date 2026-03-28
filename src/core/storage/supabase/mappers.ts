@@ -1,6 +1,10 @@
 import type { AppointmentRecord } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
-import type { Teacher } from "@/core/types/teacher";
+import {
+  coerceBusinessType,
+  DEFAULT_BUSINESS_TYPE,
+  type Teacher,
+} from "@/core/types/teacher";
 import {
   normalizeAppointmentRow,
   normalizeClient,
@@ -27,6 +31,8 @@ export type TeacherRow = {
   business_name: string;
   phone: string;
   slug: string;
+  /** Present after migration `007_teacher_business_type.sql`. */
+  business_type?: string | null;
   created_at: string;
 };
 
@@ -81,17 +87,23 @@ export function teacherToRow(teacher: Teacher, businessId: string): TeacherRow {
     business_name: teacher.businessName,
     phone: teacher.phone,
     slug: teacher.slug,
+    business_type: teacher.businessType,
     created_at: teacher.createdAt,
   };
 }
 
 export function teacherFromRow(row: TeacherRow): Teacher | null {
+  const bt =
+    row.business_type != null && String(row.business_type).trim() !== ""
+      ? coerceBusinessType(row.business_type)
+      : DEFAULT_BUSINESS_TYPE;
   return normalizeTeacher({
     id: row.id,
     fullName: row.full_name,
     businessName: row.business_name,
     phone: row.phone,
     slug: row.slug,
+    businessType: bt,
     createdAt: row.created_at,
   });
 }

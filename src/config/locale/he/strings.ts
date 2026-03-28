@@ -166,6 +166,7 @@ export const heUi = {
   },
 
   validation: {
+    fieldRequiredShort: "שדה חובה.",
     fullNameRequired: "נא למלא שם מלא (לפחות שני תווים).",
     studentRequired: "בחרו לקוח מהרשימה כדי לשייך את השיעור.",
     datetimeInvalid: "בחרו תאריך ושעה תקינים לשיעור.",
@@ -175,10 +176,9 @@ export const heUi = {
   settings: {
     businessType: "סוג עסק",
     businessTypeHint:
-      "המילים במסך (לקוח, שיעור, שדות נוספים) יתאימו לתחום שבחרתם — נהיגה, כושר, יופי ועוד.",
-    activePresetDriving: "נהיגה — מורה פרטי / בית ספר",
-    activePresetFitness: "כושר — מאמן / מכון",
-    activePresetBeauty: "יופי וטיפוח",
+      "מילות ממשק (תלמיד/מטופל, שיעור/תור), שדות בטופס הזמנה ציבורי וטפסים פנימיים — לפי סוג העסק.",
+    activePresetDrivingInstructor: "מורה נהיגה / מורה פרטי",
+    activePresetCosmeticClinic: "קליניקה לאסתטיקה / רופא מטפל",
     businessName: "שם העסק",
     businessNameHint: "מוצג בראש המסך, בדף ההזמנה הציבורי ובהודעות תזכורת.",
     teacherName: "שם המורה / בעל העסק",
@@ -466,6 +466,7 @@ export const heUi = {
     clients: "לקוחות",
     lessons: "שיעורים",
     booking: "הזמנה",
+    teachers: "מורים",
     settings: "הגדרות",
     teacherContext: "הקשר מורה",
   },

@@ -11,16 +11,25 @@ import {
 } from "react";
 
 import { getSupabaseDefaultTeacherId } from "@/core/config/supabaseEnv";
+import type { BusinessType } from "@/core/types/teacher";
 import { StorageProvider } from "@/core/storage/StorageContext";
 import { createServiceStorage } from "@/core/storage/createServiceStorage";
 
 const STORAGE_KEY = "serviceos.dashboardTeacherId";
+const TEACHERS_CACHE_KEY = "serviceos.teachersCache";
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+type CachedTeachers = {
+  teachers: DashboardTeacherSummary[];
+  timestamp: number;
+};
 
 export type DashboardTeacherSummary = {
   id: string;
   fullName: string;
   businessName: string;
   slug: string;
+  businessType: BusinessType;
 };
 
 type DashboardTeacherContextValue = {
@@ -28,6 +37,7 @@ type DashboardTeacherContextValue = {
   setTeacherId: (id: string) => void;
   teachers: DashboardTeacherSummary[];
   teachersReady: boolean;
+  reloadTeachers: () => Promise<void>;
   /** Public booking path segment for the selected teacher (`/book/[slug]`). */
   teacherSlug: string | null;
 };
@@ -52,7 +62,16 @@ export function useDashboardTeacherSlug(): string | null {
   return useContext(DashboardTeacherContext)?.teacherSlug ?? null;
 }
 
-type TeachersApiOk = { ok: true; teachers?: DashboardTeacherSummary[] };
+type TeachersApiOk = {
+  ok: true;
+  teachers?: Array<{
+    id: string;
+    fullName: string;
+    businessName: string;
+    slug: string;
+    businessType?: BusinessType;
+  }>;
+};
 type TeachersApiErr = { ok: false; error: string };
 
 export function DashboardTeacherProvider({ children }: { children: ReactNode }) {
@@ -60,10 +79,12 @@ export function DashboardTeacherProvider({ children }: { children: ReactNode }) 
   const [teacherId, setTeacherIdState] = useState(defaultId);
   const [teachers, setTeachers] = useState<DashboardTeacherSummary[]>([]);
   const [teachersReady, setTeachersReady] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
 
   const setTeacherId = useCallback((id: string) => {
     const next = id.trim();
     if (!next) return;
+    console.log("[DashboardTeacherContext] Switching teacher to:", next);
     setTeacherIdState(next);
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
@@ -74,17 +95,66 @@ export function DashboardTeacherProvider({ children }: { children: ReactNode }) 
 
   useEffect(() => {
     let cancelled = false;
+    
+    // Try to load from cache first
+    const loadFromCache = (): DashboardTeacherSummary[] | null => {
+      try {
+        const cached = window.localStorage.getItem(TEACHERS_CACHE_KEY);
+        if (!cached) return null;
+        
+        const parsed: CachedTeachers = JSON.parse(cached);
+        const age = Date.now() - parsed.timestamp;
+        
+        if (age < CACHE_TTL_MS) {
+          return parsed.teachers;
+        }
+      } catch {
+        return null;
+      }
+      return null;
+    };
+    
+    const saveToCache = (teachers: DashboardTeacherSummary[]) => {
+      try {
+        const cached: CachedTeachers = {
+          teachers,
+          timestamp: Date.now(),
+        };
+        window.localStorage.setItem(TEACHERS_CACHE_KEY, JSON.stringify(cached));
+      } catch {
+        // Ignore quota errors
+      }
+    };
+    
+    // Show cached data immediately
+    const cachedTeachers = loadFromCache();
+    if (cachedTeachers && cachedTeachers.length > 0) {
+      setTeachers(cachedTeachers);
+      setTeachersReady(true);
+    }
+    
     void (async () => {
       try {
+        console.log("[DashboardTeacherContext] Loading teachers list");
         const res = await fetch("/api/teachers", { method: "GET" });
         const data = (await res.json()) as TeachersApiOk | TeachersApiErr;
         if (cancelled) return;
         if (!res.ok || !data || data.ok !== true) {
-          setTeachersReady(true);
+          console.error("[DashboardTeacherContext] Teachers load failed:", data);
+          if (!cachedTeachers) {
+            setTeachersReady(true);
+          }
           return;
         }
-        const list = data.teachers ?? [];
+        const list = (data.teachers ?? []).map((t) => ({
+          ...t,
+          businessType: t.businessType ?? "driving_instructor",
+        }));
+        
+        console.log("[DashboardTeacherContext] Teachers loaded:", list.length);
+        
         setTeachers(list);
+        saveToCache(list);
 
         let saved: string | null = null;
         try {
@@ -94,14 +164,16 @@ export function DashboardTeacherProvider({ children }: { children: ReactNode }) 
         }
 
         if (saved && list.some((t) => t.id === saved)) {
+          console.log("[DashboardTeacherContext] Restoring saved teacher:", saved);
           setTeacherIdState(saved);
         } else if (list.length > 0) {
+          console.log("[DashboardTeacherContext] Selecting first teacher:", list[0].id);
           setTeacherIdState((current) =>
             list.some((t) => t.id === current) ? current : list[0].id,
           );
         }
       } catch (e) {
-        console.error("[DashboardTeacher] load teachers", e);
+        console.error("[DashboardTeacherContext] Load error:", e);
       } finally {
         if (!cancelled) setTeachersReady(true);
       }
@@ -109,6 +181,10 @@ export function DashboardTeacherProvider({ children }: { children: ReactNode }) 
     return () => {
       cancelled = true;
     };
+  }, [loadKey]);
+
+  const reloadTeachers = useCallback(async () => {
+    setLoadKey((k) => k + 1);
   }, []);
 
   const storage = useMemo(
@@ -130,9 +206,10 @@ export function DashboardTeacherProvider({ children }: { children: ReactNode }) 
       setTeacherId,
       teachers,
       teachersReady,
+      reloadTeachers,
       teacherSlug,
     }),
-    [teacherId, setTeacherId, teachers, teachersReady, teacherSlug],
+    [teacherId, setTeacherId, teachers, teachersReady, reloadTeachers, teacherSlug],
   );
 
   return (

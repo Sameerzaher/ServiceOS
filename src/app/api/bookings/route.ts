@@ -18,6 +18,7 @@ import {
 import {
   bookingOverlapsExistingAppointments,
   normalizePhone,
+  sanitizePublicBookingCustomFields,
 } from "@/features/booking/logic/publicBookingShared";
 import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
@@ -41,8 +42,7 @@ type ClientRow = {
 type BookingPayload = {
   fullName: string;
   phone: string;
-  pickupLocation: string;
-  carType: string;
+  bookingCustomFields: Record<string, string>;
   preferredDate: string;
   preferredTime: string;
   notes: string;
@@ -106,6 +106,12 @@ function parsePayload(raw: unknown): BookingPayload | null {
   const slotStartRaw = typeof b.slotStart === "string" ? b.slotStart : "";
   const slotEndRaw = typeof b.slotEnd === "string" ? b.slotEnd : "";
 
+  const bookingCustomFields = sanitizePublicBookingCustomFields(
+    b.bookingCustomFields,
+  );
+  if (pickupLocation) bookingCustomFields.pickupLocation = pickupLocation;
+  if (carType) bookingCustomFields.carType = carType;
+
   if (!fullName || !phone || !preferredDate || !preferredTime || !status) {
     return null;
   }
@@ -139,8 +145,7 @@ function parsePayload(raw: unknown): BookingPayload | null {
   return {
     fullName,
     phone,
-    pickupLocation,
-    carType,
+    bookingCustomFields,
     preferredDate,
     preferredTime,
     notes,
@@ -180,7 +185,10 @@ async function loadAppointments(
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
+  console.log("[bookings/post] New booking request");
+  
   if (!isSupabaseAdminConfigured()) {
+    console.error("[bookings/post] Supabase not configured");
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_UNAVAILABLE },
       { status: 503 },
@@ -190,7 +198,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   let raw: unknown;
   try {
     raw = await req.json();
-  } catch {
+  } catch (e) {
+    console.error("[bookings/post] Invalid JSON:", e);
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_INVALID },
       { status: 400 },
@@ -199,6 +208,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const input = parsePayload(raw);
   if (!input) {
+    console.error("[bookings/post] Validation failed");
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_INVALID },
       { status: 400 },
@@ -211,6 +221,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     const teacherId = resolveTeacherIdFromRequest(req, raw);
     const appointmentsTable = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
+
+    console.log("[bookings/post] Creating booking for:", { teacherId, businessId, fullName: input.fullName });
 
     const existingAppointments = await loadAppointments(
       supabase,
@@ -225,6 +237,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         existingAppointments,
       )
     ) {
+      console.warn("[bookings/post] Time slot conflict:", { slotStart: input.slotStart, slotEnd: input.slotEnd });
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_CONFLICT },
         { status: 409 },
@@ -237,13 +250,17 @@ export async function POST(req: Request): Promise<NextResponse> {
       .eq("business_id", businessId)
       .eq("teacher_id", teacherId);
     if (clientList.error && isMissingColumnError(clientList.error)) {
+      console.log("[bookings/post] teacher_id column missing, falling back");
       clientList = await supabase
         .from(clientsTable)
         .select("id, phone")
         .eq("business_id", businessId);
     }
     const { data: clientRows, error: clientsErr } = clientList;
-    if (clientsErr) throw clientsErr;
+    if (clientsErr) {
+      console.error("[bookings/post] Load clients error:", clientsErr);
+      throw clientsErr;
+    }
 
     const normalizedPhone = normalizePhone(input.phone);
     let clientId: string | null = null;
@@ -254,6 +271,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         normalizePhone(c.phone) === normalizedPhone
       ) {
         clientId = c.id;
+        console.log("[bookings/post] Found existing client:", clientId);
         break;
       }
     }
@@ -261,6 +279,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     const now = input.createdAt ?? new Date().toISOString();
     if (!clientId) {
       clientId = randomUUID();
+      console.log("[bookings/post] Creating new client:", clientId);
+      
       const baseClient = {
         id: clientId,
         business_id: businessId,
@@ -276,9 +296,14 @@ export async function POST(req: Request): Promise<NextResponse> {
         teacher_id: teacherId,
       });
       if (ins.error && isMissingColumnError(ins.error)) {
+        console.log("[bookings/post] teacher_id column missing on insert, retrying");
         ins = await supabase.from(clientsTable).insert(baseClient);
       }
-      if (ins.error) throw ins.error;
+      if (ins.error) {
+        console.error("[bookings/post] Insert client error:", ins.error);
+        throw ins.error;
+      }
+      console.log("[bookings/post] Client created");
     }
 
     const appointmentId = randomUUID();
@@ -291,8 +316,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       bookingSlotEnd: input.slotEnd,
       bookingNotes: input.notes,
     };
-    if (input.pickupLocation) customFields.pickupLocation = input.pickupLocation;
-    if (input.carType) customFields.carType = input.carType;
+    for (const [k, v] of Object.entries(input.bookingCustomFields)) {
+      customFields[k] = v;
+    }
+
+    console.log("[bookings/post] Creating appointment:", appointmentId);
 
     const baseAppt = {
       id: appointmentId,
@@ -312,9 +340,15 @@ export async function POST(req: Request): Promise<NextResponse> {
       teacher_id: teacherId,
     });
     if (insertRes.error && isMissingColumnError(insertRes.error)) {
+      console.log("[bookings/post] teacher_id column missing on insert, retrying");
       insertRes = await supabase.from(appointmentsTable).insert(baseAppt);
     }
-    if (insertRes.error) throw insertRes.error;
+    if (insertRes.error) {
+      console.error("[bookings/post] Insert appointment error:", insertRes.error);
+      throw insertRes.error;
+    }
+
+    console.log("[bookings/post] SUCCESS - Booking created:", { appointmentId, clientId, teacherId });
 
     return NextResponse.json({
       ok: true as const,
@@ -322,7 +356,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       message: "✅ הבקשה נשלחה בהצלחה. נחזור אליכם לאישור סופי.",
     });
   } catch (e) {
-    console.error("[bookings/post]", e);
+    console.error("[bookings/post] Unexpected error:", e);
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_GENERIC },
       { status: 500 },
@@ -350,6 +384,7 @@ function deriveBookingStatus(
 
 export async function GET(req: Request): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
+    console.error("[bookings/get] Supabase not configured");
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_UNAVAILABLE },
       { status: 503 },
@@ -363,6 +398,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     const appointmentsTable = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
 
+    console.log("[bookings/get] Fetching bookings for:", { businessId, teacherId });
+
     let apptList = await supabase
       .from(appointmentsTable)
       .select("id, client_id, start_at, created_at, custom_fields")
@@ -370,6 +407,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       .eq("teacher_id", teacherId)
       .order("start_at", { ascending: false });
     if (apptList.error && isMissingColumnError(apptList.error)) {
+      console.log("[bookings/get] teacher_id column missing, falling back");
       apptList = await supabase
         .from(appointmentsTable)
         .select("id, client_id, start_at, created_at, custom_fields")
@@ -377,7 +415,10 @@ export async function GET(req: Request): Promise<NextResponse> {
         .order("start_at", { ascending: false });
     }
     const { data: apptRows, error: apptErr } = apptList;
-    if (apptErr) throw apptErr;
+    if (apptErr) {
+      console.error("[bookings/get] Appointments query error:", apptErr);
+      throw apptErr;
+    }
 
     let clientListGet = await supabase
       .from(clientsTable)
@@ -385,13 +426,17 @@ export async function GET(req: Request): Promise<NextResponse> {
       .eq("business_id", businessId)
       .eq("teacher_id", teacherId);
     if (clientListGet.error && isMissingColumnError(clientListGet.error)) {
+      console.log("[bookings/get] teacher_id column missing on clients, falling back");
       clientListGet = await supabase
         .from(clientsTable)
         .select("id, full_name, phone")
         .eq("business_id", businessId);
     }
     const { data: clientRows, error: clientErr } = clientListGet;
-    if (clientErr) throw clientErr;
+    if (clientErr) {
+      console.error("[bookings/get] Clients query error:", clientErr);
+      throw clientErr;
+    }
 
     const clientById = new Map<string, { full_name: string; phone: string }>();
     for (const row of clientRows ?? []) {
@@ -447,9 +492,11 @@ export async function GET(req: Request): Promise<NextResponse> {
       });
     }
 
+    console.log("[bookings/get] SUCCESS - Returned", bookings.length, "bookings for teacher:", teacherId);
+
     return NextResponse.json({ ok: true as const, bookings });
   } catch (e) {
-    console.error("[bookings/get]", e);
+    console.error("[bookings/get] Unexpected error:", e);
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_GENERIC },
       { status: 500 },

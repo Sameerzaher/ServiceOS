@@ -295,10 +295,24 @@ export function AppointmentForm({
   useEffect(() => {
     if (initialAppointment) return;
     if (!prefillClientId) return;
+    // Only prefill if the client belongs to current teacher's list
     if (clients.some((c) => c.id === prefillClientId)) {
       setClientId(prefillClientId);
+    } else {
+      // Clear prefilled client if it doesn't belong to current teacher
+      setClientId("");
     }
   }, [prefillClientId, initialAppointment, clients]);
+
+  // Clear form when teacher changes (detect by clients changing to empty or different set)
+  useEffect(() => {
+    if (initialAppointment) return;
+    // If there's a selected client but it's not in the current list, clear it
+    if (clientId && !clients.some((c) => c.id === clientId)) {
+      setClientId("");
+      setClientError(null);
+    }
+  }, [clients, clientId, initialAppointment]);
 
   useEffect(() => {
     if (clients.length === 0) return;

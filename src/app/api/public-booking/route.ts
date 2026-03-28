@@ -31,6 +31,39 @@ import {
 
 export const runtime = "nodejs";
 
+// Simple in-memory rate limiter for public booking (per IP)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 5; // 5 requests per minute
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  
+  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return false;
+  }
+  
+  entry.count++;
+  return true;
+}
+
+// Cleanup old entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  const entries = Array.from(rateLimitMap.entries());
+  for (const [ip, entry] of entries) {
+    if (now > entry.resetAt) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
 type ClientRow = {
   id: string;
   business_id: string;
@@ -72,7 +105,20 @@ async function loadAppointmentsForOverlap(
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
+  // Rate limiting check
+  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  console.log("[public-booking] New booking request from IP:", ip);
+  
+  if (!checkRateLimit(ip)) {
+    console.warn("[public-booking] Rate limit exceeded for IP:", ip);
+    return NextResponse.json(
+      { ok: false as const, error: "יותר מדי בקשות. נסו שוב בעוד דקה." },
+      { status: 429 },
+    );
+  }
+
   if (!isSupabaseAdminConfigured()) {
+    console.error("[public-booking] Supabase not configured");
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_UNAVAILABLE },
       { status: 503 },
@@ -82,7 +128,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   let raw: unknown;
   try {
     raw = await req.json();
-  } catch {
+  } catch (e) {
+    console.error("[public-booking] Invalid JSON:", e);
     return NextResponse.json(
       { ok: false as const, error: heUi.publicBooking.errInvalidPayload },
       { status: 400 },
@@ -91,16 +138,27 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const parsed = parsePublicBookingBody(raw);
   if (!parsed.ok) {
+    console.error("[public-booking] Validation failed:", parsed.errorHe);
     return NextResponse.json(
       { ok: false as const, error: parsed.errorHe },
       { status: 400 },
     );
   }
 
-  const { fullName, phone, notes, slotStart, slotEnd, pickupLocation, carType } =
+  const { fullName, phone, notes, slotStart, slotEnd, bookingCustomFields } =
     parsed.data;
   const businessId = getSupabaseBusinessId();
   const teacherId = resolveTeacherIdFromRequest(req, raw);
+  
+  console.log("[public-booking] Parsed booking:", { 
+    teacherId, 
+    businessId, 
+    fullName, 
+    phone, 
+    slotStart, 
+    slotEnd 
+  });
+  
   const appointmentsTable = getSupabaseAppointmentsTable();
   const clientsTableName = getSupabaseClientsTable();
 
@@ -112,7 +170,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     const gate = await loadPublicBookingGate(supabase, businessId, teacherId);
     if (!gate.ok) {
-      console.error("[public-booking] booking gate load failed");
+      console.error("[public-booking] Booking gate load failed");
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_GENERIC },
         { status: 500 },
@@ -120,6 +178,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     if (!gate.bookingEnabled) {
+      console.warn("[public-booking] Booking disabled for teacher:", teacherId);
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_UNAVAILABLE },
         { status: 403 },
@@ -129,6 +188,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (
       publicSlotOutsideBookingHorizon(slotStartMs, nowMs, gate.daysAhead)
     ) {
+      console.warn("[public-booking] Slot outside horizon:", { slotStart, daysAhead: gate.daysAhead });
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_SLOT_HORIZON },
         { status: 400 },
@@ -142,7 +202,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       appointmentsTable,
     );
     if (firstLoad.error) {
-      console.error("[public-booking] load appointments", firstLoad.error);
+      console.error("[public-booking] Load appointments error:", firstLoad.error);
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_GENERIC },
         { status: 500 },
@@ -156,12 +216,15 @@ export async function POST(req: Request): Promise<NextResponse> {
         firstLoad.appointments,
       )
     ) {
+      console.warn("[public-booking] Slot conflict detected:", { slotStart, slotEnd });
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_CONFLICT },
         { status: 409 },
       );
     }
 
+    console.log("[public-booking] Checking for existing client by phone:", phone);
+    
     const { data: clientRows, error: clientLoadErr } = await supabase
       .from(clientsTableName)
       .select("*")
@@ -169,7 +232,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       .eq("teacher_id", teacherId);
 
     if (clientLoadErr) {
-      console.error("[public-booking] load clients", clientLoadErr);
+      console.error("[public-booking] Load clients error:", clientLoadErr);
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_GENERIC },
         { status: 500 },
@@ -182,6 +245,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       const cr = row as unknown as ClientRow;
       if (normalizePhone(cr.phone) === targetKey && targetKey.length > 0) {
         clientId = cr.id;
+        console.log("[public-booking] Found existing client:", clientId);
         break;
       }
     }
@@ -190,6 +254,8 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     if (!clientId) {
       clientId = randomUUID();
+      console.log("[public-booking] Creating new client:", clientId);
+      
       const { error: insertClientErr } = await supabase
         .from(clientsTableName)
         .insert({
@@ -205,13 +271,16 @@ export async function POST(req: Request): Promise<NextResponse> {
         });
 
       if (insertClientErr) {
-        console.error("[public-booking] insert client", insertClientErr);
+        console.error("[public-booking] Insert client error:", insertClientErr);
         return NextResponse.json(
           { ok: false as const, error: HE_ERR_GENERIC },
           { status: 500 },
         );
       }
+      console.log("[public-booking] Client created successfully");
     } else {
+      console.log("[public-booking] Updating existing client:", clientId);
+      
       const { error: patchErr } = await supabase
         .from(clientsTableName)
         .update({
@@ -224,12 +293,13 @@ export async function POST(req: Request): Promise<NextResponse> {
         .eq("teacher_id", teacherId);
 
       if (patchErr) {
-        console.error("[public-booking] update client", patchErr);
+        console.error("[public-booking] Update client error:", patchErr);
         return NextResponse.json(
           { ok: false as const, error: HE_ERR_GENERIC },
           { status: 500 },
         );
       }
+      console.log("[public-booking] Client updated successfully");
     }
 
     const preInsertLoad = await loadAppointmentsForOverlap(
@@ -240,7 +310,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
     if (preInsertLoad.error) {
       console.error(
-        "[public-booking] reload appointments before insert",
+        "[public-booking] Reload appointments error:",
         preInsertLoad.error,
       );
       return NextResponse.json(
@@ -256,6 +326,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         preInsertLoad.appointments,
       )
     ) {
+      console.warn("[public-booking] Slot taken during transaction:", { slotStart, slotEnd });
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_CONFLICT },
         { status: 409 },
@@ -269,8 +340,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       bookingSlotEnd: slotEnd,
       bookingNotes: notes,
     };
-    if (pickupLocation) customFields.pickupLocation = pickupLocation;
-    if (carType) customFields.carType = carType;
+    for (const [k, v] of Object.entries(bookingCustomFields)) {
+      customFields[k] = v;
+    }
+
+    console.log("[public-booking] Creating appointment:", appointmentId);
 
     const { error: insertApptErr } = await supabase
       .from(appointmentsTable)
@@ -290,12 +364,14 @@ export async function POST(req: Request): Promise<NextResponse> {
       });
 
     if (insertApptErr) {
-      console.error("[public-booking] insert appointment", insertApptErr);
+      console.error("[public-booking] Insert appointment error:", insertApptErr);
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_GENERIC },
         { status: 500 },
       );
     }
+
+    console.log("[public-booking] SUCCESS - Booking created:", { appointmentId, clientId, teacherId });
 
     return NextResponse.json({
       ok: true as const,
@@ -303,7 +379,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       clientId,
     });
   } catch (e) {
-    console.error("[public-booking]", e);
+    console.error("[public-booking] Unexpected error:", e);
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_GENERIC },
       { status: 500 },

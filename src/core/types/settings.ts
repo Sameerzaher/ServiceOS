@@ -2,9 +2,14 @@ import {
   DEFAULT_MVP_TEACHER_ID,
   getSupabaseDefaultTeacherId,
 } from "@/core/config/supabaseEnv";
+import {
+  type BusinessType,
+  coerceBusinessType,
+  DEFAULT_BUSINESS_TYPE,
+} from "@/core/types/teacher";
 
-/** Business vertical (terminology + extra fields). Matches `VERTICAL_REGISTRY` keys. */
-export type ActivePreset = "driving" | "fitness" | "beauty";
+/** Stored preferences key; values match `BusinessType` / `VERTICAL_REGISTRY` keys. */
+export type ActivePreset = BusinessType;
 
 /** App preferences stored locally (no backend yet). */
 export interface AppSettings {
@@ -34,7 +39,7 @@ export interface AppSettings {
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   teacherId: DEFAULT_MVP_TEACHER_ID,
-  activePreset: "driving",
+  activePreset: DEFAULT_BUSINESS_TYPE,
   businessName: "",
   teacherName: "",
   defaultLessonPrice: 0,
@@ -62,10 +67,13 @@ function coerceNonNegativeNumber(v: unknown, fallback: number): number {
 }
 
 function coerceActivePreset(v: unknown): ActivePreset {
-  if (v === "driving" || v === "fitness" || v === "beauty") {
+  if (v === "driving_instructor" || v === "cosmetic_clinic") {
     return v;
   }
-  return DEFAULT_APP_SETTINGS.activePreset;
+  /** Migrate legacy preset keys from earlier pilots. */
+  if (v === "driving") return "driving_instructor";
+  if (v === "beauty" || v === "fitness") return "cosmetic_clinic";
+  return coerceBusinessType(v);
 }
 
 function coerceDurationMinutes(v: unknown, fallback: number): number {

@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { appPageTitle, heUi, resolveVerticalPresetFromSettings } from "@/config";
+import {
+  appPageTitle,
+  heUi,
+  resolveVerticalPresetMerged,
+} from "@/config";
 import { useToast } from "@/components/ui";
 import { DEMO_SETTINGS, buildDemoDataset } from "@/core/demo/demoSeed";
 import { isDemoModeActive, setDemoModeActive } from "@/core/demo/demoMode";
@@ -22,7 +26,10 @@ import {
 import type { AppointmentDateFilter } from "@/core/utils/dateRange";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import { buildWhatsAppHref } from "@/core/utils/whatsapp";
-import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
+import {
+  useDashboardTeacherId,
+  useDashboardTeacherOptional,
+} from "@/features/app/DashboardTeacherContext";
 import { useAppointments } from "@/features/appointments/hooks/useAppointments";
 import { useAvailabilitySettings } from "@/features/booking/hooks/useAvailabilitySettings";
 import { useClients } from "@/features/clients/hooks/useClients";
@@ -55,6 +62,7 @@ function formatAppointmentDateTime(iso: string): string {
 export function useServiceAppState() {
   const toast = useToast();
   const dashboardTeacherId = useDashboardTeacherId();
+  const dashboardTeacherCtx = useDashboardTeacherOptional();
   const {
     settings,
     isReady: settingsReady,
@@ -64,9 +72,15 @@ export function useServiceAppState() {
     retryLoad: retrySettingsLoad,
     retrySync: retrySettingsSync,
   } = useSettings();
+  const teacherBusinessType = useMemo(() => {
+    const row = dashboardTeacherCtx?.teachers.find(
+      (t) => t.id === dashboardTeacherId,
+    );
+    return row?.businessType ?? null;
+  }, [dashboardTeacherCtx?.teachers, dashboardTeacherId]);
   const preset = useMemo(
-    () => resolveVerticalPresetFromSettings(settings),
-    [settings],
+    () => resolveVerticalPresetMerged(settings, teacherBusinessType),
+    [settings, teacherBusinessType],
   );
   const {
     settings: availabilitySettings,
@@ -127,6 +141,15 @@ export function useServiceAppState() {
   const [remindersReviewed, setRemindersReviewed] = useState(false);
 
   const referenceDate = useMemo(() => new Date(), []);
+
+  // Clear all UI state when teacher changes
+  useEffect(() => {
+    setEditingClientId(null);
+    setEditingAppointmentId(null);
+    setAppointmentPrefillClientId(null);
+    setConfirm(null);
+    setClientSearch("");
+  }, [dashboardTeacherId]);
 
   const filteredClients = useMemo(
     () => sortedClients.filter((c) => matchesClientSearch(c, clientSearch)),

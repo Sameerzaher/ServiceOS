@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
 import { loadAppSettings, persistAppSettings } from "@/core/repositories/supabase/appSettingsRepository";
+import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { loadBookingSettings, persistBookingSettings } from "@/core/repositories/supabase/bookingSettingsRepository";
 import { normalizeAppSettings, type AppSettings } from "@/core/types/settings";
+import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
 import { normalizeAvailabilitySettings } from "@/core/types/availability";
 import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import { getSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/adminClient";
 
 export const runtime = "nodejs";
+
+export const dynamic = "force-dynamic";
 
 const HE_ERR_UNAVAILABLE = "טעינת ההגדרות אינה זמינה כרגע. נסו שוב מאוחר יותר.";
 const HE_ERR_INVALID = "בקשת ההגדרות לא תקינה.";
@@ -18,6 +22,7 @@ type SettingsApiResponse = {
   businessName: string;
   teacherName: string;
   phone: string;
+  businessType: BusinessType;
   defaultLessonDuration: number;
   bookingEnabled: boolean;
   workingHoursStart: string;
@@ -28,11 +33,13 @@ type SettingsApiResponse = {
 function toApiShape(
   app: AppSettings,
   bookingEnabled: boolean,
+  businessType: BusinessType,
 ): SettingsApiResponse {
   return {
     businessName: app.businessName,
     teacherName: app.teacherName ?? "",
     phone: app.businessPhone,
+    businessType,
     defaultLessonDuration: app.defaultLessonDurationMinutes,
     bookingEnabled,
     workingHoursStart: app.workingHoursStart,
@@ -41,12 +48,19 @@ function toApiShape(
   };
 }
 
-function parseBody(raw: unknown): SettingsApiResponse | null {
+type SettingsPutParsed = Omit<SettingsApiResponse, "businessType"> & {
+  /** `null` when the client omitted the field — keep existing preset. */
+  businessType: BusinessType | null;
+};
+
+function parseBody(raw: unknown): SettingsPutParsed | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   const businessName = typeof o.businessName === "string" ? o.businessName.trim() : "";
   const teacherName = typeof o.teacherName === "string" ? o.teacherName.trim() : "";
   const phone = typeof o.phone === "string" ? o.phone.trim() : "";
+  const businessType =
+    "businessType" in o ? coerceBusinessType(o.businessType) : null;
   const workingHoursStart =
     typeof o.workingHoursStart === "string" ? o.workingHoursStart.trim() : "";
   const workingHoursEnd =
@@ -63,6 +77,7 @@ function parseBody(raw: unknown): SettingsApiResponse | null {
     businessName,
     teacherName,
     phone,
+    businessType,
     defaultLessonDuration,
     bookingEnabled,
     workingHoursStart,
@@ -73,6 +88,7 @@ function parseBody(raw: unknown): SettingsApiResponse | null {
 
 export async function GET(req: Request): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
+    console.error("[settings/get] Supabase not configured");
     return NextResponse.json({ ok: false as const, error: HE_ERR_UNAVAILABLE }, { status: 503 });
   }
 
@@ -80,51 +96,70 @@ export async function GET(req: Request): Promise<NextResponse> {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req);
+    
+    console.log("[settings/get] Loading settings for:", { businessId, teacherId });
+    
     const [appSettings, bookingSettings, teacherRow] = await Promise.all([
       loadAppSettings(supabase, businessId, teacherId),
       loadBookingSettings(supabase, businessId, teacherId),
       supabase
         .from("teachers")
-        .select("slug")
+        .select("*")
         .eq("business_id", businessId)
         .eq("id", teacherId)
         .maybeSingle(),
     ]);
 
     if (teacherRow.error) {
-      console.error("[settings/get] teacher slug", teacherRow.error);
+      console.error("[settings/get] Teacher query error:", teacherRow.error);
     }
+    const tdata = teacherRow.data as
+      | { slug?: string; business_type?: string | null }
+      | null;
     const teacherSlug =
-      !teacherRow.error &&
-      teacherRow.data &&
-      typeof (teacherRow.data as { slug?: string }).slug === "string"
-        ? (teacherRow.data as { slug: string }).slug.trim()
+      !teacherRow.error && tdata && typeof tdata.slug === "string"
+        ? tdata.slug.trim()
         : null;
+    const teacherBusinessType =
+      !teacherRow.error && tdata
+        ? coerceBusinessType(tdata.business_type)
+        : appSettings.activePreset;
+
+    console.log("[settings/get] SUCCESS - Settings loaded:", { teacherId, teacherSlug, teacherBusinessType });
 
     return NextResponse.json({
       ok: true as const,
-      settings: toApiShape(appSettings, bookingSettings.bookingEnabled),
+      settings: toApiShape(
+        appSettings,
+        bookingSettings.bookingEnabled,
+        teacherBusinessType,
+      ),
       teacherSlug: teacherSlug && teacherSlug.length > 0 ? teacherSlug : null,
     });
   } catch (e) {
-    console.error("[settings/get]", e);
+    console.error("[settings/get] Unexpected error:", e);
     return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request): Promise<NextResponse> {
+  console.log("[settings/put] Updating settings");
+  
   if (!isSupabaseAdminConfigured()) {
+    console.error("[settings/put] Supabase not configured");
     return NextResponse.json({ ok: false as const, error: HE_ERR_UNAVAILABLE }, { status: 503 });
   }
 
   let raw: unknown;
   try {
     raw = await req.json();
-  } catch {
+  } catch (e) {
+    console.error("[settings/put] Invalid JSON:", e);
     return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
   }
   const parsed = parseBody(raw);
   if (!parsed) {
+    console.error("[settings/put] Validation failed");
     return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
   }
 
@@ -132,6 +167,9 @@ export async function PUT(req: Request): Promise<NextResponse> {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req, raw);
+    
+    console.log("[settings/put] Saving settings for:", { businessId, teacherId });
+    
     const currentApp = await loadAppSettings(supabase, businessId, teacherId);
     const currentAvailability = await loadBookingSettings(
       supabase,
@@ -139,9 +177,15 @@ export async function PUT(req: Request): Promise<NextResponse> {
       teacherId,
     );
 
+    const resolvedBusinessType =
+      parsed.businessType ?? currentApp.activePreset;
+
+    console.log("[settings/put] Business type:", { current: currentApp.activePreset, new: resolvedBusinessType });
+
     const nextApp = normalizeAppSettings({
       ...currentApp,
       teacherId,
+      activePreset: resolvedBusinessType,
       businessName: parsed.businessName,
       teacherName: parsed.teacherName,
       businessPhone: parsed.phone,
@@ -161,6 +205,22 @@ export async function PUT(req: Request): Promise<NextResponse> {
       persistBookingSettings(supabase, businessId, teacherId, nextAvailability),
     ]);
 
+    console.log("[settings/put] Settings persisted, updating teacher business_type");
+
+    const teacherUpdate = await supabase
+      .from("teachers")
+      .update({ business_type: resolvedBusinessType })
+      .eq("business_id", businessId)
+      .eq("id", teacherId);
+    if (teacherUpdate.error && !isMissingColumnError(teacherUpdate.error)) {
+      console.error("[settings/put] Teacher update error:", teacherUpdate.error);
+      throw teacherUpdate.error;
+    }
+    
+    if (teacherUpdate.error && isMissingColumnError(teacherUpdate.error)) {
+      console.log("[settings/put] business_type column missing on teachers, skipping");
+    }
+
     const { data: slugRow } = await supabase
       .from("teachers")
       .select("slug")
@@ -173,13 +233,19 @@ export async function PUT(req: Request): Promise<NextResponse> {
         : "";
     const teacherSlugAfter = slugRaw.length > 0 ? slugRaw : null;
 
+    console.log("[settings/put] SUCCESS - Settings saved:", { teacherId, businessType: resolvedBusinessType });
+
     return NextResponse.json({
       ok: true as const,
-      settings: toApiShape(nextApp, nextAvailability.bookingEnabled),
+      settings: toApiShape(
+        nextApp,
+        nextAvailability.bookingEnabled,
+        resolvedBusinessType,
+      ),
       teacherSlug: teacherSlugAfter,
     });
   } catch (e) {
-    console.error("[settings/put]", e);
+    console.error("[settings/put] Unexpected error:", e);
     return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
   }
 }

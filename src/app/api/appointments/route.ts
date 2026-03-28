@@ -219,6 +219,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req);
+    
+    console.log("[appointments/get] Fetching appointments for:", { businessId, teacherId });
+    
     const table = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
     let apptList = await supabase
@@ -228,6 +231,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       .eq("teacher_id", teacherId)
       .order("start_at", { ascending: true });
     if (apptList.error && isMissingColumnError(apptList.error)) {
+      console.log("[appointments/get] teacher_id column missing, falling back");
       apptList = await supabase
         .from(table)
         .select("*")
@@ -237,7 +241,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const { data, error } = apptList;
 
     if (error) {
-      console.error("[appointments/get]", error);
+      console.error("[appointments/get] Database error:", error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
 
@@ -313,6 +317,34 @@ export async function POST(req: Request): Promise<NextResponse> {
     const body = raw as CreateBody;
 
     let clientId = parsed.clientId;
+    
+    // If clientId is provided, verify it belongs to this teacher
+    if (clientId) {
+      let verifyRes = await supabase
+        .from(clientsTable)
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("teacher_id", teacherId)
+        .eq("id", clientId)
+        .maybeSingle();
+      if (verifyRes.error && isMissingColumnError(verifyRes.error)) {
+        verifyRes = await supabase
+          .from(clientsTable)
+          .select("id")
+          .eq("business_id", businessId)
+          .eq("id", clientId)
+          .maybeSingle();
+      }
+      if (verifyRes.error) throw verifyRes.error;
+      if (!verifyRes.data) {
+        // Client doesn't exist or doesn't belong to this teacher
+        return NextResponse.json({ 
+          ok: false as const, 
+          error: "הלקוח שנבחר לא נמצא. נסו לרענן את הדף." 
+        }, { status: 400 });
+      }
+    }
+    
     if (!clientId) {
       const clientName =
         typeof body.clientName === "string" ? body.clientName.trim() : "";

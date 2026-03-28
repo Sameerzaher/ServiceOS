@@ -1,22 +1,20 @@
 import type { ActivePreset } from "@/core/types/settings";
 import type { VerticalPreset } from "@/core/types/vertical";
 
-import { beautyVerticalPreset } from "./beauty";
+import { cosmeticClinicVerticalPreset } from "./cosmetic_clinic";
 import { drivingVerticalPreset } from "./driving";
-import { fitnessVerticalPreset } from "./fitness";
 
 /**
- * Register verticals here. Keys match `AppSettings.activePreset` (storage).
+ * Register business types here. Keys match `AppSettings.activePreset` and `teachers.business_type`.
  */
 export const VERTICAL_REGISTRY = {
-  driving: drivingVerticalPreset,
-  fitness: fitnessVerticalPreset,
-  beauty: beautyVerticalPreset,
+  driving_instructor: drivingVerticalPreset,
+  cosmetic_clinic: cosmeticClinicVerticalPreset,
 } as const satisfies Record<ActivePreset, VerticalPreset>;
 
 export type VerticalId = ActivePreset;
 
-export const DEFAULT_VERTICAL_ID: VerticalId = "driving";
+export const DEFAULT_VERTICAL_ID: VerticalId = "driving_instructor";
 
 export function getVerticalPreset(id: VerticalId): VerticalPreset {
   return VERTICAL_REGISTRY[id];

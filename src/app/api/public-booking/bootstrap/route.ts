@@ -4,6 +4,7 @@ import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
 import { loadAppSettings } from "@/core/repositories/supabase/appSettingsRepository";
 import { loadBookingSettings } from "@/core/repositories/supabase/bookingSettingsRepository";
 import { teacherFromRow, type TeacherRow } from "@/core/storage/supabase/mappers";
+import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
 import type { AvailabilitySettings } from "@/core/types/availability";
 import {
   isValidPublicTeacherSlug,
@@ -23,6 +24,7 @@ type BootstrapTeacher = {
   fullName: string;
   businessName: string;
   phone: string;
+  businessType: BusinessType;
 };
 
 type BootstrapOk = {
@@ -48,25 +50,33 @@ function isUuidLike(v: string): boolean {
 
 export async function GET(req: Request): Promise<NextResponse<BootstrapOk | BootstrapErr>> {
   if (!isSupabaseAdminConfigured()) {
+    console.error("[public-booking/bootstrap] Supabase not configured");
     return jsonErr(heUi.publicBooking.errUnavailable, 503);
   }
 
   let slug: string;
   try {
     slug = new URL(req.url).searchParams.get("slug")?.trim() ?? "";
-  } catch {
+  } catch (e) {
+    console.error("[public-booking/bootstrap] Invalid URL:", e);
     return jsonErr(heUi.publicBooking.invalidSlugMessage, 400);
   }
 
+  console.log("[public-booking/bootstrap] Request for slug:", slug);
+
   if (!isValidPublicTeacherSlug(slug)) {
+    console.error("[public-booking/bootstrap] Invalid slug format:", slug);
     return jsonErr(heUi.publicBooking.invalidSlugMessage, 404);
   }
 
   const normalizedSlug = normalizeTeacherSlug(slug);
+  console.log("[public-booking/bootstrap] Normalized slug:", normalizedSlug);
 
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
+
+    console.log("[public-booking/bootstrap] Searching for teacher:", { businessId, slug: normalizedSlug });
 
     let teacherRes = await supabase
       .from("teachers")
@@ -75,6 +85,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       .eq("slug", normalizedSlug)
       .maybeSingle();
     if (!teacherRes.data && !teacherRes.error && isUuidLike(normalizedSlug)) {
+      console.log("[public-booking/bootstrap] Slug not found, trying as UUID");
       teacherRes = await supabase
         .from("teachers")
         .select("*")
@@ -85,7 +96,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
     const { data: row, error: teacherErr } = teacherRes;
 
     if (teacherErr) {
-      console.error("[public-booking/bootstrap] teacher", teacherErr);
+      console.error("[public-booking/bootstrap] Database error:", teacherErr);
       return jsonErr(heUi.publicBooking.errServerGeneric, 500);
     }
 
@@ -94,12 +105,14 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
         ? teacherFromRow(row as unknown as TeacherRow)
         : null;
     if (!teacher) {
+      console.log("[public-booking/bootstrap] Teacher not found, trying legacy fallback");
+      
       if (!isUuidLike(normalizedSlug)) {
+        console.error("[public-booking/bootstrap] No teacher found for slug:", normalizedSlug);
         return jsonErr(heUi.publicBooking.invalidSlugMessage, 404);
       }
 
-      // Legacy single-teacher fallback: no `teachers` row yet, but booking can
-      // still run by scoped/default teacher UUID.
+      // Legacy single-teacher fallback
       const legacySettings = await loadAppSettings(
         supabase,
         businessId,
@@ -110,6 +123,9 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
         businessId,
         normalizedSlug,
       );
+      
+      console.log("[public-booking/bootstrap] SUCCESS (legacy) - Teacher:", normalizedSlug);
+      
       return NextResponse.json({
         ok: true as const,
         teacher: {
@@ -118,16 +134,21 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
           fullName: legacySettings.teacherName,
           businessName: legacySettings.businessName,
           phone: legacySettings.businessPhone,
+          businessType: coerceBusinessType(legacySettings.activePreset),
         },
         availability,
       });
     }
+
+    console.log("[public-booking/bootstrap] Teacher found:", { id: teacher.id, slug: teacher.slug, businessName: teacher.businessName });
 
     const availability = await loadBookingSettings(
       supabase,
       businessId,
       teacher.id,
     );
+
+    console.log("[public-booking/bootstrap] SUCCESS - Returning data for:", teacher.slug);
 
     return NextResponse.json({
       ok: true as const,
@@ -137,11 +158,12 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
         fullName: teacher.fullName,
         businessName: teacher.businessName,
         phone: teacher.phone,
+        businessType: teacher.businessType,
       },
       availability,
     });
   } catch (e) {
-    console.error("[public-booking/bootstrap]", e);
+    console.error("[public-booking/bootstrap] Unexpected error:", e);
     return jsonErr(heUi.publicBooking.errServerGeneric, 500);
   }
 }

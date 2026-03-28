@@ -37,5 +37,10 @@ export interface VerticalPreset {
   labels: VerticalLabels;
   clientFields: readonly CustomFieldDefinition[];
   appointmentFields: readonly CustomFieldDefinition[];
+  /**
+   * Optional fields on the *public* booking form (plus shared name/phone/notes/slot).
+   * Stored on the appointment row under `customFields`.
+   */
+  publicBookingFields: readonly CustomFieldDefinition[];
   defaultServices: readonly Service[];
 }

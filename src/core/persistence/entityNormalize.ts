@@ -5,7 +5,10 @@ import {
   type AppointmentRecord,
 } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
-import type { Teacher } from "@/core/types/teacher";
+import {
+  coerceBusinessType,
+  type Teacher,
+} from "@/core/types/teacher";
 
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
@@ -98,6 +101,7 @@ export function normalizeTeacher(raw: unknown): Teacher | null {
   if (!isRecord(raw)) return null;
   const id = typeof raw.id === "string" ? raw.id.trim() : "";
   const slug = typeof raw.slug === "string" ? raw.slug.trim() : "";
+  const email = typeof raw.email === "string" ? raw.email.trim() : "";
   if (!id || !slug) return null;
 
   const now = new Date().toISOString();
@@ -107,7 +111,12 @@ export function normalizeTeacher(raw: unknown): Teacher | null {
     businessName: coerceString(raw.businessName),
     phone: coerceString(raw.phone),
     slug,
+    businessType: coerceBusinessType(raw.businessType),
     createdAt: coerceIsoInstant(raw.createdAt, now),
+    email: email || `${slug}@local`,
+    role: (raw.role === "admin" || raw.role === "user") ? raw.role : "user",
+    isActive: raw.isActive !== false,
+    lastLoginAt: typeof raw.lastLoginAt === "string" ? raw.lastLoginAt : null,
   };
 }
 

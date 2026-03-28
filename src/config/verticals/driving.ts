@@ -3,13 +3,15 @@ import {
   type VerticalPreset,
 } from "@/core/types/vertical";
 
-/** Driving-school vertical — labels and fields for instructors / students. */
+/** Driving instructor — students, lessons, pickup & transmission on bookings. */
 export const drivingVerticalPreset = {
-  id: "driving",
-  slug: "driving",
+  id: "driving_instructor",
+  slug: "driving_instructor",
   labels: {
     student: "תלמיד",
     students: "תלמידים",
+    client: "לקוח",
+    clients: "לקוחות",
     lesson: "שיעור",
     lessons: "שיעורים",
     addStudent: "הוספת תלמיד",
@@ -19,9 +21,7 @@ export const drivingVerticalPreset = {
     transmission: "תיבת הילוכים",
     pickup: "איסוף",
     vehicle: "רכב",
-    /** First part of the main app title; combined with `students` in the shell. */
     appTitle: "ניהול",
-    /** Hero subtitle on the home screen for this vertical. */
     appTagline:
       "יומן, לקוחות ותזכורות במקום אחד — מוכנים ליום עבודה אמיתי.",
   },
@@ -32,13 +32,6 @@ export const drivingVerticalPreset = {
       kind: CustomFieldInputKind.Number,
       required: false,
     },
-    {
-      key: "transmissionType",
-      label: "סוג הילוכים",
-      kind: CustomFieldInputKind.Select,
-      required: true,
-      options: ["ידני", "אוטומט"] as const,
-    },
   ],
   appointmentFields: [
     {
@@ -48,10 +41,26 @@ export const drivingVerticalPreset = {
       required: false,
     },
     {
-      key: "carType",
-      label: "סוג רכב",
-      kind: CustomFieldInputKind.Text,
+      key: "transmissionType",
+      label: "סוג הילוכים",
+      kind: CustomFieldInputKind.Select,
       required: false,
+      options: ["ידני", "אוטומט"] as const,
+    },
+  ],
+  publicBookingFields: [
+    {
+      key: "pickupLocation",
+      label: "מיקום איסוף",
+      kind: CustomFieldInputKind.TextArea,
+      required: false,
+    },
+    {
+      key: "transmissionType",
+      label: "סוג הילוכים",
+      kind: CustomFieldInputKind.Select,
+      required: true,
+      options: ["ידני", "אוטומט"] as const,
     },
   ],
   defaultServices: [

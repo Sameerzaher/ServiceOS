@@ -10,6 +10,8 @@ import { useBooking } from "@/features/booking/hooks/useBooking";
 import { usePublicTeacherAppointments } from "@/features/booking/hooks/usePublicTeacherAppointments";
 import { generateAvailableSlots } from "@/features/booking/utils/generateAvailableSlots";
 import type { AvailabilitySettings } from "@/core/types/availability";
+import type { BusinessType } from "@/core/types/teacher";
+import { getVerticalPreset } from "@/config/verticals/registry";
 
 function todayLocalYmd(): string {
   const d = new Date();
@@ -40,12 +42,14 @@ export type PublicBookingIdentity = {
 
 export interface PublicBookingPageContentProps {
   teacherId: string;
+  businessType: BusinessType;
   identity: PublicBookingIdentity;
   availability: AvailabilitySettings;
 }
 
 export function PublicBookingPageContent({
   teacherId,
+  businessType,
   identity,
   availability,
 }: PublicBookingPageContentProps) {
@@ -93,6 +97,11 @@ export function PublicBookingPageContent({
     const ahead = Math.max(1, availability.daysAhead);
     return addLocalDaysYmd(new Date(), ahead - 1);
   }, [availability.daysAhead]);
+
+  const publicBookingExtraFields = useMemo(
+    () => getVerticalPreset(businessType).publicBookingFields,
+    [businessType],
+  );
 
   useEffect(() => {
     const min = todayLocalYmd();
@@ -198,6 +207,7 @@ export function PublicBookingPageContent({
             {heUi.publicBooking.sectionContact}
           </h2>
           <PublicBookingForm
+            extraFields={publicBookingExtraFields}
             selectedSlot={selectedSlot}
             submitError={error}
             isSubmitting={isSubmitting}

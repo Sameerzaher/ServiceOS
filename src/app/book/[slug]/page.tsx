@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { heUi } from "@/config";
+import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
 import { Button, Spinner, ui } from "@/components/ui";
 import {
   PublicBookingPageContent,
@@ -20,6 +21,7 @@ type LoadState =
   | {
       kind: "ready";
       teacherId: string;
+      businessType: BusinessType;
       identity: PublicBookingIdentity;
       availability: AvailabilitySettings;
     };
@@ -34,7 +36,10 @@ export default function PublicBookingBySlugPage() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   const load = useCallback(async () => {
+    console.log("[PublicBooking] Loading booking page for slug:", slug);
+    
     if (!slug) {
+      console.error("[PublicBooking] No slug provided");
       setState({
         kind: "error",
         message: heUi.publicBooking.invalidSlugMessage,
@@ -43,10 +48,13 @@ export default function PublicBookingBySlugPage() {
     }
     setState({ kind: "loading" });
     try {
-      const res = await fetch(
-        `/api/public-booking/bootstrap?slug=${encodeURIComponent(slug)}`,
-      );
+      const url = `/api/public-booking/bootstrap?slug=${encodeURIComponent(slug)}`;
+      console.log("[PublicBooking] Fetching:", url);
+      
+      const res = await fetch(url);
       const raw: unknown = await res.json();
+
+      console.log("[PublicBooking] Bootstrap response:", { ok: res.ok, data: raw });
 
       if (
         !isRecord(raw) ||
@@ -58,12 +66,14 @@ export default function PublicBookingBySlugPage() {
           isRecord(raw) && typeof raw.error === "string" && raw.error.length > 0
             ? raw.error
             : heUi.publicBooking.invalidSlugMessage;
+        console.error("[PublicBooking] Bootstrap failed:", msg);
         setState({ kind: "error", message: msg });
         return;
       }
 
       const t = raw.teacher as Record<string, unknown>;
       const teacherId = t.id as string;
+      const businessType = coerceBusinessType(t.businessType);
       const identity: PublicBookingIdentity = {
         businessName: typeof t.businessName === "string" ? t.businessName : "",
         teacherName: typeof t.fullName === "string" ? t.fullName : "",
@@ -72,13 +82,17 @@ export default function PublicBookingBySlugPage() {
 
       const availability = normalizeAvailabilitySettings(raw.availability);
 
+      console.log("[PublicBooking] SUCCESS - Loaded for teacher:", { teacherId, businessType, businessName: identity.businessName });
+
       setState({
         kind: "ready",
         teacherId,
+        businessType,
         identity,
         availability,
       });
-    } catch {
+    } catch (e) {
+      console.error("[PublicBooking] Load error:", e);
       setState({
         kind: "error",
         message: heUi.publicBooking.bootstrapLoadFailedTitle,
@@ -129,6 +143,7 @@ export default function PublicBookingBySlugPage() {
   return (
     <PublicBookingPageContent
       teacherId={state.teacherId}
+      businessType={state.businessType}
       identity={state.identity}
       availability={state.availability}
     />

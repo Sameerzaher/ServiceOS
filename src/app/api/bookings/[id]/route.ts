@@ -8,6 +8,7 @@ import {
 } from "@/core/config/supabaseEnv";
 import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
+import { PUBLIC_BOOKING_CUSTOM_FIELD_KEYS } from "@/features/booking/logic/publicBookingShared";
 import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
@@ -194,11 +195,11 @@ export async function PUT(
         clientName: clientFullName,
         clientPhone,
       };
-      if (typeof customFields.pickupLocation === "string") {
-        appointmentCustomFields.pickupLocation = customFields.pickupLocation;
-      }
-      if (typeof customFields.carType === "string") {
-        appointmentCustomFields.carType = customFields.carType;
+      for (const key of PUBLIC_BOOKING_CUSTOM_FIELD_KEYS) {
+        const v = customFields[key];
+        if (typeof v === "string" && v.trim().length > 0) {
+          appointmentCustomFields[key] = v.trim();
+        }
       }
       if (typeof customFields.bookingDate === "string") {
         appointmentCustomFields.bookingDate = customFields.bookingDate;

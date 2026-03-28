@@ -59,6 +59,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req);
+    
+    console.log("[clients/get] Fetching clients for:", { businessId, teacherId });
+    
     const table = getSupabaseClientsTable();
     let listRes = await supabase
       .from(table)
@@ -67,6 +70,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       .eq("teacher_id", teacherId)
       .order("full_name", { ascending: true });
     if (listRes.error && isMissingColumnError(listRes.error)) {
+      console.log("[clients/get] teacher_id column missing, falling back to business_id only");
       listRes = await supabase
         .from(table)
         .select("*")
@@ -76,7 +80,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const { data, error } = listRes;
 
     if (error) {
-      console.error("[clients/get]", error);
+      console.error("[clients/get] Database error:", error);
       return NextResponse.json(
         { ok: false as const, error: HE_ERR_GENERIC },
         { status: 500 },
@@ -88,9 +92,12 @@ export async function GET(req: Request): Promise<NextResponse> {
       const parsed = clientFromRow(row as unknown as ClientRow);
       if (parsed) clients.push(parsed);
     }
+    
+    console.log("[clients/get] SUCCESS - Returned", clients.length, "clients for teacher:", teacherId);
+    
     return NextResponse.json({ ok: true as const, clients });
   } catch (e) {
-    console.error("[clients/get]", e);
+    console.error("[clients/get] Unexpected error:", e);
     return NextResponse.json(
       { ok: false as const, error: HE_ERR_GENERIC },
       { status: 500 },

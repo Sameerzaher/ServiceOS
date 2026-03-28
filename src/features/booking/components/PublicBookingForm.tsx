@@ -1,10 +1,15 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
 import { Button, EmptyState, Spinner, ui } from "@/components/ui";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
+import {
+  CustomFieldInputKind,
+  type CustomFieldDefinition,
+} from "@/core/types/vertical";
+import { cn } from "@/lib/cn";
 
 export interface PublicBookingFormSubmitInput {
   fullName: string;
@@ -12,11 +17,11 @@ export interface PublicBookingFormSubmitInput {
   notes: string;
   slotStart: string;
   slotEnd: string;
-  pickupLocation: string;
-  carType: string;
+  bookingCustomFields: Record<string, string>;
 }
 
 export interface PublicBookingFormProps {
+  extraFields: readonly CustomFieldDefinition[];
   selectedSlot: AvailableSlot | null;
   onSubmit: (input: PublicBookingFormSubmitInput) => Promise<boolean> | boolean;
   submitError?: string | null;
@@ -29,6 +34,94 @@ interface FieldErrors {
   fullName?: string;
   phone?: string;
   slot?: string;
+  extra?: Record<string, string>;
+}
+
+function emptyExtra(
+  defs: readonly CustomFieldDefinition[],
+): Record<string, string> {
+  const o: Record<string, string> = {};
+  for (const d of defs) o[d.key] = "";
+  return o;
+}
+
+function PublicExtraFieldControl({
+  def,
+  value,
+  disabled,
+  onChange,
+}: {
+  def: CustomFieldDefinition;
+  value: string;
+  disabled: boolean;
+  onChange: (next: string) => void;
+}) {
+  const selectPlaceholder = heUi.forms.selectPlaceholder;
+  const id = `public-booking-extra-${def.key}`;
+
+  switch (def.kind) {
+    case CustomFieldInputKind.Text:
+      return (
+        <input
+          id={id}
+          type="text"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          required={def.required}
+          className={ui.input}
+          autoComplete="off"
+        />
+      );
+    case CustomFieldInputKind.TextArea:
+      return (
+        <textarea
+          id={id}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          required={def.required}
+          rows={3}
+          className={cn(ui.input, "min-h-[5rem] resize-y")}
+          autoComplete="off"
+        />
+      );
+    case CustomFieldInputKind.Select:
+      return (
+        <select
+          id={id}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          required={def.required}
+          className={ui.select}
+        >
+          <option value="">{selectPlaceholder}</option>
+          {(def.options ?? []).map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      );
+    case CustomFieldInputKind.Number:
+      return (
+        <input
+          id={id}
+          type="number"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          required={def.required}
+          min={0}
+          step="any"
+          className={ui.input}
+          inputMode="decimal"
+        />
+      );
+    default:
+      return null;
+  }
 }
 
 function toLocalDate(iso: string): string {
@@ -48,7 +141,6 @@ function toLocalTime(iso: string): string {
   return `${hh}:${mm}`;
 }
 
-/** Validates date (YYYY-MM-DD) + time (HH:mm) derived from the selected slot. */
 function slotDateTimeValid(slot: AvailableSlot): boolean {
   if (!Number.isFinite(new Date(slot.slotStart).getTime())) return false;
   const date = toLocalDate(slot.slotStart);
@@ -59,6 +151,7 @@ function slotDateTimeValid(slot: AvailableSlot): boolean {
 }
 
 export function PublicBookingForm({
+  extraFields,
   selectedSlot,
   onSubmit,
   submitError = null,
@@ -69,9 +162,19 @@ export function PublicBookingForm({
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [pickupLocation, setPickupLocation] = useState("");
-  const [carType, setCarType] = useState("");
+  const [extra, setExtra] = useState<Record<string, string>>(() =>
+    emptyExtra(extraFields),
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
+
+  const extraKey = useMemo(
+    () => extraFields.map((d) => d.key).join("|"),
+    [extraFields],
+  );
+
+  useEffect(() => {
+    setExtra(emptyExtra(extraFields));
+  }, [extraKey, extraFields]);
 
   const selectedSlotLabel = useMemo(() => {
     if (!selectedSlot) return "";
@@ -88,6 +191,7 @@ export function PublicBookingForm({
   function validate(): FieldErrors {
     const pb = heUi.publicBooking;
     const next: FieldErrors = {};
+    const extraErr: Record<string, string> = {};
 
     const name = fullName.trim();
     if (!name) next.fullName = pb.errFullName;
@@ -99,6 +203,15 @@ export function PublicBookingForm({
 
     if (!selectedSlot) next.slot = pb.errSlot;
     else if (!slotDateTimeValid(selectedSlot)) next.slot = pb.errSlotInvalid;
+
+    for (const def of extraFields) {
+      if (!def.required) continue;
+      const v = (extra[def.key] ?? "").trim();
+      if (!v) {
+        extraErr[def.key] = heUi.validation.fieldRequiredShort;
+      }
+    }
+    if (Object.keys(extraErr).length > 0) next.extra = extraErr;
 
     return next;
   }
@@ -112,21 +225,25 @@ export function PublicBookingForm({
     if (Object.keys(nextErrors).length > 0) return;
     if (!selectedSlot) return;
 
+    const bookingCustomFields: Record<string, string> = {};
+    for (const def of extraFields) {
+      const v = (extra[def.key] ?? "").trim();
+      if (v) bookingCustomFields[def.key] = v;
+    }
+
     const ok = await onSubmit({
       fullName: fullName.trim(),
       phone: phone.trim(),
       notes: notes.trim(),
       slotStart: selectedSlot.slotStart,
       slotEnd: selectedSlot.slotEnd,
-      pickupLocation: pickupLocation.trim(),
-      carType: carType.trim(),
+      bookingCustomFields,
     });
     if (ok) {
       setFullName("");
       setPhone("");
       setNotes("");
-      setPickupLocation("");
-      setCarType("");
+      setExtra(emptyExtra(extraFields));
       setErrors({});
     }
   }
@@ -225,35 +342,39 @@ export function PublicBookingForm({
         />
       </div>
 
-      <div>
-        <label htmlFor="public-booking-pickup" className={ui.label}>
-          {heUi.publicBooking.pickupLabel}
-        </label>
-        <textarea
-          id="public-booking-pickup"
-          value={pickupLocation}
-          disabled={isSubmitting}
-          onChange={(e) => setPickupLocation(e.target.value)}
-          rows={2}
-          className={`${ui.input} min-h-[4rem] resize-y`}
-          placeholder={heUi.publicBooking.pickupPlaceholder}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="public-booking-car" className={ui.label}>
-          {heUi.publicBooking.carLabel}
-        </label>
-        <input
-          id="public-booking-car"
-          type="text"
-          value={carType}
-          disabled={isSubmitting}
-          onChange={(e) => setCarType(e.target.value)}
-          className={ui.input}
-          placeholder={heUi.publicBooking.carPlaceholder}
-        />
-      </div>
+      {extraFields.map((def) => (
+        <div key={def.key}>
+          <label htmlFor={`public-booking-extra-${def.key}`} className={ui.label}>
+            {def.label}
+            {def.required ? (
+              <span className="text-red-600" aria-hidden>
+                {" "}
+                *
+              </span>
+            ) : null}
+          </label>
+          <PublicExtraFieldControl
+            def={def}
+            value={extra[def.key] ?? ""}
+            disabled={isSubmitting}
+            onChange={(next) => {
+              setExtra((prev) => ({ ...prev, [def.key]: next }));
+              setErrors((prev) => {
+                const ex = prev.extra ? { ...prev.extra } : undefined;
+                if (ex && def.key in ex) delete ex[def.key];
+                return {
+                  ...prev,
+                  extra:
+                    ex && Object.keys(ex).length > 0 ? ex : undefined,
+                };
+              });
+            }}
+          />
+          {errors.extra?.[def.key] ? (
+            <p className="mt-1 text-sm text-red-600">{errors.extra[def.key]}</p>
+          ) : null}
+        </div>
+      ))}
 
       <Button
         type="submit"

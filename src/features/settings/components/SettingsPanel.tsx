@@ -22,9 +22,14 @@ const ACTIVE_PRESET_OPTIONS: ReadonlyArray<{
   value: ActivePreset;
   label: string;
 }> = [
-  { value: "driving", label: heUi.settings.activePresetDriving },
-  { value: "fitness", label: heUi.settings.activePresetFitness },
-  { value: "beauty", label: heUi.settings.activePresetBeauty },
+  {
+    value: "driving_instructor",
+    label: heUi.settings.activePresetDrivingInstructor,
+  },
+  {
+    value: "cosmetic_clinic",
+    label: heUi.settings.activePresetCosmeticClinic,
+  },
 ];
 
 export function SettingsPanel({

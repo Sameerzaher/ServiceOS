@@ -10,6 +10,7 @@ insert into public.teachers (
   business_name,
   phone,
   slug,
+  business_type,
   created_at
 )
 values
@@ -20,6 +21,7 @@ values
     'QA Studio Alpha',
     '050-0000001',
     'qa-alpha',
+    'driving_instructor',
     now()
   ),
   (
@@ -29,6 +31,7 @@ values
     'QA Studio Beta',
     '050-0000002',
     'qa-beta',
+    'cosmetic_clinic',
     now()
   )
 on conflict (id) do update set
@@ -36,4 +39,5 @@ on conflict (id) do update set
   full_name = excluded.full_name,
   business_name = excluded.business_name,
   phone = excluded.phone,
-  slug = excluded.slug;
+  slug = excluded.slug,
+  business_type = excluded.business_type;

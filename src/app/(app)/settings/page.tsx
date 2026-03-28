@@ -3,6 +3,11 @@
 import { useEffect, useRef } from "react";
 
 import { appPageTitle, heUi } from "@/config";
+import type { ActivePreset } from "@/core/types/settings";
+import {
+  useDashboardTeacherId,
+  useDashboardTeacherOptional,
+} from "@/features/app/DashboardTeacherContext";
 import {
   DataLoadErrorBanner,
   InlineLoading,
@@ -10,7 +15,6 @@ import {
   useToast,
 } from "@/components/ui";
 import { setDemoModeActive } from "@/core/demo/demoMode";
-import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 import { BackupRestoreSection } from "@/features/settings/components/BackupRestoreSection";
 import { SettingsPanel } from "@/features/settings/components/SettingsPanel";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
@@ -20,6 +24,7 @@ type SettingsApiShape = {
   businessName: string;
   teacherName: string;
   phone: string;
+  businessType: ActivePreset;
   defaultLessonDuration: number;
   bookingEnabled: boolean;
   workingHoursStart: string;
@@ -34,6 +39,7 @@ type SettingsApiResponse =
 export default function SettingsPage() {
   const toast = useToast();
   const dashboardTeacherId = useDashboardTeacherId();
+  const dashboardTeacherCtx = useDashboardTeacherOptional();
   const {
     preset,
     settings,
@@ -82,6 +88,7 @@ export default function SettingsPage() {
           businessName: data.settings.businessName,
           teacherName: data.settings.teacherName,
           businessPhone: data.settings.phone,
+          activePreset: data.settings.businessType,
           defaultLessonDurationMinutes: data.settings.defaultLessonDuration,
           lessonBufferMinutes: data.settings.bufferBetweenLessons,
           workingHoursStart: data.settings.workingHoursStart,
@@ -98,13 +105,8 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [
-    dashboardTeacherId,
-    replaceSettings,
-    settings,
-    updateAvailabilitySettings,
-    availabilitySettings,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dashboardTeacherId]);
 
   return (
     <main className={ui.pageMain}>
@@ -171,6 +173,7 @@ export default function SettingsPage() {
                     businessName: next.businessName,
                     teacherName: next.teacherName,
                     phone: next.businessPhone,
+                    businessType: next.activePreset,
                     defaultLessonDuration: next.defaultLessonDurationMinutes,
                     bookingEnabled: nextAvailability.bookingEnabled,
                     workingHoursStart: next.workingHoursStart,
@@ -193,8 +196,12 @@ export default function SettingsPage() {
                       );
                       return false;
                     }
-                    replaceSettings(next);
+                    replaceSettings({
+                      ...next,
+                      activePreset: data.settings.businessType,
+                    });
                     updateAvailabilitySettings(nextAvailability);
+                    await dashboardTeacherCtx?.reloadTeachers();
                     toast(heUi.toast.settingsSaved);
                     return true;
                   } catch (e) {

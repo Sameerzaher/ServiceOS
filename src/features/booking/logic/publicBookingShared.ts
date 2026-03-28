@@ -1,15 +1,41 @@
 import { heUi } from "@/config";
 import { AppointmentStatus, type AppointmentRecord } from "@/core/types/appointment";
 
+/** Allowed keys → appointment `customFields` from public booking (allowlist). */
+export const PUBLIC_BOOKING_CUSTOM_FIELD_KEYS = [
+  "pickupLocation",
+  "transmissionType",
+  "treatmentType",
+  "treatmentArea",
+  "carType",
+] as const;
+
+export type PublicBookingCustomFieldKey =
+  (typeof PUBLIC_BOOKING_CUSTOM_FIELD_KEYS)[number];
+
+export function sanitizePublicBookingCustomFields(
+  raw: unknown,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  const o = raw as Record<string, unknown>;
+  for (const key of PUBLIC_BOOKING_CUSTOM_FIELD_KEYS) {
+    const v = o[key];
+    if (typeof v === "string") {
+      const t = v.trim();
+      if (t.length > 0) out[key] = t;
+    }
+  }
+  return out;
+}
+
 export interface PublicBookingPayload {
   fullName: string;
   phone: string;
   notes: string;
   slotStart: string;
   slotEnd: string;
-  /** Driving vertical: `pickupLocation` / `carType` in appointment custom fields. */
-  pickupLocation: string;
-  carType: string;
+  bookingCustomFields: Record<string, string>;
 }
 
 export function normalizePhone(phone: string): string {
@@ -72,9 +98,15 @@ export function parsePublicBookingBody(raw: unknown):
   const notes = typeof o.notes === "string" ? o.notes.trim() : "";
   const slotStart = typeof o.slotStart === "string" ? o.slotStart.trim() : "";
   const slotEnd = typeof o.slotEnd === "string" ? o.slotEnd.trim() : "";
-  const pickupLocation =
+
+  const bookingCustomFields = sanitizePublicBookingCustomFields(
+    o.bookingCustomFields,
+  );
+  const pickupLegacy =
     typeof o.pickupLocation === "string" ? o.pickupLocation.trim() : "";
-  const carType = typeof o.carType === "string" ? o.carType.trim() : "";
+  const carLegacy = typeof o.carType === "string" ? o.carType.trim() : "";
+  if (pickupLegacy) bookingCustomFields.pickupLocation = pickupLegacy;
+  if (carLegacy) bookingCustomFields.carType = carLegacy;
 
   if (!fullName) {
     return { ok: false, errorHe: heUi.publicBooking.errFullName };
@@ -108,8 +140,7 @@ export function parsePublicBookingBody(raw: unknown):
       notes,
       slotStart,
       slotEnd,
-      pickupLocation,
-      carType,
+      bookingCustomFields,
     },
   };
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { heUi } from "@/config";
 import { Button, ui, useToast } from "@/components/ui";
 import { useDashboardTeacherOptional } from "@/features/app/DashboardTeacherContext";
+import { useRequireAdmin } from "@/features/auth/AuthContext";
 import type { BusinessType } from "@/core/types/teacher";
 import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 import { cn } from "@/lib/cn";
@@ -22,6 +23,8 @@ interface TeacherFormData {
 }
 
 export default function TeachersManagementPage() {
+  // Require admin role - will redirect if not admin
+  const auth = useRequireAdmin();
   const toast = useToast();
   const router = useRouter();
   const ctx = useDashboardTeacherOptional();
@@ -42,6 +45,24 @@ export default function TeachersManagementPage() {
   });
 
   const teachers = ctx?.teachers ?? [];
+
+  // Show loading while checking auth
+  if (auth.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl">📅</div>
+          <div className="mt-2 text-sm text-neutral-600">טוען...</div>
+        </div>
+      </div>
+    );
+  }
+
+  console.log("[TeachersPage] Loaded for admin:", { 
+    email: auth.teacher?.email, 
+    role: auth.teacher?.role,
+    teachersCount: teachers.length 
+  });
 
   function openCreateForm() {
     setFormData({
@@ -87,23 +108,38 @@ export default function TeachersManagementPage() {
 
     setIsSaving(true);
     try {
-      const url = editingId 
-        ? `/api/teachers/${encodeURIComponent(editingId)}`
-        : "/api/auth/signup"; // Use signup for creating new teacher
-      
-      const res = await fetch(url, {
-        method: "POST",
-        headers: mergeTeacherScopeHeaders(ctx?.teacherId ?? "", {
-          "Content-Type": "application/json",
-        }),
-        body: JSON.stringify(formData),
-      });
+      if (editingId) {
+        // Update existing teacher - use PUT
+        const res = await fetch(`/api/teachers/${encodeURIComponent(editingId)}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
 
-      const data = await res.json();
-      
-      if (!res.ok || data.ok !== true) {
-        toast(data.error || "שגיאה בשמירה", "error");
-        return;
+        const data = await res.json();
+        
+        if (!res.ok || data.ok !== true) {
+          toast(data.error || "שגיאה בשמירה", "error");
+          return;
+        }
+      } else {
+        // Create new teacher - use POST to /api/teachers
+        const res = await fetch("/api/teachers", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await res.json();
+        
+        if (!res.ok || data.ok !== true) {
+          toast(data.error || "שגיאה ביצירת מורה", "error");
+          return;
+        }
       }
 
       await ctx?.reloadTeachers();

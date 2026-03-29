@@ -49,7 +49,10 @@ export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  console.log("[teachers/put] Request to update teacher:", params.id);
+  
   if (!isSupabaseAdminConfigured()) {
+    console.error("[teachers/put] Supabase not configured");
     return NextResponse.json({ ok: false as const, error: HE_ERR_UNAVAILABLE }, { status: 503 });
   }
 
@@ -57,6 +60,68 @@ export async function PUT(
   if (!teacherId) {
     return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
   }
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const businessId = getSupabaseBusinessId();
+    
+    // Get current authenticated teacher from session
+    const { cookies } = await import("next/headers");
+    const sessionToken = cookies().get("session_token")?.value;
+    
+    if (!sessionToken) {
+      console.error("[teachers/put] No session token - unauthorized");
+      return NextResponse.json(
+        { ok: false as const, error: "נדרשת התחברות" },
+        { status: 401 }
+      );
+    }
+    
+    // Validate session and get teacher
+    const { data: session } = await supabase
+      .from("sessions")
+      .select("teacher_id")
+      .eq("token", sessionToken)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    
+    if (!session) {
+      console.error("[teachers/put] Invalid or expired session");
+      return NextResponse.json(
+        { ok: false as const, error: "נדרשת התחברות" },
+        { status: 401 }
+      );
+    }
+    
+    // Get the authenticated teacher's role
+    const { data: currentTeacher } = await supabase
+      .from("teachers")
+      .select("id, role, email")
+      .eq("id", session.teacher_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    
+    if (!currentTeacher) {
+      console.error("[teachers/put] Teacher not found for session");
+      return NextResponse.json(
+        { ok: false as const, error: "נדרשת התחברות" },
+        { status: 401 }
+      );
+    }
+    
+    // Only admin can update teachers
+    if (currentTeacher.role !== "admin") {
+      console.error("[teachers/put] Non-admin attempted to update teacher:", currentTeacher.email);
+      return NextResponse.json(
+        { ok: false as const, error: "רק מנהל יכול לעדכן מורים" },
+        { status: 403 }
+      );
+    }
+    
+    console.log("[teachers/put] Admin updating teacher:", { 
+      adminEmail: currentTeacher.email, 
+      targetTeacherId: teacherId 
+    });
 
   let raw: unknown;
   try {
@@ -70,10 +135,6 @@ export async function PUT(
     return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
   }
 
-  try {
-    const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    
     // Check if teacher exists
     const { data: existing } = await supabase
       .from("teachers")
@@ -83,6 +144,7 @@ export async function PUT(
       .maybeSingle();
     
     if (!existing) {
+      console.error("[teachers/put] Teacher not found:", teacherId);
       return NextResponse.json({ ok: false as const, error: HE_ERR_NOT_FOUND }, { status: 404 });
     }
     
@@ -99,13 +161,14 @@ export async function PUT(
       .eq("id", teacherId);
     
     if (error) {
-      console.error("[teachers/put]", error);
+      console.error("[teachers/put] Database error:", error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
     
+    console.log("[teachers/put] SUCCESS - Teacher updated:", teacherId);
     return NextResponse.json({ ok: true as const });
   } catch (e) {
-    console.error("[teachers/put]", e);
+    console.error("[teachers/put] Unexpected error:", e);
     return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
   }
 }
@@ -114,7 +177,10 @@ export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  console.log("[teachers/delete] Request to delete teacher:", params.id);
+  
   if (!isSupabaseAdminConfigured()) {
+    console.error("[teachers/delete] Supabase not configured");
     return NextResponse.json({ ok: false as const, error: HE_ERR_UNAVAILABLE }, { status: 503 });
   }
 
@@ -127,6 +193,64 @@ export async function DELETE(
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
     
+    // Get current authenticated teacher from session
+    const { cookies } = await import("next/headers");
+    const sessionToken = cookies().get("session_token")?.value;
+    
+    if (!sessionToken) {
+      console.error("[teachers/delete] No session token - unauthorized");
+      return NextResponse.json(
+        { ok: false as const, error: "נדרשת התחברות" },
+        { status: 401 }
+      );
+    }
+    
+    // Validate session and get teacher
+    const { data: session } = await supabase
+      .from("sessions")
+      .select("teacher_id")
+      .eq("token", sessionToken)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    
+    if (!session) {
+      console.error("[teachers/delete] Invalid or expired session");
+      return NextResponse.json(
+        { ok: false as const, error: "נדרשת התחברות" },
+        { status: 401 }
+      );
+    }
+    
+    // Get the authenticated teacher's role
+    const { data: currentTeacher } = await supabase
+      .from("teachers")
+      .select("id, role, email")
+      .eq("id", session.teacher_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    
+    if (!currentTeacher) {
+      console.error("[teachers/delete] Teacher not found for session");
+      return NextResponse.json(
+        { ok: false as const, error: "נדרשת התחברות" },
+        { status: 401 }
+      );
+    }
+    
+    // Only admin can delete teachers
+    if (currentTeacher.role !== "admin") {
+      console.error("[teachers/delete] Non-admin attempted to delete teacher:", currentTeacher.email);
+      return NextResponse.json(
+        { ok: false as const, error: "רק מנהל יכול למחוק מורים" },
+        { status: 403 }
+      );
+    }
+    
+    console.log("[teachers/delete] Admin deleting teacher:", { 
+      adminEmail: currentTeacher.email, 
+      targetTeacherId: teacherId 
+    });
+    
     // Check if teacher exists
     const { data: existing } = await supabase
       .from("teachers")
@@ -136,15 +260,18 @@ export async function DELETE(
       .maybeSingle();
     
     if (!existing) {
+      console.error("[teachers/delete] Teacher not found:", teacherId);
       return NextResponse.json({ ok: false as const, error: HE_ERR_NOT_FOUND }, { status: 404 });
     }
     
     // Delete all related data (cascade)
+    console.log("[teachers/delete] Deleting related data for teacher:", teacherId);
     await Promise.all([
       supabase.from("clients").delete().eq("business_id", businessId).eq("teacher_id", teacherId),
       supabase.from("appointments").delete().eq("business_id", businessId).eq("teacher_id", teacherId),
-      supabase.from("serviceos_app_settings").delete().eq("business_id", businessId).eq("teacher_id", teacherId),
-      supabase.from("serviceos_availability_settings").delete().eq("business_id", businessId).eq("teacher_id", teacherId),
+      supabase.from("app_settings").delete().eq("business_id", businessId).eq("teacher_id", teacherId),
+      supabase.from("booking_settings").delete().eq("business_id", businessId).eq("teacher_id", teacherId),
+      supabase.from("sessions").delete().eq("teacher_id", teacherId),
     ]);
     
     // Delete the teacher
@@ -155,13 +282,14 @@ export async function DELETE(
       .eq("id", teacherId);
     
     if (error) {
-      console.error("[teachers/delete]", error);
+      console.error("[teachers/delete] Database error:", error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
     
+    console.log("[teachers/delete] SUCCESS - Teacher deleted:", teacherId);
     return NextResponse.json({ ok: true as const });
   } catch (e) {
-    console.error("[teachers/delete]", e);
+    console.error("[teachers/delete] Unexpected error:", e);
     return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
   }
 }

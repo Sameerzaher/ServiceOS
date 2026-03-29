@@ -19,6 +19,7 @@ import { BackupRestoreSection } from "@/features/settings/components/BackupResto
 import { SettingsPanel } from "@/features/settings/components/SettingsPanel";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
+import { useAuth } from "@/features/auth/AuthContext";
 
 type SettingsApiShape = {
   businessName: string;
@@ -37,6 +38,7 @@ type SettingsApiResponse =
   | { ok: false; error: string };
 
 export default function SettingsPage() {
+  const { isAdmin } = useAuth();
   const toast = useToast();
   const dashboardTeacherId = useDashboardTeacherId();
   const dashboardTeacherCtx = useDashboardTeacherOptional();
@@ -211,21 +213,23 @@ export default function SettingsPage() {
                   }
                 }}
               />
-              <BackupRestoreSection
-                clients={sortedClients}
-                appointments={sortedAppointments}
-                settings={settings}
-                replaceClients={replaceClients}
-                replaceAppointments={replaceAppointments}
-                replaceSettings={replaceSettings}
-                onAfterRestore={() => {
-                  setEditingClientId(null);
-                  setEditingAppointmentId(null);
-                  setAppointmentPrefillClientId(null);
-                  setDemoModeActive(false);
-                  setDemoActive(false);
-                }}
-              />
+              {isAdmin && (
+                <BackupRestoreSection
+                  clients={sortedClients}
+                  appointments={sortedAppointments}
+                  settings={settings}
+                  replaceClients={replaceClients}
+                  replaceAppointments={replaceAppointments}
+                  replaceSettings={replaceSettings}
+                  onAfterRestore={() => {
+                    setEditingClientId(null);
+                    setEditingAppointmentId(null);
+                    setAppointmentPrefillClientId(null);
+                    setDemoModeActive(false);
+                    setDemoActive(false);
+                  }}
+                />
+              )}
             </>
           )}
         </section>

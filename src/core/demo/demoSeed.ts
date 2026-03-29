@@ -149,6 +149,11 @@ export function buildDemoDataset(reference: Date = new Date()): {
     pickup: string,
     car: string,
   ): AppointmentRecord {
+    // Calculate end time (45 minutes after start)
+    const startMs = new Date(startAt).getTime();
+    const endMs = startMs + 45 * 60 * 1000;
+    const endAt = new Date(endMs).toISOString();
+    
     return {
       id: id(),
       teacherId,
@@ -160,6 +165,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
       customFields: {
         pickupLocation: pickup,
         carType: car,
+        bookingSlotEnd: endAt,
       },
       createdAt: now,
       updatedAt: now,

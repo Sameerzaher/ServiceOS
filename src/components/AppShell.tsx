@@ -87,7 +87,7 @@ function TeacherScopeSelect() {
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { logout, teacher } = useAuth();
+  const { logout, teacher, isAdmin } = useAuth();
   const toast = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -129,6 +129,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const linkInactive =
     "font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
 
+  // Filter nav items based on role
+  const visibleNavItems = NAV_ITEMS.filter(item => {
+    if (item.href === "/teachers") {
+      return isAdmin; // Only admins see Teachers link
+    }
+    return true;
+  });
+
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white">
@@ -142,7 +150,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {heUi.nav.brand}
             </Link>
             <div className="hidden items-center gap-0.5 sm:flex">
-              {NAV_ITEMS.map((item) => {
+              {visibleNavItems.map((item) => {
                 const active = isNavActive(pathname, item.href);
                 return (
                   <Link
@@ -209,8 +217,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom,0px)] sm:hidden"
         aria-label="ניווט מהיר"
       >
-        <ul className="mx-auto grid max-w-lg grid-cols-6 gap-0">
-          {NAV_ITEMS.map((item) => {
+        <ul className={cn(
+          "mx-auto grid max-w-lg gap-0",
+          isAdmin ? "grid-cols-6" : "grid-cols-5"
+        )}>
+          {visibleNavItems.map((item) => {
             const active = isNavActive(pathname, item.href);
             return (
               <li key={item.href} className="flex min-w-0 justify-center">

@@ -11,7 +11,11 @@ import {
   isValidEmail,
   isValidPassword,
 } from "@/lib/auth/passwordUtils";
-import type { SignupTeacherInput } from "@/core/types/teacher";
+import type { SignupTeacherInput, BusinessType } from "@/core/types/teacher";
+import { persistAppSettings } from "@/core/repositories/supabase/appSettingsRepository";
+import { persistBookingSettings } from "@/core/repositories/supabase/bookingSettingsRepository";
+import { DEFAULT_APP_SETTINGS } from "@/core/types/settings";
+import { DEFAULT_AVAILABILITY_SETTINGS } from "@/core/types/availability";
 
 export const runtime = "nodejs";
 
@@ -174,6 +178,25 @@ export async function POST(req: Request): Promise<NextResponse> {
         { ok: false as const, error: HE_ERR_GENERIC },
         { status: 500 }
       );
+    }
+
+    console.log("[auth/signup] Teacher created, initializing settings...");
+    
+    // Create initial settings for the new teacher
+    try {
+      await persistAppSettings(supabase, businessId, id, {
+        ...DEFAULT_APP_SETTINGS,
+        businessName: businessName.trim(),
+        teacherName: fullName.trim(),
+        businessPhone: phone?.trim() || "",
+        activePreset: (businessType as BusinessType) || "driving_instructor",
+      });
+      
+      await persistBookingSettings(supabase, businessId, id, DEFAULT_AVAILABILITY_SETTINGS);
+      
+      console.log("[auth/signup] Initial settings created");
+    } catch (settingsError) {
+      console.error("[auth/signup] Failed to create settings:", settingsError);
     }
 
     console.log("[auth/signup] SUCCESS - Teacher created:", { id, email, slug, role: role || "user" });

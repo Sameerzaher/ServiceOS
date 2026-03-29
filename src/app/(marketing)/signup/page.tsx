@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PRODUCT_BRANDING } from "@/config/branding";
@@ -7,11 +8,81 @@ import { Button, ui } from "@/components/ui";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSignup(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // Redirect to onboarding
-    router.push("/onboarding");
+    setError(null);
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const fullName = formData.get("fullName") as string;
+    const phone = formData.get("phone") as string;
+    
+    // Generate business name and slug from full name and email
+    const businessName = fullName.trim();
+    const slug = `${email.split("@")[0]}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+    console.log("[Signup] Attempting signup:", { email, fullName, slug });
+
+    try {
+      // API will automatically determine role:
+      // - First user in system = admin
+      // - All others = user
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          businessName,
+          phone,
+          slug,
+          businessType: "driving_instructor",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        console.error("[Signup] Signup failed:", data.error);
+        setError(data.error || "ההרשמה נכשלה. נסה שוב.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("[Signup] Signup successful, logging in...");
+
+      // Now login
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const loginData = await loginRes.json();
+
+      if (!loginRes.ok || !loginData.ok) {
+        console.error("[Signup] Auto-login failed:", loginData.error);
+        setError("ההרשמה הצליחה, אבל ההתחברות נכשלה. נסה להתחבר ידנית.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("[Signup] Auto-login successful, redirecting...");
+      
+      // Redirect to dashboard
+      await new Promise(resolve => setTimeout(resolve, 500));
+      window.location.href = "/dashboard";
+    } catch (e) {
+      console.error("[Signup] Unexpected error:", e);
+      setError("אירעה שגיאה. נסה שוב.");
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -40,6 +111,12 @@ export default function SignupPage() {
           </div>
           
           <div className="p-8">
+            {error && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+            
             <form onSubmit={handleSignup} className="space-y-5">
               <div>
                 <label htmlFor="fullName" className={ui.label + " font-semibold"}>
@@ -47,6 +124,7 @@ export default function SignupPage() {
                 </label>
                 <input
                   id="fullName"
+                  name="fullName"
                   type="text"
                   required
                   className={ui.input + " transition-all focus:scale-[1.02]"}
@@ -60,6 +138,7 @@ export default function SignupPage() {
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   required
                   className={ui.input + " transition-all focus:scale-[1.02]"}
@@ -74,6 +153,7 @@ export default function SignupPage() {
                 </label>
                 <input
                   id="phone"
+                  name="phone"
                   type="tel"
                   required
                   className={ui.input + " transition-all focus:scale-[1.02]"}
@@ -87,31 +167,40 @@ export default function SignupPage() {
                 </label>
                 <input
                   id="password"
+                  name="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   className={ui.input + " transition-all focus:scale-[1.02]"}
-                  placeholder="לפחות 6 תווים"
+                  placeholder="לפחות 8 תווים, אות גדולה ומספר"
                   dir="ltr"
                 />
+                <p className="mt-1 text-xs text-neutral-500">
+                  הסיסמה חייבת לכלול לפחות 8 תווים, אות גדולה אחת ומספר אחד
+                </p>
               </div>
 
               <div className="flex items-start gap-2 text-sm">
                 <input type="checkbox" required className="mt-1 rounded text-emerald-600 focus:ring-emerald-500" />
                 <span className="text-neutral-600">
-                  אני מסכים/ה ל
+                  {"אני מסכים/ה ל"}
                   <Link href="/terms" className="font-medium text-emerald-600 hover:underline">
                     תנאי השימוש
                   </Link>
-                  {" "}ול
+                  {" ול"}
                   <Link href="/privacy" className="font-medium text-emerald-600 hover:underline">
                     מדיניות הפרטיות
                   </Link>
                 </span>
               </div>
 
-              <Button type="submit" variant="primary" className="w-full py-3 text-lg font-semibold shadow-lg hover:shadow-xl">
-                התחל 14 יום בחינם 🚀
+              <Button 
+                type="submit" 
+                variant="primary" 
+                className="w-full py-3 text-lg font-semibold shadow-lg hover:shadow-xl"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "נרשם..." : "התחל 14 יום בחינם 🚀"}
               </Button>
             </form>
 

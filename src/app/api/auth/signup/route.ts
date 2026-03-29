@@ -152,11 +152,27 @@ export async function POST(req: Request): Promise<NextResponse> {
     const passwordHash = hashPassword(password);
     console.log("[auth/signup] Password hash length:", passwordHash.length);
 
+    // Determine role: first user in the business = admin, others = user
+    const { data: existingTeachers, error: countError } = await supabase
+      .from("teachers")
+      .select("id")
+      .eq("business_id", businessId)
+      .limit(1);
+    
+    const isFirstUser = !existingTeachers || existingTeachers.length === 0;
+    const autoRole = role || (isFirstUser ? "admin" : "user");
+    
+    console.log("[auth/signup] Role determination:", { 
+      isFirstUser, 
+      providedRole: role, 
+      finalRole: autoRole 
+    });
+
     const now = new Date().toISOString();
     const id = randomUUID();
 
     // Create teacher with auth fields
-    console.log("[auth/signup] Creating teacher with id:", id);
+    console.log("[auth/signup] Creating teacher with id:", id, "role:", autoRole);
     const { error: insertError } = await supabase.from("teachers").insert({
       id,
       business_id: businessId,
@@ -167,7 +183,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       business_type: businessType || "driving_instructor",
       email: email.toLowerCase().trim(),
       password_hash: passwordHash,
-      role: role || "user",
+      role: autoRole,
       is_active: true,
       created_at: now,
     });
@@ -199,7 +215,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       console.error("[auth/signup] Failed to create settings:", settingsError);
     }
 
-    console.log("[auth/signup] SUCCESS - Teacher created:", { id, email, slug, role: role || "user" });
+    console.log("[auth/signup] SUCCESS - Teacher created:", { id, email, slug, role: autoRole });
 
     return NextResponse.json({
       ok: true as const,
@@ -209,7 +225,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         fullName: fullName.trim(),
         businessName: businessName.trim(),
         slug: slug.trim(),
-        role: role || "user",
+        role: autoRole,
       },
     });
   } catch (e) {

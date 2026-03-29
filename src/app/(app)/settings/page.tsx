@@ -118,6 +118,46 @@ export default function SettingsPage() {
       </header>
 
       <div className={ui.pageStack}>
+        {/* Teacher Selector - Only for admins with multiple teachers */}
+        {isAdmin && dashboardTeacherCtx && dashboardTeacherCtx.teachersReady && dashboardTeacherCtx.teachers.length > 1 && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/30 p-4 shadow-sm">
+            <label htmlFor="settings-teacher-select" className="mb-2 block text-sm font-semibold text-emerald-900">
+              📋 ניהול הגדרות עבור:
+            </label>
+            <select
+              id="settings-teacher-select"
+              value={dashboardTeacherId}
+              onChange={(e) => {
+                const newTeacherId = e.target.value;
+                const teacher = dashboardTeacherCtx.teachers.find(t => t.id === newTeacherId);
+                dashboardTeacherCtx.setTeacherId(newTeacherId);
+                
+                if (teacher) {
+                  const icon = teacher.businessType === 'driving_instructor' ? '🚗' : 
+                               teacher.businessType === 'cosmetic_clinic' ? '💉' : '👤';
+                  const businessName = teacher.businessName.trim() || teacher.fullName.trim();
+                  toast(`${icon} עברת להגדרות של ${businessName}`);
+                }
+              }}
+              className="w-full rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-base font-medium shadow-sm transition-colors hover:border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            >
+              {dashboardTeacherCtx.teachers.map((t) => {
+                const label = t.businessName.trim() || t.fullName.trim() || t.slug || t.id;
+                const icon = t.businessType === 'driving_instructor' ? '🚗' : 
+                            t.businessType === 'cosmetic_clinic' ? '💉' : '👤';
+                return (
+                  <option key={t.id} value={t.id}>
+                    {icon} {label}
+                  </option>
+                );
+              })}
+            </select>
+            <p className="mt-2 text-xs text-emerald-700">
+              בחר איזה עסק/מורה לערוך את ההגדרות שלו
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
           {settingsLoadError ? (
             <DataLoadErrorBanner

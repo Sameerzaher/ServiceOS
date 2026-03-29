@@ -206,7 +206,7 @@ export function SettingsPanel({
                 className={ui.input}
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">
-                דק'
+                {"דק'"}
               </span>
             </div>
             <p className="mt-1 text-xs text-neutral-500">
@@ -241,7 +241,7 @@ export function SettingsPanel({
               className={ui.input}
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">
-              דק'
+              {"דק'"}
             </span>
           </div>
           <p className="mt-1 text-xs text-neutral-500">

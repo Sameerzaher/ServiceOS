@@ -371,6 +371,30 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
 
+    console.log("[public-booking] Appointment created, sending notification to teacher...");
+
+    // Create notification for the teacher
+    try {
+      await supabase.from("notifications").insert({
+        business_id: businessId,
+        teacher_id: teacherId,
+        type: "new_booking",
+        title: "הזמנה חדשה ממתינה לאישור",
+        message: `${fullName} הזמין תור ל-${new Date(slotStart).toLocaleString("he-IL", { 
+          dateStyle: "short", 
+          timeStyle: "short" 
+        })}`,
+        entity_type: "appointment",
+        entity_id: appointmentId,
+        is_read: false,
+        created_at: now,
+      });
+      
+      console.log("[public-booking] Notification created successfully");
+    } catch (notifErr) {
+      console.error("[public-booking] Failed to create notification:", notifErr);
+    }
+
     console.log("[public-booking] SUCCESS - Booking created:", { appointmentId, clientId, teacherId });
 
     return NextResponse.json({

@@ -9,6 +9,7 @@ import { useDashboardTeacherOptional } from "@/features/app/DashboardTeacherCont
 import { useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/features/auth/AuthContext";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/dashboard", label: heUi.nav.dashboard },
@@ -169,6 +170,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <TeacherScopeSelect />
               
               {teacher && (

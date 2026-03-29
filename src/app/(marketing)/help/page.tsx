@@ -103,10 +103,10 @@ export default function HelpPage() {
                   <div className="rounded-lg bg-neutral-50 p-12 text-center">
                     <div className="mb-4 text-5xl">🔍</div>
                     <p className="text-lg text-neutral-600">
-                      לא מצאנו תוצאות ל-"{searchQuery}"
+                      לא מצאנו תוצאות ל-&quot;{searchQuery}&quot;
                     </p>
                     <p className="mt-2 text-sm text-neutral-500">
-                      נסו מילות חיפוש אחרות או פנו אלינו בצ'אט
+                      נסו מילות חיפוש אחרות או פנו אלינו בצ&apos;אט
                     </p>
                   </div>
                 ) : (

@@ -43,6 +43,7 @@ export function NotificationBell() {
       showBrowserNotification();
     }
     setPreviousUnreadCount(unreadCount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unreadCount]);
 
   async function loadNotifications() {

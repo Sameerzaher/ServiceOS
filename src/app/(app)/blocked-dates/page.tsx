@@ -5,6 +5,7 @@ import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 import { Button, ui, useToast } from "@/components/ui";
 import { InlineLoading } from "@/components/ui";
+import { cn } from "@/lib/cn";
 
 interface BlockedDate {
   id: string;

@@ -70,68 +70,69 @@ export function HomeQuickDashboard({
   }, [appointments, reference]);
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <div className={`${ui.card} ${ui.cardPadding}`}>
-        <p className="text-sm font-medium text-neutral-800">
+    <div className="space-y-4 sm:space-y-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm dark:border-neutral-700 dark:bg-neutral-800 sm:p-4">
+        <p className="text-xs font-medium text-neutral-800 dark:text-neutral-200 sm:text-sm">
           {heUi.dashboard.quickActionsTitle}
         </p>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button type="button" variant="primary" onClick={onQuickAddClient}>
+        <div className="mt-2.5 grid grid-cols-1 gap-2 sm:mt-3 sm:grid-cols-2">
+          <Button type="button" variant="primary" onClick={onQuickAddClient} className="text-xs sm:text-sm">
             {heUi.dashboard.quickAddClient}
           </Button>
           <Button
             type="button"
             variant="secondary"
             onClick={onQuickAddAppointment}
+            className="text-xs sm:text-sm"
           >
             {heUi.dashboard.quickAddAppointment}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className={ui.statCard}>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className={cn(ui.statCard, "p-3 sm:p-4")}>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.dashboard.kpiClients}
           </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
+          <p className="mt-1 text-xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-100 sm:mt-1.5 sm:text-2xl">
             {clients.length}
           </p>
         </div>
-        <div className={ui.statCard}>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <div className={cn(ui.statCard, "p-3 sm:p-4")}>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.dashboard.kpiAppointmentsTotal}
           </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
+          <p className="mt-1 text-xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-100 sm:mt-1.5 sm:text-2xl">
             {appointments.length}
           </p>
         </div>
-        <div className={ui.statCard}>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <div className={cn(ui.statCard, "p-3 sm:p-4")}>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.dashboard.kpiPendingBookings}
           </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-violet-800">
+          <p className="mt-1 text-xl font-semibold tabular-nums text-violet-800 dark:text-violet-400 sm:mt-1.5 sm:text-2xl">
             {pendingBookingRequests}
           </p>
         </div>
-        <div className={ui.statCard}>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <div className={cn(ui.statCard, "p-3 sm:p-4")}>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.dashboard.kpiToday}
           </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-neutral-900">
+          <p className="mt-1 text-xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-100 sm:mt-1.5 sm:text-2xl">
             {todayRows.length}
           </p>
         </div>
       </div>
 
-      <section className="space-y-3">
-        <h3 className="text-base font-semibold text-neutral-900 sm:text-lg">
+      <section className="space-y-2 sm:space-y-3">
+        <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 sm:text-base">
           {heUi.dashboard.todaySectionTitle(lessonLabelPlural)}
         </h3>
         {todayRows.length === 0 ? (
           <EmptyState
             tone="muted"
-            className="py-8"
+            className="py-6 sm:py-8"
             title={heUi.dashboard.emptyTodayTitle(lessonLabelPlural)}
             description={heUi.dashboard.emptyTodayDescription}
           />
@@ -140,18 +141,18 @@ export function HomeQuickDashboard({
             {todayRows.map((appt) => (
               <li
                 key={appt.id}
-                className={`${ui.card} ${ui.cardPadding} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`}
+                className={cn(ui.card, ui.cardPadding, "flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4")}
               >
                 <Link
                   href={`/clients/${appt.clientId}`}
-                  className="font-medium text-neutral-900 underline-offset-2 hover:underline"
+                  className="text-sm font-medium text-neutral-900 underline-offset-2 hover:underline dark:text-neutral-100"
                 >
                   {clientName(clients, appt.clientId)}
                 </Link>
-                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">
                   <span>{formatTimeShort(appt.startAt)}</span>
                   {appt.paymentStatus === PaymentStatus.Unpaid ? (
-                    <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+                    <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-900 dark:text-amber-100 sm:text-xs">
                       {heUi.dashboard.unpaidBadge}
                     </span>
                   ) : null}
@@ -162,8 +163,8 @@ export function HomeQuickDashboard({
         )}
       </section>
 
-      <section className="space-y-3">
-        <h3 className="text-base font-semibold text-neutral-900 sm:text-lg">
+      <section className="space-y-2 sm:space-y-3">
+        <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 sm:text-base">
           {heUi.dashboard.remindersSectionTitle}
         </h3>
         <RemindersPanel

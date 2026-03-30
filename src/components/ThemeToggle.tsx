@@ -1,0 +1,19 @@
+"use client";
+
+import { useTheme } from "@/features/theme/ThemeProvider";
+
+export function ThemeToggle() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+      className="inline-flex size-9 items-center justify-center rounded-lg border border-neutral-300 bg-white text-base transition hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+      title={resolvedTheme === "dark" ? "מצב בהיר" : "מצב כהה"}
+      aria-label={resolvedTheme === "dark" ? "מצב בהיר" : "מצב כהה"}
+    >
+      {resolvedTheme === "dark" ? "☀️" : "🌙"}
+    </button>
+  );
+}

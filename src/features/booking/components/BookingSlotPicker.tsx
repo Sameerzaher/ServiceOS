@@ -40,11 +40,11 @@ export function BookingSlotPicker({
   }
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-neutral-900">
+    <div className="space-y-2.5 sm:space-y-3">
+      <h3 className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 sm:text-sm">
         {heUi.publicBooking.slotHeading}
       </h3>
-      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {availableSlots.map((slot) => {
           const selected = selectedSlotStart === slot.slotStart;
           return (
@@ -53,13 +53,13 @@ export function BookingSlotPicker({
                 type="button"
                 onClick={() => onSelect(slot)}
                 aria-pressed={selected}
-                className={[
+                className={cn(
                   ui.input,
-                  "min-h-[3rem] justify-center text-center font-medium",
+                  "min-h-[2.5rem] justify-center text-center text-xs font-medium sm:min-h-[3rem] sm:text-sm",
                   selected
-                    ? "border-neutral-900 bg-neutral-900 text-white shadow-sm"
-                    : "bg-white text-neutral-900 hover:bg-neutral-50",
-                ].join(" ")}
+                    ? "border-neutral-900 bg-neutral-900 text-white shadow-sm dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
+                    : "bg-white text-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+                )}
               >
                 {formatTimeRange(slot.slotStart, slot.slotEnd)}
               </button>

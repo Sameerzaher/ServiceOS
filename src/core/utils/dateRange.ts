@@ -6,7 +6,8 @@ export type AppointmentDateFilter =
   | "all"
   | "today"
   | "tomorrow"
-  | "this_week";
+  | "this_week"
+  | "custom";
 
 export function matchesDateFilter(
   startAtIso: string,

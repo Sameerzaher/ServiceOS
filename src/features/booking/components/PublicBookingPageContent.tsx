@@ -122,27 +122,27 @@ export function PublicBookingPageContent({
   const phoneLine = identity.phone.trim();
 
   return (
-    <main className={ui.pageMain}>
-      <header className={ui.header}>
-        <h1 className={ui.pageTitle}>
+    <main className={cn(ui.pageMain, "px-3 sm:px-4")}>
+      <header className={cn(ui.header, "space-y-2")}>
+        <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
           {businessLine || heUi.publicBooking.pageTitle}
         </h1>
         {teacherLine ? (
-          <p className={ui.pageSubtitle}>{teacherLine}</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">{teacherLine}</p>
         ) : (
-          <p className={ui.pageSubtitle}>{heUi.publicBooking.pageSubtitle}</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">{heUi.publicBooking.pageSubtitle}</p>
         )}
         {phoneLine ? (
-          <p className="mt-1 text-sm text-neutral-600" dir="ltr">
+          <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm" dir="ltr">
             {phoneLine}
           </p>
         ) : null}
-        <p className="mt-2 max-w-prose text-sm leading-relaxed text-neutral-600">
+        <p className="mt-2 max-w-prose text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 sm:text-sm">
           {heUi.publicBooking.trustLine}
         </p>
       </header>
 
-      <div className={ui.pageStack}>
+      <div className={cn(ui.pageStack, "space-y-4 sm:space-y-5")}>
         <div className="flex flex-col gap-3">
           {appointmentsLoadError ? (
             <DataLoadErrorBanner
@@ -153,11 +153,11 @@ export function PublicBookingPageContent({
           ) : null}
         </div>
         <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>{heUi.publicBooking.sectionDate}</h2>
-          <div className={`${ui.formCard} space-y-4`}>
+          <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg">{heUi.publicBooking.sectionDate}</h2>
+          <div className={cn(ui.formCard, "space-y-3 p-3 sm:space-y-4 sm:p-4")}>
             {!bookingDataReady ? (
               <div
-                className="flex items-center gap-2 py-2 text-sm text-neutral-600"
+                className="flex items-center gap-2 py-2 text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm"
                 role="status"
                 aria-live="polite"
               >
@@ -165,19 +165,19 @@ export function PublicBookingPageContent({
                 <span className="sr-only">{heUi.loading.ariaBusy}</span>
               </div>
             ) : !availability.bookingEnabled ? (
-              <p className="text-sm text-neutral-700">
+              <p className="text-xs text-neutral-700 dark:text-neutral-300 sm:text-sm">
                 {heUi.publicBooking.bookingClosed}
               </p>
             ) : (
               <>
                 <div>
-                  <label htmlFor="book-date" className={ui.label}>
+                  <label htmlFor="book-date" className={cn(ui.label, "text-xs sm:text-sm")}>
                     {heUi.publicBooking.dateLabel}
                   </label>
                   <input
                     id="book-date"
                     type="date"
-                    className={ui.input}
+                    className={cn(ui.input, "text-xs sm:text-sm")}
                     min={todayLocalYmd()}
                     max={maxBookDateYmd}
                     value={selectedDate}
@@ -203,7 +203,7 @@ export function PublicBookingPageContent({
         </section>
 
         <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>
+          <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg">
             {heUi.publicBooking.sectionContact}
           </h2>
           <PublicBookingForm

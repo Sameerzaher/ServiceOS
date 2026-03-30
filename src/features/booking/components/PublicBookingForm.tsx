@@ -69,7 +69,7 @@ function PublicExtraFieldControl({
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="off"
         />
       );
@@ -82,7 +82,7 @@ function PublicExtraFieldControl({
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
           rows={3}
-          className={cn(ui.input, "min-h-[5rem] resize-y")}
+          className={cn(ui.input, "min-h-[5rem] resize-y text-xs sm:text-sm")}
           autoComplete="off"
         />
       );
@@ -94,7 +94,7 @@ function PublicExtraFieldControl({
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.select}
+          className={cn(ui.select, "text-xs sm:text-sm")}
         >
           <option value="">{selectPlaceholder}</option>
           {(def.options ?? []).map((opt) => (
@@ -115,7 +115,7 @@ function PublicExtraFieldControl({
           required={def.required}
           min={0}
           step="any"
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           inputMode="decimal"
         />
       );
@@ -263,22 +263,22 @@ export function PublicBookingForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className={`${ui.formCard} space-y-5 ${className ?? ""}`}
+      className={cn(ui.formCard, "space-y-4 p-3 sm:space-y-5 sm:p-4", className)}
     >
-      <div className="rounded-lg border border-neutral-200 bg-neutral-50/90 px-3 py-2">
-        <p className="text-xs text-neutral-600">
+      <div className="rounded-lg border border-neutral-200 bg-neutral-50/90 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800">
+        <p className="text-[10px] text-neutral-600 dark:text-neutral-400 sm:text-xs">
           {heUi.publicBooking.selectedSlotLabel}
         </p>
-        <p className="mt-1 text-sm font-semibold text-neutral-900">
+        <p className="mt-1 text-xs font-semibold text-neutral-900 dark:text-neutral-100 sm:text-sm">
           {selectedSlotLabel || heUi.publicBooking.noSlotSelected}
         </p>
         {errors.slot ? (
-          <p className="mt-1 text-sm text-red-600">{errors.slot}</p>
+          <p className="mt-1 text-xs text-red-600 sm:text-sm">{errors.slot}</p>
         ) : null}
       </div>
 
       <div>
-        <label htmlFor="public-booking-name" className={ui.label}>
+        <label htmlFor="public-booking-name" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.publicBooking.fullNameLabel}
         </label>
         <input
@@ -290,20 +290,20 @@ export function PublicBookingForm({
             setFullName(e.target.value);
             setErrors((prev) => ({ ...prev, fullName: undefined }));
           }}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="name"
           aria-invalid={errors.fullName ? true : undefined}
           aria-describedby={errors.fullName ? "public-booking-name-error" : undefined}
         />
         {errors.fullName ? (
-          <p id="public-booking-name-error" className="mt-1 text-sm text-red-600">
+          <p id="public-booking-name-error" className="mt-1 text-xs text-red-600 sm:text-sm">
             {errors.fullName}
           </p>
         ) : null}
       </div>
 
       <div>
-        <label htmlFor="public-booking-phone" className={ui.label}>
+        <label htmlFor="public-booking-phone" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.publicBooking.phoneLabel}
         </label>
         <input
@@ -315,21 +315,21 @@ export function PublicBookingForm({
             setPhone(e.target.value);
             setErrors((prev) => ({ ...prev, phone: undefined }));
           }}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="tel"
           inputMode="tel"
           aria-invalid={errors.phone ? true : undefined}
           aria-describedby={errors.phone ? "public-booking-phone-error" : undefined}
         />
         {errors.phone ? (
-          <p id="public-booking-phone-error" className="mt-1 text-sm text-red-600">
+          <p id="public-booking-phone-error" className="mt-1 text-xs text-red-600 sm:text-sm">
             {errors.phone}
           </p>
         ) : null}
       </div>
 
       <div>
-        <label htmlFor="public-booking-notes" className={ui.label}>
+        <label htmlFor="public-booking-notes" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.publicBooking.notesLabel}
         </label>
         <textarea
@@ -338,13 +338,13 @@ export function PublicBookingForm({
           disabled={isSubmitting}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className={`${ui.input} min-h-[5.5rem] resize-y`}
+          className={cn(ui.input, "min-h-[5.5rem] resize-y text-xs sm:text-sm")}
         />
       </div>
 
       {extraFields.map((def) => (
         <div key={def.key}>
-          <label htmlFor={`public-booking-extra-${def.key}`} className={ui.label}>
+          <label htmlFor={`public-booking-extra-${def.key}`} className={cn(ui.label, "text-xs sm:text-sm")}>
             {def.label}
             {def.required ? (
               <span className="text-red-600" aria-hidden>
@@ -371,7 +371,7 @@ export function PublicBookingForm({
             }}
           />
           {errors.extra?.[def.key] ? (
-            <p className="mt-1 text-sm text-red-600">{errors.extra[def.key]}</p>
+            <p className="mt-1 text-xs text-red-600 sm:text-sm">{errors.extra[def.key]}</p>
           ) : null}
         </div>
       ))}
@@ -379,7 +379,7 @@ export function PublicBookingForm({
       <Button
         type="submit"
         variant="primary"
-        className="w-full"
+        className="w-full text-xs sm:text-sm"
         disabled={isSubmitting}
         aria-busy={isSubmitting}
       >
@@ -393,7 +393,7 @@ export function PublicBookingForm({
         )}
       </Button>
       {submitError ? (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-xs text-red-600 sm:text-sm" role="alert">
           {submitError}
         </p>
       ) : null}

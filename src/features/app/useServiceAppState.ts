@@ -125,6 +125,11 @@ export function useServiceAppState() {
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
   const [appointmentSort, setAppointmentSort] =
     useState<AppointmentSort>("date");
+  const [clientFilter, setClientFilter] = useState("");
+  const [customDateRange, setCustomDateRange] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [editingAppointmentId, setEditingAppointmentId] = useState<
     string | null
@@ -149,6 +154,8 @@ export function useServiceAppState() {
     setAppointmentPrefillClientId(null);
     setConfirm(null);
     setClientSearch("");
+    setClientFilter("");
+    setCustomDateRange(null);
   }, [dashboardTeacherId]);
 
   const filteredClients = useMemo(
@@ -162,15 +169,34 @@ export function useServiceAppState() {
   );
 
   const filteredAppointments = useMemo(() => {
-    const base = filterAppointments(sortedAppointments, {
-      dateFilter,
+    let base = filterAppointments(sortedAppointments, {
+      dateFilter: dateFilter === "custom" ? "all" : dateFilter,
       paymentFilter,
     });
+
+    // Custom date range filter
+    if (dateFilter === "custom" && customDateRange) {
+      const startDate = new Date(customDateRange.start);
+      const endDate = new Date(customDateRange.end);
+      endDate.setHours(23, 59, 59, 999);
+      base = base.filter((appt) => {
+        const apptDate = new Date(appt.startAt);
+        return apptDate >= startDate && apptDate <= endDate;
+      });
+    }
+
+    // Client filter
+    if (clientFilter) {
+      base = base.filter((appt) => appt.clientId === clientFilter);
+    }
+
     return sortAppointments(base, appointmentSort, clientMap);
   }, [
     sortedAppointments,
     dateFilter,
+    customDateRange,
     paymentFilter,
+    clientFilter,
     appointmentSort,
     clientMap,
   ]);
@@ -348,6 +374,16 @@ export function useServiceAppState() {
     toast(heUi.toast.bookingRejected);
   }
 
+  function handleChangeAppointmentStatus(
+    id: string,
+    newStatus: AppointmentStatus,
+  ): void {
+    const row = sortedAppointments.find((a) => a.id === id);
+    if (!row) return;
+    updateAppointment(id, { status: newStatus });
+    toast(heUi.toast.lessonUpdated);
+  }
+
   function handleClientSubmit(data: NewClientInput): boolean {
     if (editingClientId) {
       updateClient(editingClientId, data);
@@ -460,6 +496,10 @@ export function useServiceAppState() {
     setPaymentFilter,
     appointmentSort,
     setAppointmentSort,
+    clientFilter,
+    setClientFilter,
+    customDateRange,
+    setCustomDateRange,
     editingClientId,
     setEditingClientId,
     editingAppointmentId,
@@ -495,6 +535,7 @@ export function useServiceAppState() {
     handleApprovePublicBooking,
     handleApproveAndSendPublicBookingWhatsapp,
     handleRejectPublicBooking,
+    handleChangeAppointmentStatus,
     handleClientSubmit,
     loadDemo,
     resetData,

@@ -10,12 +10,15 @@ import { useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/features/auth/AuthContext";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LocaleToggle } from "@/components/LocaleToggle";
 
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/dashboard", label: heUi.nav.dashboard },
   { href: "/clients", label: heUi.nav.clients },
   { href: "/appointments", label: heUi.nav.lessons },
   { href: "/booking", label: heUi.nav.booking },
+  { href: "/blocked-dates", label: "חופשות" },
   { href: "/teachers", label: heUi.nav.teachers },
   { href: "/settings", label: heUi.nav.settings },
 ];
@@ -140,17 +143,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white">
+      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
         <nav className="mx-auto max-w-5xl" aria-label="ניווט ראשי">
-          <div className="flex items-center justify-between gap-4 px-4 py-2.5 sm:px-6 sm:py-3">
+          <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
             <Link
               href="/"
-              className="flex min-h-[2.75rem] items-center gap-2 py-1 text-lg font-semibold tracking-tight text-neutral-900"
+              className="flex min-h-[2.5rem] shrink-0 items-center gap-1.5 py-1 text-base font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 sm:gap-2 sm:text-lg"
             >
-              <span className="text-2xl">📅</span>
-              {heUi.nav.brand}
+              <span className="text-xl sm:text-2xl">📅</span>
+              <span className="hidden sm:inline">{heUi.nav.brand}</span>
             </Link>
-            <div className="hidden items-center gap-0.5 sm:flex">
+            <div className="hidden items-center gap-0.5 lg:flex">
               {visibleNavItems.map((item) => {
                 const active = isNavActive(pathname, item.href);
                 return (
@@ -169,25 +172,24 @@ export function AppShell({ children }: { children: ReactNode }) {
               })}
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="hidden sm:flex items-center gap-1.5">
+                <LocaleToggle />
+                <ThemeToggle />
+              </div>
               <NotificationBell />
               <TeacherScopeSelect />
               
               {teacher && (
-                <div className="hidden items-center gap-2 sm:flex">
-                  <div className="text-xs text-neutral-600">
-                    {teacher.fullName || teacher.email}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="inline-flex min-h-[2.5rem] items-center gap-1.5 rounded-lg border-2 border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-700 shadow-sm transition-all hover:border-red-300 hover:bg-red-50 hover:shadow-md active:scale-95"
-                    title="התנתק מהמערכת"
-                  >
-                    <span>🚪</span>
-                    <span>התנתק</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="hidden min-h-[2.5rem] items-center gap-1.5 rounded-lg border-2 border-red-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-red-700 shadow-sm transition-all hover:border-red-300 hover:bg-red-50 hover:shadow-md active:scale-95 dark:border-red-800 dark:bg-neutral-800 dark:text-red-400 dark:hover:bg-neutral-700 lg:inline-flex"
+                  title="התנתק מהמערכת"
+                >
+                  <span>🚪</span>
+                  <span>התנתק</span>
+                </button>
               )}
               
               <button
@@ -195,7 +197,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onClick={handleBack}
                 disabled={!isMounted || !canGoBack}
                 className={cn(
-                  "inline-flex min-h-[2.5rem] items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50",
+                  "hidden min-h-[2.5rem] items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800 sm:inline-flex",
                   !isMounted || !canGoBack
                     ? "pointer-events-none invisible"
                     : "",
@@ -204,40 +206,41 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span aria-hidden className="rtl:rotate-180">
                   ←
                 </span>
-                <span>{heUi.nav.back}</span>
+                <span className="hidden lg:inline">{heUi.nav.back}</span>
               </button>
             </div>
           </div>
         </nav>
       </header>
 
-      <div className="flex flex-1 flex-col pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] sm:pb-0">
+      <div className="flex flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-0">
         {children}
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom,0px)] sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-sm dark:border-neutral-700 dark:bg-neutral-900/95 sm:hidden"
         aria-label="ניווט מהיר"
       >
         <ul className={cn(
-          "mx-auto grid max-w-lg gap-0",
-          isAdmin ? "grid-cols-6" : "grid-cols-5"
+          "mx-auto grid max-w-full gap-0",
+          isAdmin ? "grid-cols-7" : "grid-cols-6"
         )}>
           {visibleNavItems.map((item) => {
             const active = isNavActive(pathname, item.href);
+            const shortLabel = item.label.split(' ')[0];
             return (
               <li key={item.href} className="flex min-w-0 justify-center">
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex min-h-[3.25rem] w-full min-w-0 flex-col items-center justify-center border-t-2 px-1 py-1.5 text-center text-[11px] font-medium leading-tight transition",
+                    "flex min-h-[3.5rem] w-full min-w-0 flex-col items-center justify-center border-t-2 px-1 py-1.5 text-center text-[10px] font-medium leading-tight transition",
                     active
-                      ? "border-neutral-900 text-neutral-900"
-                      : "border-transparent text-neutral-500 hover:text-neutral-800",
+                      ? "border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-400"
+                      : "border-transparent text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200",
                   )}
                   aria-current={active ? "page" : undefined}
                 >
-                  {item.label}
+                  <span className="truncate">{shortLabel}</span>
                 </Link>
               </li>
             );
@@ -246,10 +249,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex min-h-[3.25rem] w-full min-w-0 flex-col items-center justify-center border-t-2 border-transparent px-1 py-1.5 text-center text-[11px] font-medium leading-tight text-red-600 transition hover:text-red-700"
+              className="flex min-h-[3.5rem] w-full min-w-0 flex-col items-center justify-center border-t-2 border-transparent px-1 py-1.5 text-center text-[10px] font-medium leading-tight text-red-600 transition hover:text-red-700 dark:text-red-400"
             >
               🚪
-              <span className="mt-0.5">יציאה</span>
+              <span className="mt-0.5 truncate">יציאה</span>
             </button>
           </li>
         </ul>

@@ -220,22 +220,22 @@ export function BookingRequestsPanel({
         const busy = pendingIds.has(row.id);
         return (
           <li key={row.id} className={ui.listItem}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-semibold text-neutral-900">
+            <div className="flex flex-col gap-3">
+              <div className="min-w-0 space-y-1.5">
+                <p className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 sm:text-sm">
                   {heUi.dashboard.bookingRequesterName}:{" "}
                   {row.fullName.trim() ? row.fullName : "—"}
                 </p>
-                <p className="text-sm text-neutral-700">
+                <p className="text-xs text-neutral-700 dark:text-neutral-300 sm:text-sm">
                   {heUi.dashboard.bookingRequesterPhone}: {row.phone.trim() ? row.phone : "—"}
                 </p>
-                <p className="text-sm text-neutral-700">
+                <p className="text-xs text-neutral-700 dark:text-neutral-300 sm:text-sm">
                   {heUi.dashboard.bookingRequesterDate}: {formatDateDisplay(row.preferredDate)}
                 </p>
-                <p className="text-sm text-neutral-700">
+                <p className="text-xs text-neutral-700 dark:text-neutral-300 sm:text-sm">
                   {heUi.dashboard.bookingRequesterTime}: {formatTimeDisplay(row.preferredTime)}
                 </p>
-                <p className="text-sm text-neutral-700">
+                <p className="text-xs text-neutral-700 dark:text-neutral-300 sm:text-sm">
                   {heUi.dashboard.bookingRequesterStatus}: {statusLabel(row.status)}
                 </p>
               </div>
@@ -243,7 +243,7 @@ export function BookingRequestsPanel({
                 {busy ? (
                   <Spinner className="size-5 shrink-0 border-neutral-300 border-t-neutral-700" />
                 ) : null}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     size="sm"

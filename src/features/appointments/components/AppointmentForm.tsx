@@ -111,7 +111,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="off"
         />
       );
@@ -125,7 +125,7 @@ function CustomFieldControl({
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
           rows={3}
-          className={cn(ui.input, "min-h-[5rem] resize-y")}
+          className={cn(ui.input, "min-h-[5rem] resize-y text-xs sm:text-sm")}
           autoComplete="off"
         />
       );
@@ -141,7 +141,7 @@ function CustomFieldControl({
           required={def.required}
           min={0}
           step="any"
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           inputMode="decimal"
         />
       );
@@ -154,7 +154,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.select}
+          className={cn(ui.select, "text-xs sm:text-sm")}
         >
           <option value="">{selectPlaceholder}</option>
           {(def.options ?? []).map((opt) => (
@@ -167,7 +167,7 @@ function CustomFieldControl({
 
     case CustomFieldInputKind.Boolean:
       return (
-        <label className="flex items-center gap-2 text-sm text-neutral-800">
+        <label className="flex items-center gap-2 text-xs text-neutral-800 dark:text-neutral-200 sm:text-sm">
           <input
             id={id}
             type="checkbox"
@@ -189,7 +189,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
         />
       );
 
@@ -421,21 +421,21 @@ export function AppointmentForm({
       onSubmit={handleSubmit}
       onKeyDown={handleFormKeyDown}
       className={cn(
-        "mx-auto flex w-full max-w-lg flex-col gap-6 transition-shadow sm:gap-5",
+        "mx-auto flex w-full max-w-lg flex-col gap-4 transition-shadow sm:gap-5",
         ui.formCard,
         isEditing &&
           "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-neutral-50",
       )}
       noValidate
     >
-      <div className="rounded-xl border border-emerald-100/80 bg-emerald-50/50 px-3 py-2 text-xs text-neutral-700 ring-1 ring-emerald-900/[0.04]">
+      <div className="rounded-xl border border-emerald-100/80 bg-emerald-50/50 px-3 py-2 text-[10px] text-neutral-700 ring-1 ring-emerald-900/[0.04] dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-neutral-300 sm:text-xs">
         {isEditing
           ? heUi.forms.editLesson
           : heUi.forms.saveLesson}
       </div>
 
       <div>
-        <label htmlFor="appt-client" className={ui.label}>
+        <label htmlFor="appt-client" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.forms.appointmentStudent}
         </label>
         <select
@@ -447,7 +447,7 @@ export function AppointmentForm({
             setClientId(e.target.value);
             setClientError(null);
           }}
-          className={ui.select}
+          className={cn(ui.select, "text-xs sm:text-sm")}
           aria-invalid={clientError ? true : undefined}
           aria-describedby={clientError ? "appt-client-error" : undefined}
         >
@@ -459,19 +459,19 @@ export function AppointmentForm({
           ))}
         </select>
         {clientError ? (
-          <p id="appt-client-error" className="mt-1 text-sm text-red-600">
+          <p id="appt-client-error" className="mt-1 text-xs text-red-600 sm:text-sm">
             {clientError}
           </p>
         ) : null}
       </div>
 
       <fieldset className="space-y-3 border-0 p-0">
-        <legend className={`${ui.label} mb-0`}>
+        <legend className={cn(ui.label, "mb-0 text-xs sm:text-sm")}>
           {heUi.forms.appointmentDatetime}
         </legend>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="appt-date" className="mb-1 block text-sm text-neutral-700">
+            <label htmlFor="appt-date" className="mb-1 block text-[11px] text-neutral-700 dark:text-neutral-300 sm:text-sm">
               {heUi.forms.appointmentDate}
             </label>
             <input
@@ -483,13 +483,13 @@ export function AppointmentForm({
                 setStartDate(e.target.value);
                 setDatetimeError(null);
               }}
-              className={ui.input}
+              className={cn(ui.input, "text-xs sm:text-sm")}
               aria-invalid={datetimeError ? true : undefined}
               aria-describedby={datetimeError ? "appt-datetime-error" : undefined}
             />
           </div>
           <div>
-            <label htmlFor="appt-time" className="mb-1 block text-sm text-neutral-700">
+            <label htmlFor="appt-time" className="mb-1 block text-[11px] text-neutral-700 dark:text-neutral-300 sm:text-sm">
               {heUi.forms.appointmentTime}
             </label>
             <select
@@ -500,7 +500,7 @@ export function AppointmentForm({
                 setStartTime(e.target.value);
                 setDatetimeError(null);
               }}
-              className={ui.select}
+              className={cn(ui.select, "text-xs sm:text-sm")}
               aria-invalid={datetimeError ? true : undefined}
               aria-describedby={datetimeError ? "appt-datetime-error" : undefined}
             >
@@ -514,19 +514,19 @@ export function AppointmentForm({
           </div>
         </div>
         {datetimeError ? (
-          <p id="appt-datetime-error" className="mt-1 text-sm text-red-600">
+          <p id="appt-datetime-error" className="mt-1 text-xs text-red-600 sm:text-sm">
             {datetimeError}
           </p>
         ) : null}
         {suggestedEndTime ? (
-          <p className="text-xs text-neutral-500">
+          <p className="text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.forms.suggestedLessonEnd(suggestedEndTime)}
           </p>
         ) : null}
       </fieldset>
 
       <div>
-        <label htmlFor="appt-payment" className={ui.label}>
+        <label htmlFor="appt-payment" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.forms.paymentStatus}
         </label>
         <select
@@ -536,7 +536,7 @@ export function AppointmentForm({
           onChange={(e) =>
             setPaymentStatus(e.target.value as PaymentStatus)
           }
-          className={ui.select}
+          className={cn(ui.select, "text-xs sm:text-sm")}
         >
           {(Object.values(PaymentStatus) as PaymentStatus[]).map((status) => (
             <option key={status} value={status}>
@@ -547,7 +547,7 @@ export function AppointmentForm({
       </div>
 
       <div>
-        <label htmlFor="appt-amount" className={ui.label}>
+        <label htmlFor="appt-amount" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.forms.amount}
         </label>
         <input
@@ -559,11 +559,11 @@ export function AppointmentForm({
           inputMode="decimal"
           value={amountInput}
           onChange={(e) => setAmountInput(e.target.value)}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="off"
         />
         {!isEditing && defaultMoney > 0 ? (
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.forms.defaultAmountHint(defaultMoney)}
           </p>
         ) : null}
@@ -581,7 +581,7 @@ export function AppointmentForm({
             />
           ) : (
             <>
-              <label htmlFor={`appt-custom-${def.key}`} className={ui.label}>
+              <label htmlFor={`appt-custom-${def.key}`} className={cn(ui.label, "text-xs sm:text-sm")}>
                 {def.label}
                 {def.required ? (
                   <span className="text-red-600" aria-hidden>
@@ -602,12 +602,12 @@ export function AppointmentForm({
         </div>
       ))}
 
-      <div className="sticky bottom-0 -mx-2 mt-1 flex w-auto flex-col gap-2 border-t border-neutral-200/80 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mx-0 sm:w-full sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
+      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-30 -mx-2 mt-1 flex w-auto flex-col gap-2 border-t border-neutral-200/80 bg-white/95 px-2 pb-3 pt-3 backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/95 sm:static sm:bottom-0 sm:mx-0 sm:w-full sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
         {isEditing && onCancelEdit ? (
           <Button
             type="button"
             variant="secondary"
-            className="w-full sm:max-w-xs sm:self-end"
+            className="w-full text-xs sm:max-w-xs sm:self-end sm:text-sm"
             onClick={onCancelEdit}
             disabled={isSubmitting}
           >
@@ -617,7 +617,7 @@ export function AppointmentForm({
         <Button
           type="submit"
           variant="primary"
-          className="w-full sm:max-w-xs sm:self-end"
+          className="w-full text-xs sm:max-w-xs sm:self-end sm:text-sm"
           disabled={isSubmitting}
         >
           {isSubmitting

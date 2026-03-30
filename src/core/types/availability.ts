@@ -39,6 +39,10 @@ export interface AvailabilitySettings {
   slotDurationMinutes: number;
   daysAhead: number;
   weeklyAvailability: WeeklyAvailability;
+  enableAutoReminders?: boolean;
+  reminder24hBefore?: boolean;
+  reminder1hBefore?: boolean;
+  reminderCustomMessage?: string;
 }
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -58,6 +62,10 @@ export const DEFAULT_AVAILABILITY_SETTINGS: AvailabilitySettings = {
   bookingEnabled: false,
   slotDurationMinutes: 45,
   daysAhead: 30,
+  enableAutoReminders: false,
+  reminder24hBefore: true,
+  reminder1hBefore: true,
+  reminderCustomMessage: "",
   weeklyAvailability: {
     sunday: { ...DEFAULT_DAY, enabled: true },
     monday: { ...DEFAULT_DAY, enabled: true },

@@ -203,6 +203,89 @@ export function AvailabilitySettingsForm({
           })}
         </ul>
 
+        <div className="space-y-4 rounded-xl border border-amber-100 bg-amber-50/30 p-4">
+          <h3 className="text-sm font-semibold text-neutral-900">
+            תזכורות אוטומטיות ב-WhatsApp
+          </h3>
+          
+          <div className="flex items-center gap-2">
+            <input
+              id="enable-auto-reminders"
+              type="checkbox"
+              checked={settings.enableAutoReminders ?? false}
+              onChange={(e) =>
+                updateField("enableAutoReminders", e.target.checked)
+              }
+              className="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+            />
+            <label
+              htmlFor="enable-auto-reminders"
+              className="text-sm font-medium text-neutral-900"
+            >
+              הפעל תזכורות אוטומטיות
+            </label>
+          </div>
+
+          {settings.enableAutoReminders && (
+            <>
+              <div className="flex items-center gap-2">
+                <input
+                  id="reminder-24h"
+                  type="checkbox"
+                  checked={settings.reminder24hBefore ?? true}
+                  onChange={(e) =>
+                    updateField("reminder24hBefore", e.target.checked)
+                  }
+                  className="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+                />
+                <label
+                  htmlFor="reminder-24h"
+                  className="text-sm text-neutral-700"
+                >
+                  שלח תזכורת 24 שעות לפני
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="reminder-1h"
+                  type="checkbox"
+                  checked={settings.reminder1hBefore ?? true}
+                  onChange={(e) =>
+                    updateField("reminder1hBefore", e.target.checked)
+                  }
+                  className="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+                />
+                <label
+                  htmlFor="reminder-1h"
+                  className="text-sm text-neutral-700"
+                >
+                  שלח תזכורת שעה לפני
+                </label>
+              </div>
+
+              <div>
+                <label htmlFor="reminder-message" className={ui.label}>
+                  הודעת תזכורת מותאמת אישית (אופציונלי)
+                </label>
+                <textarea
+                  id="reminder-message"
+                  value={settings.reminderCustomMessage ?? ""}
+                  onChange={(e) =>
+                    updateField("reminderCustomMessage", e.target.value)
+                  }
+                  placeholder="שלום {שם}, מזכירים לך על התור שלך ב-{עסק} בתאריך {תאריך}"
+                  rows={3}
+                  className={ui.input}
+                />
+                <p className="mt-1 text-xs text-neutral-600">
+                  השאר ריק לשימוש בהודעת ברירת מחדל
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
         {onReset ? (
           <div className="flex justify-end">
             <Button type="button" variant="secondary" onClick={onReset}>

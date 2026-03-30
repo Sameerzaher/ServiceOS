@@ -111,7 +111,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="off"
         />
       );
@@ -125,7 +125,7 @@ function CustomFieldControl({
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
           rows={3}
-          className={cn(ui.input, "min-h-[5rem] resize-y")}
+          className={cn(ui.input, "min-h-[5rem] resize-y text-xs sm:text-sm")}
           autoComplete="off"
         />
       );
@@ -141,7 +141,7 @@ function CustomFieldControl({
           required={def.required}
           min={0}
           step="any"
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           inputMode="decimal"
         />
       );
@@ -154,7 +154,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.select}
+          className={cn(ui.select, "text-xs sm:text-sm")}
         >
           <option value="">{selectPlaceholder}</option>
           {(def.options ?? []).map((opt) => (
@@ -167,7 +167,7 @@ function CustomFieldControl({
 
     case CustomFieldInputKind.Boolean:
       return (
-        <label className="flex items-center gap-2 text-sm text-neutral-800">
+        <label className="flex items-center gap-2 text-xs text-neutral-800 dark:text-neutral-200 sm:text-sm">
           <input
             id={id}
             type="checkbox"
@@ -189,7 +189,7 @@ function CustomFieldControl({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={def.required}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
         />
       );
 
@@ -307,7 +307,7 @@ export function ClientForm({
       onKeyDown={handleFormKeyDown}
       className={cn(
         "flex w-full flex-col",
-        embedded ? "gap-5" : "mx-auto max-w-lg gap-6 sm:gap-5",
+        embedded ? "gap-4" : "mx-auto max-w-lg gap-4 sm:gap-5",
         !embedded && ui.formCard,
         embedded && "border-0 bg-transparent p-0 shadow-none ring-0",
         isEditing &&
@@ -317,7 +317,7 @@ export function ClientForm({
       noValidate
     >
       <div>
-        <label htmlFor="client-fullName" className={ui.label}>
+        <label htmlFor="client-fullName" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.forms.fullName}
         </label>
         <input
@@ -330,20 +330,20 @@ export function ClientForm({
             setFullName(e.target.value);
             setNameError(null);
           }}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="name"
           aria-invalid={nameError ? true : undefined}
           aria-describedby={nameError ? "client-fullName-error" : undefined}
         />
         {nameError ? (
-          <p id="client-fullName-error" className="mt-1 text-sm text-red-600">
+          <p id="client-fullName-error" className="mt-1 text-xs text-red-600 sm:text-sm">
             {nameError}
           </p>
         ) : null}
       </div>
 
       <div>
-        <label htmlFor="client-phone" className={ui.label}>
+        <label htmlFor="client-phone" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.forms.phone}
         </label>
         <input
@@ -355,21 +355,21 @@ export function ClientForm({
             setPhone(e.target.value);
             setPhoneError(null);
           }}
-          className={ui.input}
+          className={cn(ui.input, "text-xs sm:text-sm")}
           autoComplete="tel"
           inputMode="tel"
           aria-invalid={phoneError ? true : undefined}
           aria-describedby={phoneError ? "client-phone-error" : undefined}
         />
         {phoneError ? (
-          <p id="client-phone-error" className="mt-1 text-sm text-red-600">
+          <p id="client-phone-error" className="mt-1 text-xs text-red-600 sm:text-sm">
             {phoneError}
           </p>
         ) : null}
       </div>
 
       <div>
-        <label htmlFor="client-notes" className={ui.label}>
+        <label htmlFor="client-notes" className={cn(ui.label, "text-xs sm:text-sm")}>
           {heUi.forms.notes}
         </label>
         <textarea
@@ -378,7 +378,7 @@ export function ClientForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className={cn(ui.input, "min-h-[5rem] resize-y")}
+          className={cn(ui.input, "min-h-[5rem] resize-y text-xs sm:text-sm")}
         />
       </div>
 
@@ -394,7 +394,7 @@ export function ClientForm({
             />
           ) : (
             <>
-              <label htmlFor={`client-custom-${def.key}`} className={ui.label}>
+              <label htmlFor={`client-custom-${def.key}`} className={cn(ui.label, "text-xs sm:text-sm")}>
                 {def.label}
                 {def.required ? (
                   <span className="text-red-600" aria-hidden>
@@ -420,7 +420,7 @@ export function ClientForm({
           <Button
             type="button"
             variant="secondary"
-            className="w-full sm:max-w-xs sm:self-end"
+            className="w-full text-xs sm:max-w-xs sm:self-end sm:text-sm"
             onClick={onCancelEdit}
             disabled={isSubmitting}
           >
@@ -430,7 +430,7 @@ export function ClientForm({
         <Button
           type="submit"
           variant="primary"
-          className="w-full sm:max-w-xs sm:self-end"
+          className="w-full text-xs sm:max-w-xs sm:self-end sm:text-sm"
           disabled={isSubmitting}
         >
           {isSubmitting

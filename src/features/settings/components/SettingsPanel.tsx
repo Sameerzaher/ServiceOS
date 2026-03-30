@@ -70,16 +70,16 @@ export function SettingsPanel({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Business Info Section */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800 sm:p-6">
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:mb-4 sm:text-lg">
           פרטי העסק
         </h2>
         
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <label htmlFor="settings-business" className={ui.label}>
+            <label htmlFor="settings-business" className={cn(ui.label, "text-xs sm:text-sm")}>
               {heUi.settings.businessName}
             </label>
             <input
@@ -89,17 +89,17 @@ export function SettingsPanel({
               onChange={(e) =>
                 setDraft((d) => ({ ...d, businessName: e.target.value }))
               }
-              className={ui.input}
-              placeholder="השם שיופיע ללקוחות — למשל: בית ספר לנהיגה «דרך בטוחה»"
+              className={cn(ui.input, "text-xs sm:text-sm")}
+              placeholder="השם שיופיע ללקוחות"
               autoComplete="organization"
             />
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
               {heUi.settings.businessNameHint}
             </p>
           </div>
 
           <div>
-            <label htmlFor="settings-teacher-name" className={ui.label}>
+            <label htmlFor="settings-teacher-name" className={cn(ui.label, "text-xs sm:text-sm")}>
               {heUi.settings.teacherName}
             </label>
             <input
@@ -109,14 +109,14 @@ export function SettingsPanel({
               onChange={(e) =>
                 setDraft((d) => ({ ...d, teacherName: e.target.value }))
               }
-              className={ui.input}
+              className={cn(ui.input, "text-xs sm:text-sm")}
               placeholder={heUi.settings.teacherNamePlaceholder}
               autoComplete="name"
             />
           </div>
 
           <div>
-            <label htmlFor="settings-business-phone" className={ui.label}>
+            <label htmlFor="settings-business-phone" className={cn(ui.label, "text-xs sm:text-sm")}>
               {heUi.settings.businessPhone}
             </label>
             <input
@@ -126,12 +126,12 @@ export function SettingsPanel({
               onChange={(e) =>
                 setDraft((d) => ({ ...d, businessPhone: e.target.value }))
               }
-              className={ui.input}
+              className={cn(ui.input, "text-xs sm:text-sm")}
               inputMode="tel"
               autoComplete="tel"
               placeholder="050-0000000"
             />
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
               {heUi.settings.businessPhoneHint}
             </p>
           </div>
@@ -139,14 +139,14 @@ export function SettingsPanel({
       </div>
 
       {/* Lesson Defaults Section */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800 sm:p-6">
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:mb-4 sm:text-lg">
           הגדרות שיעורים
         </h2>
         
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <div>
-            <label htmlFor="settings-price" className={ui.label}>
+            <label htmlFor="settings-price" className={cn(ui.label, "text-xs sm:text-sm")}>
               {heUi.settings.defaultLessonPrice}
             </label>
             <div className="relative">
@@ -169,19 +169,19 @@ export function SettingsPanel({
                     defaultLessonPrice: Number.isFinite(n) ? Math.max(0, n) : 0,
                   }));
                 }}
-                className={ui.input}
+                className={cn(ui.input, "text-xs sm:text-sm")}
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 sm:text-sm">
                 ₪
               </span>
             </div>
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
               {heUi.settings.defaultLessonPriceHint}
             </p>
           </div>
 
           <div>
-            <label htmlFor="settings-duration" className={ui.label}>
+            <label htmlFor="settings-duration" className={cn(ui.label, "text-xs sm:text-sm")}>
               {heUi.settings.defaultLessonDuration}
             </label>
             <div className="relative">
@@ -203,23 +203,23 @@ export function SettingsPanel({
                       : d.defaultLessonDurationMinutes,
                   }));
                 }}
-                className={ui.input}
+                className={cn(ui.input, "text-xs sm:text-sm")}
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 sm:text-sm">
                 {"דק'"}
               </span>
             </div>
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
               {heUi.settings.defaultLessonDurationHint}
             </p>
           </div>
         </div>
 
-        <div className="mt-4">
-          <label htmlFor="settings-buffer" className={ui.label}>
+        <div className="mt-3 sm:mt-4">
+          <label htmlFor="settings-buffer" className={cn(ui.label, "text-xs sm:text-sm")}>
             {heUi.settings.lessonBuffer}
           </label>
-          <div className="relative max-w-xs">
+          <div className="relative max-w-full sm:max-w-xs">
             <input
               id="settings-buffer"
               type="number"
@@ -238,31 +238,31 @@ export function SettingsPanel({
                     : d.lessonBufferMinutes,
                 }));
               }}
-              className={ui.input}
+              className={cn(ui.input, "text-xs sm:text-sm")}
             />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 sm:text-sm">
               {"דק'"}
             </span>
           </div>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.settings.lessonBufferHint}
           </p>
         </div>
       </div>
 
       {/* Working Hours & Booking Section */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800 sm:p-6">
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:mb-4 sm:text-lg">
           שעות עבודה והזמנות
         </h2>
         
-        <div className="space-y-4">
-          <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-4">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3 dark:border-emerald-900 dark:bg-emerald-950/20 sm:p-4">
             <label
               htmlFor="settings-booking-enabled"
               className="mb-2 flex items-center justify-between"
             >
-              <span className="text-sm font-medium text-neutral-800">
+              <span className="text-xs font-medium text-neutral-800 dark:text-neutral-200 sm:text-sm">
                 {heUi.settings.bookingEnabled}
               </span>
               <input
@@ -273,14 +273,14 @@ export function SettingsPanel({
                 className="size-5 rounded border-neutral-300 text-emerald-600 focus:ring-emerald-500"
               />
             </label>
-            <p className="text-xs text-neutral-600">{heUi.settings.bookingHint}</p>
+            <p className="text-[10px] text-neutral-600 dark:text-neutral-400 sm:text-xs">{heUi.settings.bookingHint}</p>
           </div>
 
           <div>
-            <p className={ui.label}>{heUi.settings.workingHours}</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <p className={cn(ui.label, "text-xs sm:text-sm")}>{heUi.settings.workingHours}</p>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="settings-working-start" className="mb-1 block text-sm text-neutral-700">
+                <label htmlFor="settings-working-start" className="mb-1 block text-[11px] text-neutral-700 dark:text-neutral-300 sm:text-sm">
                   {heUi.settings.workingHoursStart}
                 </label>
                 <input
@@ -290,11 +290,11 @@ export function SettingsPanel({
                   onChange={(e) =>
                     setDraft((d) => ({ ...d, workingHoursStart: e.target.value }))
                   }
-                  className={ui.input}
+                  className={cn(ui.input, "text-xs sm:text-sm")}
                 />
               </div>
               <div>
-                <label htmlFor="settings-working-end" className="mb-1 block text-sm text-neutral-700">
+                <label htmlFor="settings-working-end" className="mb-1 block text-[11px] text-neutral-700 dark:text-neutral-300 sm:text-sm">
                   {heUi.settings.workingHoursEnd}
                 </label>
                 <input
@@ -304,23 +304,23 @@ export function SettingsPanel({
                   onChange={(e) =>
                     setDraft((d) => ({ ...d, workingHoursEnd: e.target.value }))
                   }
-                  className={ui.input}
+                  className={cn(ui.input, "text-xs sm:text-sm")}
                 />
               </div>
             </div>
-            <p className="mt-1 text-xs text-neutral-500">{heUi.settings.workingHoursHint}</p>
+            <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">{heUi.settings.workingHoursHint}</p>
           </div>
         </div>
       </div>
 
       {/* Reminder Template Section */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800 sm:p-6">
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:mb-4 sm:text-lg">
           תזכורות ללקוחות
         </h2>
         
         <div>
-          <label htmlFor="settings-template" className={ui.label}>
+          <label htmlFor="settings-template" className={cn(ui.label, "text-xs sm:text-sm")}>
             {heUi.settings.reminderTemplate}
           </label>
           <textarea
@@ -330,19 +330,19 @@ export function SettingsPanel({
               setDraft((d) => ({ ...d, reminderTemplate: e.target.value }))
             }
             rows={4}
-            className={cn(ui.input, "min-h-[6rem] resize-y font-mono text-sm")}
+            className={cn(ui.input, "min-h-[6rem] resize-y font-mono text-xs sm:text-sm")}
           />
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 sm:text-xs">
             {heUi.settings.reminderTemplateHint}
           </p>
           <div
-            className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-3"
+            className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-2.5 dark:border-emerald-900 dark:bg-emerald-950/20 sm:p-3"
             aria-live="polite"
           >
-            <p className="text-xs font-medium uppercase tracking-wide text-emerald-900/70">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-emerald-900/70 dark:text-emerald-400/70 sm:text-xs">
               {heUi.settings.reminderPreviewTitle}
             </p>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-neutral-900">
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-neutral-900 dark:text-neutral-100 sm:text-sm">
               {reminderPreview}
             </p>
           </div>
@@ -350,11 +350,11 @@ export function SettingsPanel({
       </div>
 
       {/* Save Button - Sticky on Mobile */}
-      <div className="sticky bottom-0 -mx-2 border-t border-neutral-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
+      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-30 -mx-2 border-t border-neutral-200 bg-white/95 px-2 pb-3 pt-3 backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/95 sm:static sm:bottom-0 sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
         <Button
           type="button"
           variant="primary"
-          className="w-full sm:w-auto"
+          className="w-full text-sm sm:w-auto"
           disabled={isSaving}
           aria-busy={isSaving}
           onClick={() => {

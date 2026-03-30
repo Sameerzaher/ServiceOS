@@ -195,6 +195,24 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
 
+    // Check blocked dates
+    const { data: blockedDates } = await supabase
+      .from("blocked_dates")
+      .select("blocked_date, is_recurring")
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId);
+
+    if (blockedDates && blockedDates.length > 0) {
+      const { isDateBlocked } = await import("@/features/booking/logic/publicBookingShared");
+      if (isDateBlocked(slotStart, blockedDates.map(b => ({ date: b.blocked_date, isRecurring: b.is_recurring })))) {
+        console.warn("[public-booking] Date is blocked:", slotStart);
+        return NextResponse.json(
+          { ok: false as const, error: "תאריך זה אינו זמין להזמנה" },
+          { status: 400 },
+        );
+      }
+    }
+
     const firstLoad = await loadAppointmentsForOverlap(
       supabase,
       businessId,

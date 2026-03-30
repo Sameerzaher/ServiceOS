@@ -112,52 +112,52 @@ export function ClientList({
                 "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-neutral-50",
             )}
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-              <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-semibold leading-tight text-neutral-900">
+                  <h3 className="text-base font-semibold leading-tight text-neutral-900 dark:text-neutral-100 sm:text-lg">
                     {client.fullName}
                   </h3>
                   <Link
                     href={`/clients/${client.id}`}
-                    className="text-sm font-medium text-neutral-700 underline-offset-2 hover:underline"
+                    className="text-xs font-medium text-neutral-700 underline-offset-2 hover:underline dark:text-neutral-300 sm:text-sm"
                   >
                     {heUi.list.profile}
                   </Link>
                 </div>
-                <p className="mt-1 text-sm text-neutral-600">
-                  <span className="font-medium text-neutral-700">
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">
+                  <span className="font-medium text-neutral-700 dark:text-neutral-300">
                     {heUi.forms.phonePrefix}
                   </span>
                   {client.phone.trim() ? (
                     <a
                       href={`tel:${client.phone.replace(/\s/g, "")}`}
-                      className="text-neutral-900 underline-offset-2 hover:underline"
+                      className="text-neutral-900 underline-offset-2 hover:underline dark:text-neutral-100"
                     >
                       {client.phone}
                     </a>
                   ) : (
-                    <span className="text-neutral-500">—</span>
+                    <span className="text-neutral-500 dark:text-neutral-500">—</span>
                   )}
                 </p>
                 {appointments && appointments.length > 0 ? (
-                  <p className="mt-2 text-sm text-neutral-800">
-                    <span className="font-semibold text-neutral-900">
+                  <p className="text-xs text-neutral-800 dark:text-neutral-200 sm:text-sm">
+                    <span className="font-semibold text-neutral-900 dark:text-neutral-100">
                       {heUi.clientCard.nextLesson}:{" "}
                     </span>
                     {next ? (
-                      <span className="text-neutral-800">
+                      <span className="text-neutral-800 dark:text-neutral-300">
                         {formatNextWhen(next.startAt)}
                       </span>
                     ) : (
-                      <span className="text-neutral-500">
+                      <span className="text-neutral-500 dark:text-neutral-500">
                         {heUi.clientCard.noUpcoming}
                       </span>
                     )}
                   </p>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2.5 sm:gap-2 sm:shrink-0">
+              <div className="flex flex-wrap gap-2 sm:shrink-0 sm:flex-col">
                 {onEdit ? (
                   <Button
                     type="button"
@@ -195,15 +195,15 @@ export function ClientList({
             </div>
 
             {preset.clientFields.length > 0 ? (
-              <dl className="mt-4 grid gap-3 border-t border-neutral-100 pt-4 sm:grid-cols-2 sm:gap-x-6">
+              <dl className="mt-3 grid gap-2 border-t border-neutral-100 pt-3 dark:border-neutral-700 sm:mt-4 sm:grid-cols-2 sm:gap-x-6 sm:pt-4">
                 {preset.clientFields.map((def) => {
                   const raw = client.customFields[def.key];
                   return (
                     <div key={def.key} className="min-w-0">
-                      <dt className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                      <dt className="text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400 sm:text-xs">
                         {def.label}
                       </dt>
-                      <dd className="mt-0.5 break-words text-sm text-neutral-900">
+                      <dd className="mt-0.5 break-words text-xs text-neutral-900 dark:text-neutral-100 sm:text-sm">
                         {formatCustomValue(def, raw)}
                       </dd>
                     </div>

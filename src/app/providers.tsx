@@ -4,14 +4,20 @@ import type { ReactNode } from "react";
 
 import { ToastProvider } from "@/components/ui";
 import { StorageProvider, StorageBootstrapNotifier } from "@/core/storage";
+import { ThemeProvider } from "@/features/theme/ThemeProvider";
+import { LocaleProvider } from "@/features/locale/LocaleProvider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider>
-      <StorageProvider>
-        <StorageBootstrapNotifier />
-        {children}
-      </StorageProvider>
-    </ToastProvider>
+    <LocaleProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <StorageProvider>
+            <StorageBootstrapNotifier />
+            {children}
+          </StorageProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }

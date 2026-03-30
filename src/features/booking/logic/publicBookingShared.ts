@@ -51,6 +51,27 @@ export function rangesOverlap(
   return aStartMs < bEndMs && bStartMs < aEndMs;
 }
 
+export function isDateBlocked(
+  slotStart: string,
+  blockedDates: Array<{ date: string; isRecurring: boolean }>,
+): boolean {
+  const slotDate = new Date(slotStart);
+  const slotDateStr = slotDate.toISOString().split("T")[0];
+
+  return blockedDates.some((block) => {
+    if (block.isRecurring) {
+      // Check month and day only (ignore year)
+      const blockDate = new Date(block.date);
+      return (
+        slotDate.getMonth() === blockDate.getMonth() &&
+        slotDate.getDate() === blockDate.getDate()
+      );
+    }
+    // Exact date match
+    return block.date === slotDateStr;
+  });
+}
+
 /**
  * Same overlap heuristic as the legacy client flow: use the requested slot
  * duration as the implied end for existing appointments when comparing windows.

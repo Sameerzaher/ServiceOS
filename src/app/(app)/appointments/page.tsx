@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import {
@@ -16,6 +16,7 @@ import {
 import { AppointmentFiltersBar } from "@/features/appointments/components/AppointmentFiltersBar";
 import { AppointmentForm } from "@/features/appointments/components/AppointmentForm";
 import { AppointmentList } from "@/features/appointments/components/AppointmentList";
+import { AppointmentCalendar } from "@/features/calendar/components/AppointmentCalendar";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import { cn } from "@/lib/cn";
 import { ONBOARDING_ANCHORS } from "@/features/onboarding/components/FirstRunOnboarding";
@@ -23,6 +24,7 @@ import { ONBOARDING_ANCHORS } from "@/features/onboarding/components/FirstRunOnb
 function AppointmentsPageContent() {
   const toast = useToast();
   const searchParams = useSearchParams();
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const {
     preset,
     settings,
@@ -39,6 +41,10 @@ function AppointmentsPageContent() {
     setPaymentFilter,
     appointmentSort,
     setAppointmentSort,
+    clientFilter,
+    setClientFilter,
+    customDateRange,
+    setCustomDateRange,
     filteredAppointments,
     editingAppointmentId,
     setEditingAppointmentId,
@@ -49,6 +55,7 @@ function AppointmentsPageContent() {
     handleApprovePublicBooking,
     handleApproveAndSendPublicBookingWhatsapp,
     handleRejectPublicBooking,
+    handleChangeAppointmentStatus,
     setConfirm,
     addAppointment,
     updateAppointment,
@@ -69,8 +76,8 @@ function AppointmentsPageContent() {
   return (
     <main className={ui.pageMain}>
       <header className={ui.header}>
-        <h1 className={ui.pageTitle}>{displayTitle}</h1>
-        <p className={ui.pageSubtitle}>{preset.labels.lessons}</p>
+        <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 sm:text-2xl">{displayTitle}</h1>
+        <p className="text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">{preset.labels.lessons}</p>
       </header>
 
       <div className={ui.pageStack}>
@@ -96,7 +103,7 @@ function AppointmentsPageContent() {
               "scroll-mt-6 rounded-xl ring-2 ring-amber-400/90 ring-offset-2 ring-offset-neutral-50",
           )}
         >
-          <h2 className={ui.sectionHeading}>
+          <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg">
             {editingAppointmentId
               ? heUi.forms.editLesson
               : preset.labels.addLesson}
@@ -134,9 +141,47 @@ function AppointmentsPageContent() {
         </section>
 
         <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>{preset.labels.lessons}</h2>
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg">{preset.labels.lessons}</h2>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "flex-1 rounded-lg px-3 py-2 text-xs font-medium transition sm:flex-none sm:px-4 sm:text-sm",
+                  viewMode === "list"
+                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                    : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                )}
+              >
+                📋 רשימה
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                className={cn(
+                  "flex-1 rounded-lg px-3 py-2 text-xs font-medium transition sm:flex-none sm:px-4 sm:text-sm",
+                  viewMode === "calendar"
+                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                    : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                )}
+              >
+                📅 לוח שנה
+              </button>
+            </div>
+          </div>
           {!appointmentsReady ? (
             <InlineLoading className="py-2" />
+          ) : viewMode === "calendar" ? (
+            <AppointmentCalendar
+              appointments={filteredAppointments}
+              clients={sortedClients}
+              onSelectEvent={(id) => setEditingAppointmentId(id)}
+              onSelectSlot={(start, end) => {
+                setEditingAppointmentId(null);
+                setAppointmentPrefillClientId(null);
+              }}
+            />
           ) : (
             <>
               <AppointmentFiltersBar
@@ -146,7 +191,12 @@ function AppointmentsPageContent() {
                 onPaymentFilterChange={setPaymentFilter}
                 sort={appointmentSort}
                 onSortChange={setAppointmentSort}
-                className="mb-4"
+                clientFilter={clientFilter}
+                onClientFilterChange={setClientFilter}
+                clients={sortedClients}
+                customDateRange={customDateRange}
+                onCustomDateRangeChange={setCustomDateRange}
+                className="mb-3 sm:mb-4"
               />
               <AppointmentList
                 appointments={filteredAppointments}
@@ -165,6 +215,7 @@ function AppointmentsPageContent() {
                 onApproveRequest={handleApprovePublicBooking}
                 onApproveAndSendWhatsapp={handleApproveAndSendPublicBookingWhatsapp}
                 onRejectRequest={handleRejectPublicBooking}
+                onChangeStatus={handleChangeAppointmentStatus}
               />
             </>
           )}

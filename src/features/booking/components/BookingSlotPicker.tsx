@@ -3,6 +3,7 @@
 import { heUi } from "@/config";
 import { EmptyState, ui } from "@/components/ui";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
+import { cn } from "@/lib/cn";
 
 export interface BookingSlotPickerProps {
   availableSlots: readonly AvailableSlot[];

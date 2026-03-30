@@ -12,6 +12,7 @@ import { generateAvailableSlots } from "@/features/booking/utils/generateAvailab
 import type { AvailabilitySettings } from "@/core/types/availability";
 import type { BusinessType } from "@/core/types/teacher";
 import { getVerticalPreset } from "@/config/verticals/registry";
+import { cn } from "@/lib/cn";
 
 function todayLocalYmd(): string {
   const d = new Date();

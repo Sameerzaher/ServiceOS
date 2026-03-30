@@ -9,6 +9,7 @@ import { getTomorrowAppointments, isLocalCalendarDay } from "@/core/reminders";
 import { PaymentStatus, type AppointmentRecord } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
 import { RemindersPanel } from "@/features/dashboard/components/RemindersPanel";
+import { cn } from "@/lib/cn";
 
 export interface HomeQuickDashboardProps {
   appointments: AppointmentRecord[];

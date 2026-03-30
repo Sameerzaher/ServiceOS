@@ -56,7 +56,7 @@ export default function HelpPage() {
             <div className="mx-auto mb-12 max-w-2xl">
               <input
                 type="text"
-                placeholder="חפשו כאן... (לדוגמא: 'איך מוסיפים לקוח')"
+                placeholder="חפשו כאן... (לדוגמא: &apos;איך מוסיפים לקוח&apos;)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={ui.input + " text-lg"}

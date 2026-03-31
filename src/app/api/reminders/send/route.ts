@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -27,11 +26,12 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
     const now = new Date();
+    const url = new URL(req.url);
+    const businessIdFilter = url.searchParams.get("businessId")?.trim() ?? "";
 
     // Fetch pending reminders that are due
-    const { data: reminders, error: remindersError } = await supabase
+    let remindersQuery = supabase
       .from("appointment_reminders")
       .select(`
         *,
@@ -42,10 +42,15 @@ export async function GET(req: Request): Promise<NextResponse> {
           status
         )
       `)
-      .eq("business_id", businessId)
       .eq("status", "pending")
       .lte("scheduled_for", now.toISOString())
       .limit(50);
+
+    if (businessIdFilter) {
+      remindersQuery = remindersQuery.eq("business_id", businessIdFilter);
+    }
+
+    const { data: reminders, error: remindersError } = await remindersQuery;
 
     if (remindersError) {
       console.error("[reminders/send] Fetch error:", remindersError);
@@ -80,6 +85,7 @@ export async function GET(req: Request): Promise<NextResponse> {
           .from("clients")
           .select("full_name, phone")
           .eq("id", appt.client_id)
+          .eq("business_id", reminder.business_id)
           .single();
 
         if (!client || !client.phone) {
@@ -99,12 +105,14 @@ export async function GET(req: Request): Promise<NextResponse> {
         const { data: settings } = await supabase
           .from("booking_settings")
           .select("reminder_custom_message")
+          .eq("business_id", reminder.business_id)
           .eq("teacher_id", reminder.teacher_id)
           .single();
 
         const { data: appSettings } = await supabase
           .from("app_settings")
           .select("business_name, business_phone")
+          .eq("business_id", reminder.business_id)
           .eq("teacher_id", reminder.teacher_id)
           .single();
 

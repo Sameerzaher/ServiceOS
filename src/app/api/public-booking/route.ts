@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 
 import {
   getSupabaseAppointmentsTable,
-  getSupabaseBusinessId,
   getSupabaseClientsTable,
 } from "@/core/config/supabaseEnv";
 import { loadPublicBookingGate } from "@/core/repositories/supabase/bookingSettingsRepository";
@@ -80,6 +79,27 @@ const HE_ERR_UNAVAILABLE = heUi.publicBooking.errUnavailable;
 const HE_ERR_CONFLICT = heUi.publicBooking.errSlotTaken;
 const HE_ERR_SLOT_HORIZON = heUi.publicBooking.errDateNotInRange;
 
+async function loadTeacherBusinessId(
+  supabase: ReturnType<typeof getSupabaseAdminClient>,
+  teacherId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("teachers")
+    .select("business_id")
+    .eq("id", teacherId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[public-booking] Load teacher business_id error:", error);
+    return null;
+  }
+  const businessId =
+    data && typeof data === "object"
+      ? (data as { business_id?: string | null }).business_id ?? null
+      : null;
+  return typeof businessId === "string" && businessId.trim() ? businessId.trim() : null;
+}
+
 async function loadAppointmentsForOverlap(
   supabase: ReturnType<typeof getSupabaseAdminClient>,
   businessId: string,
@@ -147,12 +167,10 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const { fullName, phone, notes, slotStart, slotEnd, bookingCustomFields } =
     parsed.data;
-  const businessId = getSupabaseBusinessId();
   const teacherId = resolveTeacherIdFromRequest(req, raw);
   
   console.log("[public-booking] Parsed booking:", { 
     teacherId, 
-    businessId, 
     fullName, 
     phone, 
     slotStart, 
@@ -167,6 +185,14 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
+    const businessId = await loadTeacherBusinessId(supabase, teacherId);
+    if (!businessId) {
+      console.error("[public-booking] Could not resolve business_id for teacher:", teacherId);
+      return NextResponse.json(
+        { ok: false as const, error: HE_ERR_GENERIC },
+        { status: 500 },
+      );
+    }
 
     const gate = await loadPublicBookingGate(supabase, businessId, teacherId);
     if (!gate.ok) {

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
 import { loadAppSettings } from "@/core/repositories/supabase/appSettingsRepository";
 import { loadBookingSettings } from "@/core/repositories/supabase/bookingSettingsRepository";
 import { teacherFromRow, type TeacherRow } from "@/core/storage/supabase/mappers";
@@ -74,14 +73,13 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-
-    console.log("[public-booking/bootstrap] Searching for teacher:", { businessId, slug: normalizedSlug });
+    console.log("[public-booking/bootstrap] Searching for teacher by slug:", {
+      slug: normalizedSlug,
+    });
 
     let teacherRes = await supabase
       .from("teachers")
       .select("*")
-      .eq("business_id", businessId)
       .eq("slug", normalizedSlug)
       .maybeSingle();
     if (!teacherRes.data && !teacherRes.error && isUuidLike(normalizedSlug)) {
@@ -89,7 +87,6 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       teacherRes = await supabase
         .from("teachers")
         .select("*")
-        .eq("business_id", businessId)
         .eq("id", normalizedSlug)
         .maybeSingle();
     }
@@ -112,15 +109,18 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
         return jsonErr(heUi.publicBooking.invalidSlugMessage, 404);
       }
 
+      const legacyBusinessId = (row as unknown as { business_id?: string | null } | null)
+        ?.business_id?.toString?.() ?? "";
+
       // Legacy single-teacher fallback
       const legacySettings = await loadAppSettings(
         supabase,
-        businessId,
+        legacyBusinessId,
         normalizedSlug,
       );
       const availability = await loadBookingSettings(
         supabase,
-        businessId,
+        legacyBusinessId,
         normalizedSlug,
       );
       
@@ -140,11 +140,28 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       });
     }
 
-    console.log("[public-booking/bootstrap] Teacher found:", { id: teacher.id, slug: teacher.slug, businessName: teacher.businessName });
+    const teacherBusinessId =
+      (row as unknown as { business_id?: string | null })?.business_id?.toString?.() ??
+      "";
+
+    if (!teacherBusinessId) {
+      console.error("[public-booking/bootstrap] Missing business_id for teacher:", {
+        teacherId: teacher.id,
+        slug: teacher.slug,
+      });
+      return jsonErr(heUi.publicBooking.errServerGeneric, 500);
+    }
+
+    console.log("[public-booking/bootstrap] Teacher found:", {
+      id: teacher.id,
+      slug: teacher.slug,
+      businessName: teacher.businessName,
+      businessId: teacherBusinessId,
+    });
 
     const availability = await loadBookingSettings(
       supabase,
-      businessId,
+      teacherBusinessId,
       teacher.id,
     );
 

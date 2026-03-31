@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
-import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -28,8 +26,6 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req);
 
     // Validate session
     const sessionValidation = await validateSession(req);
@@ -38,6 +34,16 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json(
         { ok: false, error: "לא מאומת" },
         { status: 401 }
+      );
+    }
+
+    const teacherId = sessionValidation.teacherId ?? "";
+    const businessId = sessionValidation.businessId ?? "";
+    if (!teacherId || !businessId) {
+      console.error("[reminders/schedule] Missing session scope:", sessionValidation);
+      return NextResponse.json(
+        { ok: false, error: "שגיאת הרשאות" },
+        { status: 403 },
       );
     }
 

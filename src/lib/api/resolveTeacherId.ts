@@ -51,3 +51,17 @@ export function resolveTeacherIdFromRequest(req: Request, body?: unknown): strin
   console.log("[resolveTeacherId] Using fallback default:", teacherId);
   return teacherId;
 }
+
+/**
+ * Tenant scope for dashboard APIs: admins may use `x-teacher-id` / query; others use the logged-in teacher.
+ */
+export function resolveTeacherScopeFromSession(
+  req: Request,
+  sessionTeacherId: string,
+  role: string | undefined,
+): string {
+  if (role === "admin") {
+    return resolveTeacherIdFromRequest(req);
+  }
+  return sessionTeacherId;
+}

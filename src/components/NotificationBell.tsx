@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { mergeTeacherScopeHeaders } from "@/lib/api/teacherScopeHeaders";
 import { useDashboardTeacherId } from "@/features/app/DashboardTeacherContext";
 
 type Notification = {
@@ -48,7 +49,9 @@ export function NotificationBell() {
 
   async function loadNotifications() {
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch("/api/notifications", {
+        headers: mergeTeacherScopeHeaders(teacherId),
+      });
       if (!res.ok) return;
       
       const data = await res.json();
@@ -96,7 +99,9 @@ export function NotificationBell() {
       setIsLoading(true);
       const res = await fetch("/api/notifications", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: mergeTeacherScopeHeaders(teacherId, {
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify({ notificationIds }),
       });
       
@@ -115,7 +120,9 @@ export function NotificationBell() {
       setIsLoading(true);
       const res = await fetch("/api/notifications", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: mergeTeacherScopeHeaders(teacherId, {
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify({ notificationIds: [] }),
       });
       

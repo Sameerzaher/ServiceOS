@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
+import { isMissingRelationError } from "@/core/repositories/supabase/postgrestErrors";
+import { resolveTeacherScopeFromSession } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/adminClient";
+import { validateSession } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const HE_ERR_UNAVAILABLE = "שירות הנוטיפיקציות אינו זמין כרגע.";
 const HE_ERR_GENERIC = "אירעה שגיאה.";
+const HE_ERR_DB_NOT_READY =
+  "טבלת התראות לא קיימת במסד. הריצו ב-Supabase את הקובץ supabase/CREATE-NOTIFICATIONS-TABLE.sql (או צרו טבלת notifications).";
 
 export type Notification = {
   id: string;
@@ -24,7 +29,7 @@ export type Notification = {
   createdAt: string;
 };
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: Request): Promise<NextResponse> {
   console.log("[notifications/get] Loading notifications");
   
   if (!isSupabaseAdminConfigured()) {
@@ -34,38 +39,24 @@ export async function GET(): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    
-    // Get current authenticated teacher from session
-    const { cookies } = await import("next/headers");
-    const sessionToken = cookies().get("session_token")?.value;
-    
-    if (!sessionToken) {
-      console.error("[notifications/get] No session token - unauthorized");
+
+    const sessionValidation = await validateSession(req);
+    if (!sessionValidation.ok) {
+      console.error("[notifications/get] Invalid session:", sessionValidation.error);
       return NextResponse.json(
         { ok: false as const, error: "נדרשת התחברות" },
         { status: 401 }
       );
     }
-    
-    // Validate session and get teacher
-    const { data: session } = await supabase
-      .from("sessions")
-      .select("teacher_id")
-      .eq("token", sessionToken)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
-    
-    if (!session) {
-      console.error("[notifications/get] Invalid or expired session");
-      return NextResponse.json(
-        { ok: false as const, error: "נדרשת התחברות" },
-        { status: 401 }
-      );
-    }
-    
-    const teacherId = session.teacher_id;
-    
+
+    const businessId =
+      sessionValidation.businessId?.trim() || getSupabaseBusinessId();
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId!,
+      sessionValidation.role,
+    );
+
     console.log("[notifications/get] Loading for teacher:", teacherId);
     
     // Get notifications for this teacher
@@ -113,38 +104,24 @@ export async function PUT(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    
-    // Get current authenticated teacher from session
-    const { cookies } = await import("next/headers");
-    const sessionToken = cookies().get("session_token")?.value;
-    
-    if (!sessionToken) {
-      console.error("[notifications/put] No session token - unauthorized");
+
+    const sessionValidation = await validateSession(req);
+    if (!sessionValidation.ok) {
+      console.error("[notifications/put] Invalid session:", sessionValidation.error);
       return NextResponse.json(
         { ok: false as const, error: "נדרשת התחברות" },
         { status: 401 }
       );
     }
-    
-    // Validate session and get teacher
-    const { data: session } = await supabase
-      .from("sessions")
-      .select("teacher_id")
-      .eq("token", sessionToken)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
-    
-    if (!session) {
-      console.error("[notifications/put] Invalid or expired session");
-      return NextResponse.json(
-        { ok: false as const, error: "נדרשת התחברות" },
-        { status: 401 }
-      );
-    }
-    
-    const teacherId = session.teacher_id;
-    
+
+    const businessId =
+      sessionValidation.businessId?.trim() || getSupabaseBusinessId();
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId!,
+      sessionValidation.role,
+    );
+
     const body = await req.json();
     const { notificationIds } = body as { notificationIds?: string[] };
     
@@ -164,6 +141,12 @@ export async function PUT(req: Request): Promise<NextResponse> {
 
       if (error) {
         console.error("[notifications/put] Database error:", error);
+        if (isMissingRelationError(error)) {
+          return NextResponse.json(
+            { ok: false as const, error: HE_ERR_DB_NOT_READY },
+            { status: 503 }
+          );
+        }
         return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
       }
 
@@ -186,6 +169,12 @@ export async function PUT(req: Request): Promise<NextResponse> {
 
     if (error) {
       console.error("[notifications/put] Database error:", error);
+      if (isMissingRelationError(error)) {
+        return NextResponse.json(
+          { ok: false as const, error: HE_ERR_DB_NOT_READY },
+          { status: 503 }
+        );
+      }
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
 

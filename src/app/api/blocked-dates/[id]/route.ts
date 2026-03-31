@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
-import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
+import { isMissingRelationError } from "@/core/repositories/supabase/postgrestErrors";
+import { resolveTeacherScopeFromSession } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/adminClient";
 import { validateSession } from "@/lib/auth/session";
+
+const HE_ERR_DB_NOT_READY =
+  "טבלת תאריכים חסומים לא קיימת במסד. הריצו ב-Supabase את הקובץ supabase/CREATE-BLOCKED-DATES-TABLE.sql.";
 
 export const runtime = "nodejs";
 
@@ -37,8 +41,6 @@ export async function DELETE(
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req);
 
     const sessionValidation = await validateSession(req);
     if (!sessionValidation.ok) {
@@ -47,6 +49,14 @@ export async function DELETE(
         { status: 401 }
       );
     }
+
+    const businessId =
+      sessionValidation.businessId?.trim() || getSupabaseBusinessId();
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId!,
+      sessionValidation.role,
+    );
 
     const { error } = await supabase
       .from("blocked_dates")
@@ -57,6 +67,12 @@ export async function DELETE(
 
     if (error) {
       console.error("[blocked-dates/delete] Error:", error);
+      if (isMissingRelationError(error)) {
+        return NextResponse.json(
+          { ok: false, error: HE_ERR_DB_NOT_READY },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         { ok: false, error: "שגיאה במחיקת חסימה" },
         { status: 500 }

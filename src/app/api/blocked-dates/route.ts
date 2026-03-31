@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
-import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
+import { isMissingRelationError } from "@/core/repositories/supabase/postgrestErrors";
+import {
+  resolveTeacherScopeFromSession,
+} from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/adminClient";
 import { validateSession } from "@/lib/auth/session";
+
+const HE_ERR_DB_NOT_READY =
+  "טבלת תאריכים חסומים לא קיימת במסד. הריצו ב-Supabase את הקובץ supabase/CREATE-BLOCKED-DATES-TABLE.sql (או צרו טבלת blocked_dates).";
 
 export const runtime = "nodejs";
 
@@ -26,8 +32,6 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req);
 
     const sessionValidation = await validateSession(req);
     if (!sessionValidation.ok) {
@@ -36,6 +40,14 @@ export async function GET(req: Request): Promise<NextResponse> {
         { status: 401 }
       );
     }
+
+    const businessId =
+      sessionValidation.businessId?.trim() || getSupabaseBusinessId();
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId!,
+      sessionValidation.role,
+    );
 
     const { data, error } = await supabase
       .from("blocked_dates")
@@ -46,6 +58,12 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     if (error) {
       console.error("[blocked-dates/get] Error:", error);
+      if (isMissingRelationError(error)) {
+        return NextResponse.json(
+          { ok: false, error: HE_ERR_DB_NOT_READY },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         { ok: false, error: "שגיאה בטעינת תאריכים חסומים" },
         { status: 500 }
@@ -88,8 +106,6 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req);
 
     const sessionValidation = await validateSession(req);
     if (!sessionValidation.ok) {
@@ -98,6 +114,14 @@ export async function POST(req: Request): Promise<NextResponse> {
         { status: 401 }
       );
     }
+
+    const businessId =
+      sessionValidation.businessId?.trim() || getSupabaseBusinessId();
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId!,
+      sessionValidation.role,
+    );
 
     const body = await req.json();
     const { date, reason, isRecurring } = body;
@@ -127,6 +151,12 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     if (error) {
       console.error("[blocked-dates/post] Error:", error);
+      if (isMissingRelationError(error)) {
+        return NextResponse.json(
+          { ok: false, error: HE_ERR_DB_NOT_READY },
+          { status: 503 }
+        );
+      }
       if (error.code === "23505") {
         return NextResponse.json(
           { ok: false, error: "תאריך זה כבר חסום" },

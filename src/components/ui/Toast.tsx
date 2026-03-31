@@ -72,13 +72,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role="status"
             className={cn(
-              "pointer-events-auto w-full max-w-md rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg shadow-black/10 sm:text-base",
+              "pointer-events-auto w-full max-w-md rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg shadow-black/10 sm:text-base dark:shadow-black/40",
               t.variant === "success" &&
-                "border-emerald-200 bg-emerald-50 text-emerald-950",
+                "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-800/80 dark:bg-emerald-950/80 dark:text-emerald-100",
               t.variant === "error" &&
-                "border-red-200 bg-red-50 text-red-950",
+                "border-red-200 bg-red-50 text-red-950 dark:border-red-900/70 dark:bg-red-950/70 dark:text-red-100",
               t.variant === "info" &&
-                "border-neutral-200 bg-white text-neutral-900",
+                "border-neutral-200 bg-white text-neutral-900 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100",
             )}
           >
             {t.message}

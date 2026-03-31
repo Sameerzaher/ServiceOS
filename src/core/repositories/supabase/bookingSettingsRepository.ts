@@ -16,6 +16,10 @@ function mapRowToPartial(row: Record<string, unknown>) {
     weeklyAvailability: row.weekly_availability,
     slotDurationMinutes: row.slot_duration_minutes,
     daysAhead: row.days_ahead,
+    enableAutoReminders: row.enable_auto_reminders,
+    reminder24hBefore: row.reminder_24h_before,
+    reminder1hBefore: row.reminder_1h_before,
+    reminderCustomMessage: row.reminder_custom_message,
   };
 }
 
@@ -79,6 +83,11 @@ export async function persistBookingSettings(
     weekly_availability: settings.weeklyAvailability,
     slot_duration_minutes: settings.slotDurationMinutes,
     days_ahead: settings.daysAhead,
+    enable_auto_reminders: settings.enableAutoReminders ?? false,
+    reminder_24h_before: settings.reminder24hBefore ?? true,
+    reminder_1h_before: settings.reminder1hBefore ?? true,
+    reminder_custom_message:
+      settings.reminderCustomMessage?.trim() || null,
     updated_at: new Date().toISOString(),
   };
   const { error } = await supabase.from("booking_settings").upsert(row, {

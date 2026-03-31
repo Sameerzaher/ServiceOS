@@ -174,6 +174,22 @@ export function normalizeAvailabilitySettings(raw: unknown): AvailabilitySetting
       friday: normalizeDayAvailability(weeklyRaw.friday, defaults.friday),
       saturday: normalizeDayAvailability(weeklyRaw.saturday, defaults.saturday),
     },
+    enableAutoReminders:
+      typeof raw.enableAutoReminders === "boolean"
+        ? raw.enableAutoReminders
+        : DEFAULT_AVAILABILITY_SETTINGS.enableAutoReminders,
+    reminder24hBefore:
+      typeof raw.reminder24hBefore === "boolean"
+        ? raw.reminder24hBefore
+        : DEFAULT_AVAILABILITY_SETTINGS.reminder24hBefore,
+    reminder1hBefore:
+      typeof raw.reminder1hBefore === "boolean"
+        ? raw.reminder1hBefore
+        : DEFAULT_AVAILABILITY_SETTINGS.reminder1hBefore,
+    reminderCustomMessage:
+      typeof raw.reminderCustomMessage === "string"
+        ? raw.reminderCustomMessage
+        : (DEFAULT_AVAILABILITY_SETTINGS.reminderCustomMessage ?? ""),
   };
 }
 

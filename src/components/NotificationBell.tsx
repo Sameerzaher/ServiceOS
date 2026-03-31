@@ -157,8 +157,8 @@ export function NotificationBell() {
         className={cn(
           "relative inline-flex items-center justify-center rounded-lg p-2 transition-colors",
           unreadCount > 0
-            ? "text-emerald-600 hover:bg-emerald-50"
-            : "text-neutral-600 hover:bg-neutral-100"
+            ? "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+            : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800",
         )}
         title={unreadCount > 0 ? `${unreadCount} הודעות חדשות` : "הודעות"}
       >
@@ -176,15 +176,17 @@ export function NotificationBell() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-neutral-200 bg-white shadow-lg">
-            <div className="flex items-center justify-between border-b border-neutral-200 p-3">
-              <h3 className="font-semibold text-neutral-900">הודעות</h3>
+          <div className="absolute end-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-neutral-950/60">
+            <div className="flex items-center justify-between border-b border-neutral-200 p-3 dark:border-neutral-700">
+              <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
+                הודעות
+              </h3>
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={markAllAsRead}
                   disabled={isLoading}
-                  className="text-xs text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
+                  className="text-xs text-emerald-600 hover:text-emerald-700 disabled:opacity-50 dark:text-emerald-400 dark:hover:text-emerald-300"
                 >
                   סמן הכל כנקרא
                 </button>
@@ -193,7 +195,7 @@ export function NotificationBell() {
 
             <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-8 text-center text-sm text-neutral-500">
+                <div className="p-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
                   אין הודעות חדשות
                 </div>
               ) : (
@@ -203,8 +205,9 @@ export function NotificationBell() {
                     type="button"
                     onClick={() => handleNotificationClick(notif)}
                     className={cn(
-                      "w-full border-b border-neutral-100 p-3 text-right transition-colors hover:bg-neutral-50",
-                      !notif.isRead && "bg-emerald-50/50"
+                      "w-full border-b border-neutral-100 p-3 text-right transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/80",
+                      !notif.isRead &&
+                        "bg-emerald-50/50 dark:bg-emerald-950/35",
                     )}
                   >
                     <div className="flex items-start gap-2">
@@ -212,18 +215,22 @@ export function NotificationBell() {
                         {notif.type === "new_booking" ? "📅" : "ℹ️"}
                       </span>
                       <div className="flex-1">
-                        <p className={cn(
-                          "text-sm",
-                          !notif.isRead ? "font-semibold text-neutral-900" : "text-neutral-700"
-                        )}>
+                        <p
+                          className={cn(
+                            "text-sm",
+                            !notif.isRead
+                              ? "font-semibold text-neutral-900 dark:text-neutral-100"
+                              : "text-neutral-700 dark:text-neutral-300",
+                          )}
+                        >
                           {notif.title}
                         </p>
                         {notif.message && (
-                          <p className="mt-1 text-xs text-neutral-600">
+                          <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
                             {notif.message}
                           </p>
                         )}
-                        <p className="mt-1 text-[10px] text-neutral-400">
+                        <p className="mt-1 text-[10px] text-neutral-400 dark:text-neutral-500">
                           {new Date(notif.createdAt).toLocaleString("he-IL", {
                             dateStyle: "short",
                             timeStyle: "short",

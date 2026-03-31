@@ -51,13 +51,13 @@ function TeacherScopeSelect() {
     <div className="flex min-w-0 flex-col gap-0.5">
       <label
         htmlFor="dashboard-teacher-scope"
-        className="text-[10px] font-medium text-neutral-500 sm:text-xs"
+        className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400 sm:text-xs"
       >
         {heUi.nav.teacherContext}
       </label>
       <select
         id="dashboard-teacher-scope"
-        className="max-w-[10rem] truncate rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-900 shadow-sm transition-colors hover:border-neutral-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 sm:max-w-[14rem] sm:text-sm"
+        className="max-w-[10rem] truncate rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-900 shadow-sm transition-colors hover:border-neutral-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:border-neutral-500 sm:max-w-[14rem] sm:text-sm"
         dir="ltr"
         value={ctx.teacherId}
         onChange={(e) => {
@@ -129,9 +129,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const linkActive =
-    "bg-neutral-100 font-semibold text-neutral-900";
+    "bg-neutral-100 font-semibold text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100";
   const linkInactive =
-    "font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
+    "font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100";
 
   // Filter nav items based on role
   const visibleNavItems = NAV_ITEMS.filter(item => {
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
         <nav className="mx-auto max-w-5xl" aria-label="ניווט ראשי">
-          <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
+          <div className="flex items-center justify-between gap-1.5 px-2 py-2 sm:gap-4 sm:px-6 sm:py-3">
             <Link
               href="/"
               className="flex min-h-[2.5rem] shrink-0 items-center gap-1.5 py-1 text-base font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 sm:gap-2 sm:text-lg"
@@ -172,8 +172,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               })}
             </div>
             
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="hidden sm:flex items-center gap-1.5">
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:flex-initial sm:justify-start sm:gap-2">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
                 <LocaleToggle />
                 <ThemeToggle />
               </div>

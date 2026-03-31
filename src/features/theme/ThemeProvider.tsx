@@ -25,23 +25,34 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    
-    let resolved: "light" | "dark";
-    if (theme === "system") {
-      resolved = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-    } else {
-      resolved = theme;
-    }
 
-    setResolvedTheme(resolved);
-    
-    if (resolved === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    const applyResolved = (): void => {
+      let resolved: "light" | "dark";
+      if (theme === "system") {
+        resolved = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      } else {
+        resolved = theme;
+      }
+
+      setResolvedTheme(resolved);
+
+      if (resolved === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    };
+
+    applyResolved();
+
+    if (theme !== "system") return;
+
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (): void => applyResolved();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, [theme]);
 
   const setTheme = (newTheme: Theme) => {

@@ -76,6 +76,38 @@ export async function loadAppSettings(
   return DEFAULT_APP_SETTINGS;
 }
 
+/**
+ * Same as {@link loadAppSettings} but never throws — uses {@link DEFAULT_APP_SETTINGS}
+ * when scope is empty, tables are missing, or PostgREST errors occur.
+ */
+export async function loadAppSettingsOrDefault(
+  supabase: SupabaseClient,
+  businessId: string,
+  teacherId: string,
+  logContext?: string,
+): Promise<AppSettings> {
+  const bid = typeof businessId === "string" ? businessId.trim() : "";
+  const tid = typeof teacherId === "string" ? teacherId.trim() : "";
+  if (!bid || !tid) {
+    console.warn(
+      "[ServiceOS] loadAppSettingsOrDefault: missing scope",
+      logContext ?? "",
+      { businessId: bid, teacherId: tid },
+    );
+    return { ...DEFAULT_APP_SETTINGS, teacherId: tid || DEFAULT_APP_SETTINGS.teacherId };
+  }
+  try {
+    return await loadAppSettings(supabase, bid, tid);
+  } catch (e) {
+    console.error(
+      "[ServiceOS] loadAppSettingsOrDefault failed; using defaults",
+      logContext ?? "",
+      e,
+    );
+    return { ...DEFAULT_APP_SETTINGS, teacherId: tid };
+  }
+}
+
 export async function persistAppSettings(
   supabase: SupabaseClient,
   businessId: string,

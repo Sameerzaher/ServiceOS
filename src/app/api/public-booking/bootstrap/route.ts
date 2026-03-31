@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
-import { loadAppSettings } from "@/core/repositories/supabase/appSettingsRepository";
+import {
+  loadAppSettingsOrDefault,
+} from "@/core/repositories/supabase/appSettingsRepository";
 import { loadBookingSettingsOrDefault } from "@/core/repositories/supabase/bookingSettingsRepository";
 import { teacherFromRow, type TeacherRow } from "@/core/storage/supabase/mappers";
-import {
-  DEFAULT_APP_SETTINGS,
-  type AppSettings,
-} from "@/core/types/settings";
 import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
 import type { AvailabilitySettings } from "@/core/types/availability";
 import {
@@ -130,19 +128,20 @@ async function loadLegacyBootstrap(
   teacherIdForScope: string,
   slugForDisplay: string,
 ): Promise<{ teacher: BootstrapTeacher; availability: AvailabilitySettings }> {
-  let legacySettings: AppSettings;
-  try {
-    legacySettings = await loadAppSettings(supabase, businessId, teacherIdForScope);
-  } catch (e) {
-    console.error(
-      "[public-booking/bootstrap] loadAppSettings failed; using DEFAULT_APP_SETTINGS",
-      e,
-    );
-    legacySettings = {
-      ...DEFAULT_APP_SETTINGS,
-      teacherId: teacherIdForScope,
-    };
-  }
+  console.log("[public-booking/bootstrap] Step=legacy_load_app_settings", {
+    businessId,
+    teacherId: teacherIdForScope,
+  });
+  const legacySettings = await loadAppSettingsOrDefault(
+    supabase,
+    businessId,
+    teacherIdForScope,
+    "legacy-bootstrap",
+  );
+  console.log("[public-booking/bootstrap] Step=legacy_app_settings_result", {
+    hasBusinessName: legacySettings.businessName.trim().length > 0,
+    activePreset: legacySettings.activePreset,
+  });
 
   const availability = await loadBookingSettingsOrDefault(
     supabase,
@@ -150,6 +149,10 @@ async function loadLegacyBootstrap(
     teacherIdForScope,
     "legacy-bootstrap",
   );
+  console.log("[public-booking/bootstrap] Step=legacy_booking_settings_result", {
+    bookingEnabled: availability.bookingEnabled,
+    daysAhead: availability.daysAhead,
+  });
 
   return {
     teacher: {
@@ -262,6 +265,22 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       );
     }
 
+    console.log("[public-booking/bootstrap] Step=load_app_settings", {
+      teacherId: teacher.id,
+      businessId: teacherBusinessId,
+    });
+    const appSettings = await loadAppSettingsOrDefault(
+      supabase,
+      teacherBusinessId,
+      teacher.id,
+      "bootstrap",
+    );
+    console.log("[public-booking/bootstrap] Step=app_settings_result", {
+      hasBusinessName: appSettings.businessName.trim().length > 0,
+      hasTeacherName: appSettings.teacherName.trim().length > 0,
+      activePreset: appSettings.activePreset,
+    });
+
     console.log("[public-booking/bootstrap] Step=load_booking_settings", {
       teacherId: teacher.id,
       businessId: teacherBusinessId,
@@ -273,6 +292,25 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       teacher.id,
       "bootstrap",
     );
+    console.log("[public-booking/bootstrap] Step=booking_settings_result", {
+      bookingEnabled: availability.bookingEnabled,
+      daysAhead: availability.daysAhead,
+      slotDurationMinutes: availability.slotDurationMinutes,
+    });
+
+    const businessName =
+      teacher.businessName.trim() ||
+      appSettings.businessName.trim() ||
+      "";
+    const fullName =
+      teacher.fullName.trim() ||
+      appSettings.teacherName.trim() ||
+      "";
+    const phone =
+      teacher.phone.trim() || appSettings.businessPhone.trim() || "";
+    const businessType =
+      teacher.businessType ||
+      coerceBusinessType(appSettings.activePreset);
 
     console.log(
       "[public-booking/bootstrap] Step=done ok teacher_slug=",
@@ -286,10 +324,10 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       teacher: {
         id: teacher.id,
         slug: teacher.slug,
-        fullName: teacher.fullName,
-        businessName: teacher.businessName,
-        phone: teacher.phone,
-        businessType: teacher.businessType,
+        fullName,
+        businessName,
+        phone,
+        businessType,
       },
       availability,
     });

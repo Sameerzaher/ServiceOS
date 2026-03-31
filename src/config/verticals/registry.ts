@@ -17,7 +17,13 @@ export type VerticalId = ActivePreset;
 export const DEFAULT_VERTICAL_ID: VerticalId = "driving_instructor";
 
 export function getVerticalPreset(id: VerticalId): VerticalPreset {
-  return VERTICAL_REGISTRY[id];
+  const preset = VERTICAL_REGISTRY[id];
+  if (preset) return preset;
+  console.warn(
+    "[verticals/registry] Unknown vertical id; using default:",
+    id,
+  );
+  return VERTICAL_REGISTRY[DEFAULT_VERTICAL_ID];
 }
 
 export function listVerticalIds(): VerticalId[] {

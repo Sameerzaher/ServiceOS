@@ -108,33 +108,55 @@ export default function PublicBookingBySlugPage() {
         } else if (!res.ok) {
           msg = heUi.publicBooking.bootstrapLoadFailedTitle;
         }
-        console.error("[PublicBooking] Bootstrap failed:", msg, res.status);
+        console.error("[PublicBooking] Step=bootstrap_not_ok", msg, res.status);
         setState({ kind: "error", message: msg });
         return;
       }
 
-      const t = raw.teacher as Record<string, unknown>;
-      const teacherId = t.id as string;
-      const businessType = coerceBusinessType(t.businessType);
-      const identity: PublicBookingIdentity = {
-        businessName: typeof t.businessName === "string" ? t.businessName : "",
-        teacherName: typeof t.fullName === "string" ? t.fullName : "",
-        phone: typeof t.phone === "string" ? t.phone : "",
-      };
+      try {
+        const t = raw.teacher as Record<string, unknown>;
+        const teacherId = typeof t.id === "string" ? t.id.trim() : "";
+        if (!teacherId) {
+          console.error("[PublicBooking] Step=teacher_id_empty after ok");
+          setState({
+            kind: "error",
+            message: heUi.publicBooking.invalidSlugMessage,
+          });
+          return;
+        }
 
-      const availability = normalizeAvailabilitySettings(
-        raw.availability ?? { teacherId },
-      );
+        const businessType = coerceBusinessType(t.businessType);
+        const identity: PublicBookingIdentity = {
+          businessName: typeof t.businessName === "string" ? t.businessName : "",
+          teacherName: typeof t.fullName === "string" ? t.fullName : "",
+          phone: typeof t.phone === "string" ? t.phone : "",
+        };
 
-      console.log("[PublicBooking] SUCCESS - Loaded for teacher:", { teacherId, businessType, businessName: identity.businessName });
+        const availability = normalizeAvailabilitySettings(
+          raw.availability ?? { teacherId },
+        );
 
-      setState({
-        kind: "ready",
-        teacherId,
-        businessType,
-        identity,
-        availability,
-      });
+        console.log("[PublicBooking] Step=ready", {
+          teacherId,
+          businessType,
+          businessName: identity.businessName,
+          bookingEnabled: availability.bookingEnabled,
+        });
+
+        setState({
+          kind: "ready",
+          teacherId,
+          businessType,
+          identity,
+          availability,
+        });
+      } catch (parseErr) {
+        console.error("[PublicBooking] Step=parse_bootstrap_payload failed:", parseErr);
+        setState({
+          kind: "error",
+          message: heUi.publicBooking.invalidSlugMessage,
+        });
+      }
     } catch (e) {
       console.error("[PublicBooking] Load error:", e);
       setState({

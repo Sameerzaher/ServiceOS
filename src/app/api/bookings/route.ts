@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 
 import {
   getSupabaseAppointmentsTable,
-  getSupabaseBusinessId,
   getSupabaseClientsTable,
 } from "@/core/config/supabaseEnv";
+import { resolveBusinessIdForTeacher } from "@/lib/api/resolveBusinessId";
 import {
   appointmentFromRow,
   type AppointmentRow,
@@ -28,6 +28,8 @@ import {
 } from "@/lib/supabase/adminClient";
 
 export const runtime = "nodejs";
+
+export const dynamic = "force-dynamic";
 
 const HE_ERR_UNAVAILABLE = "שמירת בקשה אינה זמינה כרגע. נסו שוב מאוחר יותר.";
 const HE_ERR_INVALID = "פרטי הבקשה אינם תקינים.";
@@ -217,12 +219,20 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req, raw);
+    const businessId = await resolveBusinessIdForTeacher(
+      supabase,
+      teacherId,
+      "bookings/post",
+    );
     const appointmentsTable = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
 
-    console.log("[bookings/post] Creating booking for:", { teacherId, businessId, fullName: input.fullName });
+    console.log("[bookings/post] Creating booking for:", {
+      teacherId,
+      businessId,
+      fullName: input.fullName,
+    });
 
     const existingAppointments = await loadAppointments(
       supabase,
@@ -393,8 +403,12 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req);
+    const businessId = await resolveBusinessIdForTeacher(
+      supabase,
+      teacherId,
+      "bookings/get",
+    );
     const appointmentsTable = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
 

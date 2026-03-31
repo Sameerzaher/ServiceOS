@@ -3,9 +3,9 @@ import { randomUUID } from "crypto";
 
 import {
   getSupabaseAppointmentsTable,
-  getSupabaseBusinessId,
   getSupabaseClientsTable,
 } from "@/core/config/supabaseEnv";
+import { resolveBusinessIdForTeacher } from "@/lib/api/resolveBusinessId";
 import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import { PUBLIC_BOOKING_CUSTOM_FIELD_KEYS } from "@/features/booking/logic/publicBookingShared";
@@ -16,6 +16,9 @@ import {
 } from "@/lib/supabase/adminClient";
 
 export const runtime = "nodejs";
+
+/** Avoid static-path worker / stale chunk resolution for this route on Windows dev. */
+export const dynamic = "force-dynamic";
 
 const HE_ERR_UNAVAILABLE = "עדכון בקשה אינו זמין כרגע. נסו שוב מאוחר יותר.";
 const HE_ERR_INVALID = "בקשה לא תקינה.";
@@ -76,8 +79,12 @@ export async function PUT(
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req, raw);
+    const businessId = await resolveBusinessIdForTeacher(
+      supabase,
+      teacherId,
+      "bookings/put",
+    );
     const table = getSupabaseAppointmentsTable();
     const clientsTable = getSupabaseClientsTable();
 

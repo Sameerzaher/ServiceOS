@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
-import { getSupabaseDefaultTeacherId } from "@/core/config/supabaseEnv";
+import {
+  getSupabaseDefaultTeacherId,
+  isSupabaseConfigured,
+} from "@/core/config/supabaseEnv";
 import type { AppointmentRecord } from "@/core/types/appointment";
-import { isSupabaseConfigured } from "@/core/storage";
 
 type ApiOk<T> = { ok: true } & T;
 type ApiErr = { ok: false; error: string };

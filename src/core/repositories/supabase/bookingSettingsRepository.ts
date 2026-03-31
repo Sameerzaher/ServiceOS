@@ -70,6 +70,44 @@ export async function loadBookingSettings(
   });
 }
 
+/**
+ * Same as {@link loadBookingSettings} but never throws — returns safe defaults on
+ * empty scope, missing tables, or PostgREST errors (public bootstrap, cron, etc.).
+ */
+export async function loadBookingSettingsOrDefault(
+  supabase: SupabaseClient,
+  businessId: string,
+  teacherId: string,
+  logContext?: string,
+): Promise<AvailabilitySettings> {
+  const tid = typeof teacherId === "string" ? teacherId.trim() : "";
+  const bid = typeof businessId === "string" ? businessId.trim() : "";
+  if (!tid || !bid) {
+    console.warn(
+      "[ServiceOS] loadBookingSettingsOrDefault: missing business_id or teacher_id",
+      logContext ?? "",
+      { businessId: bid, teacherId: tid },
+    );
+    return normalizeAvailabilitySettings({
+      bookingEnabled: false,
+      teacherId: tid || teacherId,
+    });
+  }
+  try {
+    return await loadBookingSettings(supabase, bid, tid);
+  } catch (e) {
+    console.error(
+      "[ServiceOS] loadBookingSettingsOrDefault failed; using defaults",
+      logContext ?? "",
+      e,
+    );
+    return normalizeAvailabilitySettings({
+      bookingEnabled: false,
+      teacherId: tid,
+    });
+  }
+}
+
 export async function persistBookingSettings(
   supabase: SupabaseClient,
   businessId: string,

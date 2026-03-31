@@ -4,12 +4,13 @@ import {
   createContext,
   type ReactNode,
   useContext,
-  useMemo,
+  useEffect,
+  useState,
 } from "react";
 
 import type { ServiceStorage } from "@/core/types/serviceStorage";
 
-import { createServiceStorage } from "./createServiceStorage";
+import { businessDataStubStorage } from "./businessDataStubStorage";
 
 const StorageContext = createContext<ServiceStorage | null>(null);
 
@@ -21,10 +22,24 @@ export function StorageProvider({
   /** Inject mock or alternate adapter in tests. */
   storage?: ServiceStorage;
 }) {
-  const storage = useMemo(
-    () => storageProp ?? createServiceStorage(),
-    [storageProp],
-  );
+  const [asyncStorage, setAsyncStorage] = useState<ServiceStorage | null>(null);
+
+  useEffect(() => {
+    if (storageProp !== undefined) return;
+
+    let cancelled = false;
+    void import("./createServiceStorage").then(({ createServiceStorage }) => {
+      if (!cancelled) setAsyncStorage(createServiceStorage());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [storageProp]);
+
+  const storage: ServiceStorage =
+    storageProp !== undefined
+      ? storageProp
+      : asyncStorage ?? businessDataStubStorage;
 
   return (
     <StorageContext.Provider value={storage}>{children}</StorageContext.Provider>

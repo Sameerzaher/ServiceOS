@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { heUi } from "@/config";
-import { isSupabaseConfigured } from "@/core/storage";
+import { isSupabaseConfigured } from "@/core/config/supabaseEnv";
 
 export interface BookingSubmitInput {
   fullName: string;

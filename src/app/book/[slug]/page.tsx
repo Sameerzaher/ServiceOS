@@ -30,9 +30,19 @@ function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
 }
 
+function slugFromParams(slugParam: string | string[] | undefined): string {
+  if (typeof slugParam === "string") return slugParam.trim();
+  if (Array.isArray(slugParam) && slugParam.length > 0) {
+    return String(slugParam[0] ?? "").trim();
+  }
+  return "";
+}
+
 export default function PublicBookingBySlugPage() {
   const params = useParams();
-  const slug = typeof params.slug === "string" ? params.slug : "";
+  const slug = slugFromParams(
+    params.slug as string | string[] | undefined,
+  );
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   const load = useCallback(async () => {
@@ -52,9 +62,37 @@ export default function PublicBookingBySlugPage() {
       console.log("[PublicBooking] Fetching:", url);
       
       const res = await fetch(url);
-      const raw: unknown = await res.json();
+      let raw: unknown;
+      try {
+        raw = await res.json();
+      } catch {
+        console.error(
+          "[PublicBooking] Bootstrap response not JSON",
+          res.status,
+        );
+        setState({
+          kind: "error",
+          message:
+            res.status === 503 || res.status === 502
+              ? heUi.publicBooking.errUnavailable
+              : heUi.publicBooking.bootstrapLoadFailedTitle,
+        });
+        return;
+      }
 
-      console.log("[PublicBooking] Bootstrap response:", { ok: res.ok, data: raw });
+      console.log("[PublicBooking] Bootstrap response:", {
+        status: res.status,
+        ok: res.ok,
+        data: raw,
+      });
+
+      if (res.status === 404) {
+        setState({
+          kind: "error",
+          message: heUi.publicBooking.invalidSlugMessage,
+        });
+        return;
+      }
 
       if (
         !isRecord(raw) ||
@@ -62,11 +100,15 @@ export default function PublicBookingBySlugPage() {
         !isRecord(raw.teacher) ||
         typeof raw.teacher.id !== "string"
       ) {
-        const msg =
-          isRecord(raw) && typeof raw.error === "string" && raw.error.length > 0
-            ? raw.error
-            : heUi.publicBooking.invalidSlugMessage;
-        console.error("[PublicBooking] Bootstrap failed:", msg);
+        let msg: string = heUi.publicBooking.invalidSlugMessage;
+        if (isRecord(raw) && typeof raw.error === "string" && raw.error.length > 0) {
+          msg = raw.error;
+        } else if (!res.ok && (res.status === 503 || res.status === 502)) {
+          msg = heUi.publicBooking.errUnavailable;
+        } else if (!res.ok) {
+          msg = heUi.publicBooking.bootstrapLoadFailedTitle;
+        }
+        console.error("[PublicBooking] Bootstrap failed:", msg, res.status);
         setState({ kind: "error", message: msg });
         return;
       }
@@ -80,7 +122,9 @@ export default function PublicBookingBySlugPage() {
         phone: typeof t.phone === "string" ? t.phone : "",
       };
 
-      const availability = normalizeAvailabilitySettings(raw.availability);
+      const availability = normalizeAvailabilitySettings(
+        raw.availability ?? { teacherId },
+      );
 
       console.log("[PublicBooking] SUCCESS - Loaded for teacher:", { teacherId, businessType, businessName: identity.businessName });
 

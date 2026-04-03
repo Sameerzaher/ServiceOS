@@ -3,7 +3,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
-import { Button, EmptyState, Spinner, ui } from "@/components/ui";
+import { Button, Spinner, ui } from "@/components/ui";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
 import {
   CustomFieldInputKind,
@@ -23,10 +23,11 @@ export interface PublicBookingFormSubmitInput {
 export interface PublicBookingFormProps {
   extraFields: readonly CustomFieldDefinition[];
   selectedSlot: AvailableSlot | null;
+  /** False if the slot was taken / no longer in the generated list (race). */
+  isSelectedSlotAvailable: boolean;
   onSubmit: (input: PublicBookingFormSubmitInput) => Promise<boolean> | boolean;
   submitError?: string | null;
   isSubmitting: boolean;
-  isSuccess: boolean;
   className?: string;
 }
 
@@ -153,10 +154,10 @@ function slotDateTimeValid(slot: AvailableSlot): boolean {
 export function PublicBookingForm({
   extraFields,
   selectedSlot,
+  isSelectedSlotAvailable,
   onSubmit,
   submitError = null,
   isSubmitting,
-  isSuccess,
   className,
 }: PublicBookingFormProps) {
   const [fullName, setFullName] = useState("");
@@ -220,6 +221,14 @@ export function PublicBookingForm({
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (selectedSlot && !isSelectedSlotAvailable) {
+      setErrors((prev) => ({
+        ...prev,
+        slot: heUi.publicBooking.errSlotTaken,
+      }));
+      return;
+    }
+
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -246,17 +255,6 @@ export function PublicBookingForm({
       setExtra(emptyExtra(extraFields));
       setErrors({});
     }
-  }
-
-  if (isSuccess) {
-    const pb = heUi.publicBooking;
-    return (
-      <EmptyState
-        tone="muted"
-        className="py-10"
-        title={pb.successTitle}
-      />
-    );
   }
 
   return (

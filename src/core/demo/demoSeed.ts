@@ -7,6 +7,9 @@ import {
   type AppSettings,
 } from "@/core/types/settings";
 
+/** Display name for marketing/demo copy (actual teacher row comes from Supabase). */
+export const DEMO_INSTRUCTOR_NAME = "דני לוי — מורה נהיגה (דמו)";
+
 /** Settings applied when loading demo data (driving school context). */
 export const DEMO_SETTINGS: AppSettings = {
   ...DEFAULT_APP_SETTINGS,
@@ -39,14 +42,20 @@ function at(
 
 /**
  * Realistic demo for driving instructors (Hebrew). Amounts in ₪.
- * Call with `new Date()` so relative dates stay current.
+ * **10 clients**, **15 appointments**, scoped to `teacherIdParam` or default teacher.
  */
-export function buildDemoDataset(reference: Date = new Date()): {
+export function buildDemoDataset(
+  reference: Date = new Date(),
+  teacherIdParam?: string,
+): {
   clients: Client[];
   appointments: AppointmentRecord[];
 } {
   const now = reference.toISOString();
-  const teacherId = getSupabaseDefaultTeacherId();
+  const teacherId =
+    typeof teacherIdParam === "string" && teacherIdParam.trim().length > 0
+      ? teacherIdParam.trim()
+      : getSupabaseDefaultTeacherId();
 
   const c1 = id();
   const c2 = id();
@@ -56,6 +65,8 @@ export function buildDemoDataset(reference: Date = new Date()): {
   const c6 = id();
   const c7 = id();
   const c8 = id();
+  const c9 = id();
+  const c10 = id();
 
   const clients: Client[] = [
     {
@@ -138,6 +149,26 @@ export function buildDemoDataset(reference: Date = new Date()): {
       createdAt: now,
       updatedAt: now,
     },
+    {
+      id: c9,
+      teacherId,
+      fullName: "תמר לביא",
+      phone: "050-4455667",
+      notes: "העדפה לשבועות זוגיים.",
+      customFields: { lessonCount: 12, transmissionType: "אוטומט" },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: c10,
+      teacherId,
+      fullName: "עומרי כץ",
+      phone: "052-7788990",
+      notes: "מבחן עירוני בעוד חודש.",
+      customFields: { lessonCount: 24, transmissionType: "ידני" },
+      createdAt: now,
+      updatedAt: now,
+    },
   ];
 
   function ap(
@@ -149,11 +180,10 @@ export function buildDemoDataset(reference: Date = new Date()): {
     pickup: string,
     car: string,
   ): AppointmentRecord {
-    // Calculate end time (45 minutes after start)
     const startMs = new Date(startAt).getTime();
     const endMs = startMs + 45 * 60 * 1000;
     const endAt = new Date(endMs).toISOString();
-    
+
     return {
       id: id(),
       teacherId,
@@ -172,6 +202,7 @@ export function buildDemoDataset(reference: Date = new Date()): {
     };
   }
 
+  /** Exactly 15 lessons for dashboard density. */
   const appointments: AppointmentRecord[] = [
     ap(
       c1,
@@ -192,15 +223,6 @@ export function buildDemoDataset(reference: Date = new Date()): {
       "יונדאי i20",
     ),
     ap(
-      c1,
-      at(reference, 1, 8, 0),
-      AppointmentStatus.Confirmed,
-      PaymentStatus.Pending,
-      200,
-      "גבעתיים — ליד הפארק",
-      "יונדאי i20",
-    ),
-    ap(
       c2,
       at(reference, -3, 18, 0),
       AppointmentStatus.Completed,
@@ -210,30 +232,12 @@ export function buildDemoDataset(reference: Date = new Date()): {
       "פולו",
     ),
     ap(
-      c2,
-      at(reference, 2, 16, 0),
-      AppointmentStatus.Confirmed,
-      PaymentStatus.Partial,
-      220,
-      "חניון קניון",
-      "פולו",
-    ),
-    ap(
       c3,
       at(reference, -1, 10, 30),
       AppointmentStatus.Completed,
       PaymentStatus.Paid,
       180,
       "רמת גן — רח׳ בורוכוב",
-      "מאזדה 3",
-    ),
-    ap(
-      c3,
-      at(reference, 4, 11, 0),
-      AppointmentStatus.Scheduled,
-      PaymentStatus.Unpaid,
-      180,
-      "בורוכוב",
       "מאזדה 3",
     ),
     ap(
@@ -255,30 +259,12 @@ export function buildDemoDataset(reference: Date = new Date()): {
       "יונדאי i10",
     ),
     ap(
-      c5,
-      at(reference, 1, 9, 30),
-      AppointmentStatus.Confirmed,
-      PaymentStatus.Unpaid,
-      200,
-      "ליד בית הספר",
-      "יונדאי i10",
-    ),
-    ap(
       c6,
       at(reference, -2, 7, 0),
       AppointmentStatus.Completed,
       PaymentStatus.Paid,
       240,
       "חולון — רח׳ סוקולוב",
-      "סקודה",
-    ),
-    ap(
-      c6,
-      at(reference, 3, 8, 30),
-      AppointmentStatus.Confirmed,
-      PaymentStatus.Pending,
-      240,
-      "חולון",
       "סקודה",
     ),
     ap(
@@ -291,33 +277,6 @@ export function buildDemoDataset(reference: Date = new Date()): {
       "טויוטה קורולה",
     ),
     ap(
-      c7,
-      at(reference, 0, 20, 0),
-      AppointmentStatus.Scheduled,
-      PaymentStatus.Unpaid,
-      200,
-      "כביש החוף",
-      "טויוטה קורולה",
-    ),
-    ap(
-      c4,
-      at(reference, 1, 12, 30),
-      AppointmentStatus.Scheduled,
-      PaymentStatus.Pending,
-      210,
-      "ת״א — כיכר רבין",
-      "קיה ריו",
-    ),
-    ap(
-      c8,
-      at(reference, 1, 7, 30),
-      AppointmentStatus.Scheduled,
-      PaymentStatus.Unpaid,
-      240,
-      "ראשל״צ מערב",
-      "מאזדה 2",
-    ),
-    ap(
       c8,
       at(reference, 3, 7, 30),
       AppointmentStatus.Confirmed,
@@ -327,13 +286,49 @@ export function buildDemoDataset(reference: Date = new Date()): {
       "מאזדה 2",
     ),
     ap(
-      c2,
-      at(reference, 6, 10, 0),
+      c9,
+      at(reference, 1, 10, 0),
       AppointmentStatus.Scheduled,
+      PaymentStatus.Unpaid,
+      200,
+      "הרצליה — ארנה",
+      "טויוטה יאריס",
+    ),
+    ap(
+      c10,
+      at(reference, 2, 15, 30),
+      AppointmentStatus.Confirmed,
       PaymentStatus.Pending,
-      220,
-      "צומת הר שמואל",
-      "פולו",
+      210,
+      "נתניה — פארק העסקים",
+      "הונדה סיויק",
+    ),
+    ap(
+      c3,
+      at(reference, 4, 11, 0),
+      AppointmentStatus.Scheduled,
+      PaymentStatus.Unpaid,
+      180,
+      "בורוכוב",
+      "מאזדה 3",
+    ),
+    ap(
+      c5,
+      at(reference, 1, 9, 30),
+      AppointmentStatus.Confirmed,
+      PaymentStatus.Unpaid,
+      200,
+      "ליד בית הספר",
+      "יונדאי i10",
+    ),
+    ap(
+      c6,
+      at(reference, 3, 8, 30),
+      AppointmentStatus.Confirmed,
+      PaymentStatus.Pending,
+      240,
+      "חולון",
+      "סקודה",
     ),
     ap(
       c4,
@@ -343,15 +338,6 @@ export function buildDemoDataset(reference: Date = new Date()): {
       200,
       "ת״א — אבן גבירול",
       "קיה ריו",
-    ),
-    ap(
-      c6,
-      at(reference, 5, 12, 30),
-      AppointmentStatus.Scheduled,
-      PaymentStatus.Unpaid,
-      260,
-      "חולון — קניון הזהב",
-      "סקודה",
     ),
   ];
 

@@ -21,11 +21,18 @@ export interface UseBookingOptions {
   teacherId?: string;
 }
 
+export interface BookingSuccessSnapshot {
+  slotStart: string;
+  slotEnd: string;
+}
+
 export interface UseBookingResult {
   isReady: boolean;
   isSubmitting: boolean;
   isSuccess: boolean;
   error: string | null;
+  /** Set after a successful POST for WhatsApp / confirmation UI. */
+  successSnapshot: BookingSuccessSnapshot | null;
   submitBooking: (input: BookingSubmitInput) => Promise<boolean>;
   resetState: () => void;
 }
@@ -68,6 +75,9 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successSnapshot, setSuccessSnapshot] = useState<BookingSuccessSnapshot | null>(
+    null,
+  );
 
   const isReady = isSupabaseConfigured();
 
@@ -77,6 +87,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
       submitInFlightRef.current = true;
       setError(null);
       setIsSuccess(false);
+      setSuccessSnapshot(null);
 
       if (!isSupabaseConfigured()) {
         setError(heUi.publicBooking.errUnavailable);
@@ -130,6 +141,10 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
         }
 
         setIsSuccess(true);
+        setSuccessSnapshot({
+          slotStart: input.slotStart,
+          slotEnd: input.slotEnd,
+        });
         onSuccessRef.current?.();
         return true;
       } catch {
@@ -146,6 +161,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
   const resetState = useCallback(() => {
     setError(null);
     setIsSuccess(false);
+    setSuccessSnapshot(null);
   }, []);
 
   return {
@@ -153,6 +169,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
     isSubmitting,
     isSuccess,
     error,
+    successSnapshot,
     submitBooking,
     resetState,
   };

@@ -34,7 +34,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     
     console.log("[demo/load] Loading for:", { businessId, teacherId });
 
-    const { clients, appointments } = buildDemoDataset();
+    const { clients, appointments } = buildDemoDataset(new Date(), teacherId);
     const clientsTable = getSupabaseClientsTable();
     const appointmentsTable = getSupabaseAppointmentsTable();
 

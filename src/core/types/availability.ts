@@ -193,3 +193,29 @@ export function normalizeAvailabilitySettings(raw: unknown): AvailabilitySetting
   };
 }
 
+/**
+ * Never throws — use for public booking + slot generation when DB/json may be partial.
+ */
+export function safeNormalizeAvailabilitySettings(
+  raw: unknown,
+  teacherIdFallback?: string,
+): AvailabilitySettings {
+  try {
+    const base = normalizeAvailabilitySettings(raw);
+    const tid =
+      typeof teacherIdFallback === "string" && teacherIdFallback.trim().length > 0
+        ? teacherIdFallback.trim()
+        : base.teacherId;
+    return { ...base, teacherId: tid };
+  } catch (e) {
+    console.error("[ServiceOS] safeNormalizeAvailabilitySettings", e);
+    return normalizeAvailabilitySettings({
+      teacherId:
+        typeof teacherIdFallback === "string" && teacherIdFallback.trim().length > 0
+          ? teacherIdFallback.trim()
+          : getSupabaseDefaultTeacherId(),
+      bookingEnabled: false,
+    });
+  }
+}
+

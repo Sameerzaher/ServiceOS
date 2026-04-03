@@ -1,5 +1,9 @@
 import { AppointmentStatus, type AppointmentRecord } from "@/core/types/appointment";
-import type { AvailabilitySettings, WeekdayKey } from "@/core/types/availability";
+import {
+  safeNormalizeAvailabilitySettings,
+  type AvailabilitySettings,
+  type WeekdayKey,
+} from "@/core/types/availability";
 
 import { combineDateAndHHmmToIso, parseHHmm } from "./time";
 
@@ -11,8 +15,8 @@ export interface AvailableSlot {
 export interface GenerateAvailableSlotsInput {
   /** Local date in `YYYY-MM-DD` format. */
   date: string;
-  availability: AvailabilitySettings;
-  existingAppointments: readonly AppointmentRecord[];
+  availability: AvailabilitySettings | unknown;
+  existingAppointments: readonly AppointmentRecord[] | unknown;
   /** Optional deterministic "now" (for tests). */
   now?: Date;
 }
@@ -46,94 +50,136 @@ function rangesOverlap(
   return aStartMs < bEndMs && bStartMs < aEndMs;
 }
 
+function safeAppointments(
+  raw: readonly AppointmentRecord[] | unknown,
+): readonly AppointmentRecord[] {
+  if (!Array.isArray(raw)) return [];
+  return raw;
+}
+
 /**
  * Deterministically generates available booking slots for a date.
- * - Uses weekly availability window + slot duration
- * - Excludes past slots relative to `now`
- * - Excludes overlapping existing appointments
+ * Never throws — returns [] on any malformed input or internal error.
  */
 export function generateAvailableSlots({
   date,
-  availability,
-  existingAppointments,
+  availability: availabilityRaw,
+  existingAppointments: appointmentsRaw,
   now = new Date(),
 }: GenerateAvailableSlotsInput): AvailableSlot[] {
-  if (!availability.bookingEnabled) return [];
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date.trim())) return [];
+  try {
+    const availability = safeNormalizeAvailabilitySettings(availabilityRaw);
+    const existingAppointments = safeAppointments(appointmentsRaw);
 
-  const targetDate = new Date(`${date}T00:00`);
-  if (Number.isNaN(targetDate.getTime())) return [];
+    if (!availability.bookingEnabled) return [];
 
-  const todayStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  ).getTime();
-  const selectedStart = new Date(
-    targetDate.getFullYear(),
-    targetDate.getMonth(),
-    targetDate.getDate(),
-  ).getTime();
-  const dayOffset = Math.round((selectedStart - todayStart) / 86_400_000);
-  if (dayOffset < 0 || dayOffset >= availability.daysAhead) return [];
+    const dateStr = typeof date === "string" ? date.trim() : "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return [];
 
-  const weekday = toWeekdayKey(targetDate);
-  const dayAvailability = availability.weeklyAvailability[weekday];
-  if (!dayAvailability.enabled) return [];
+    const targetDate = new Date(`${dateStr}T00:00`);
+    if (Number.isNaN(targetDate.getTime())) return [];
 
-  const start = parseHHmm(dayAvailability.startTime);
-  const end = parseHHmm(dayAvailability.endTime);
-  if (!start || !end) return [];
-  if (end.totalMinutes <= start.totalMinutes) return [];
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).getTime();
+    const selectedStart = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+    ).getTime();
+    const dayOffset = Math.round((selectedStart - todayStart) / 86_400_000);
+    const daysAhead = Math.max(
+      1,
+      Math.min(
+        365,
+        Number.isFinite(availability.daysAhead) ? availability.daysAhead : 30,
+      ),
+    );
+    if (dayOffset < 0 || dayOffset >= daysAhead) return [];
 
-  const slotMinutes = Math.max(1, Math.trunc(availability.slotDurationMinutes));
-  const nowMs = now.getTime();
+    const weekday = toWeekdayKey(targetDate);
+    const wa = availability.weeklyAvailability;
+    if (!wa || typeof wa !== "object") return [];
 
-  const activeAppointments = existingAppointments.filter(
-    (appt) => appt.status !== AppointmentStatus.Cancelled,
-  );
+    const dayAvailability = wa[weekday];
+    if (!dayAvailability || typeof dayAvailability.enabled !== "boolean") {
+      return [];
+    }
+    if (!dayAvailability.enabled) return [];
 
-  const slots: AvailableSlot[] = [];
-  for (
-    let currentStartMinutes = start.totalMinutes;
-    currentStartMinutes + slotMinutes <= end.totalMinutes;
-    currentStartMinutes += slotMinutes
-  ) {
-    const startHHmm = `${String(Math.floor(currentStartMinutes / 60)).padStart(2, "0")}:${String(
-      currentStartMinutes % 60,
-    ).padStart(2, "0")}`;
-    const endTotal = currentStartMinutes + slotMinutes;
-    const endHHmm = `${String(Math.floor(endTotal / 60)).padStart(2, "0")}:${String(
-      endTotal % 60,
-    ).padStart(2, "0")}`;
+    const start = parseHHmm(
+      typeof dayAvailability.startTime === "string" ? dayAvailability.startTime : "",
+    );
+    const end = parseHHmm(
+      typeof dayAvailability.endTime === "string" ? dayAvailability.endTime : "",
+    );
+    if (!start || !end) return [];
+    if (end.totalMinutes <= start.totalMinutes) return [];
 
-    const slotStart = combineDateAndHHmmToIso(date, startHHmm);
-    const slotEnd = combineDateAndHHmmToIso(date, endHHmm);
-    if (!slotStart || !slotEnd) continue;
+    const slotMinutes = Math.max(
+      1,
+      Math.trunc(
+        Number.isFinite(availability.slotDurationMinutes)
+          ? availability.slotDurationMinutes
+          : 45,
+      ),
+    );
+    const nowMs = now.getTime();
 
-    const slotStartMs = new Date(slotStart).getTime();
-    const slotEndMs = new Date(slotEnd).getTime();
-    if (!Number.isFinite(slotStartMs) || !Number.isFinite(slotEndMs)) continue;
-    if (slotStartMs < nowMs) continue;
+    const activeAppointments = existingAppointments.filter(
+      (appt) =>
+        appt &&
+        typeof appt === "object" &&
+        appt.status !== AppointmentStatus.Cancelled,
+    );
 
-    const overlapsExisting = activeAppointments.some((appt) => {
-      const apptStartMs = new Date(appt.startAt).getTime();
-      if (!Number.isFinite(apptStartMs)) return false;
-      const endRaw = appt.customFields?.bookingSlotEnd;
-      let apptEndMs: number;
-      if (typeof endRaw === "string") {
-        const t = new Date(endRaw.trim()).getTime();
-        apptEndMs = Number.isFinite(t) ? t : apptStartMs + slotMinutes * 60_000;
-      } else {
-        apptEndMs = apptStartMs + slotMinutes * 60_000;
-      }
-      return rangesOverlap(slotStartMs, slotEndMs, apptStartMs, apptEndMs);
-    });
-    if (overlapsExisting) continue;
+    const slots: AvailableSlot[] = [];
+    for (
+      let currentStartMinutes = start.totalMinutes;
+      currentStartMinutes + slotMinutes <= end.totalMinutes;
+      currentStartMinutes += slotMinutes
+    ) {
+      const startHHmm = `${String(Math.floor(currentStartMinutes / 60)).padStart(2, "0")}:${String(
+        currentStartMinutes % 60,
+      ).padStart(2, "0")}`;
+      const endTotal = currentStartMinutes + slotMinutes;
+      const endHHmm = `${String(Math.floor(endTotal / 60)).padStart(2, "0")}:${String(
+        endTotal % 60,
+      ).padStart(2, "0")}`;
 
-    slots.push({ slotStart, slotEnd });
+      const slotStart = combineDateAndHHmmToIso(dateStr, startHHmm);
+      const slotEnd = combineDateAndHHmmToIso(dateStr, endHHmm);
+      if (!slotStart || !slotEnd) continue;
+
+      const slotStartMs = new Date(slotStart).getTime();
+      const slotEndMs = new Date(slotEnd).getTime();
+      if (!Number.isFinite(slotStartMs) || !Number.isFinite(slotEndMs)) continue;
+      if (slotStartMs < nowMs) continue;
+
+      const overlapsExisting = activeAppointments.some((appt) => {
+        if (!appt?.startAt || typeof appt.startAt !== "string") return false;
+        const apptStartMs = new Date(appt.startAt).getTime();
+        if (!Number.isFinite(apptStartMs)) return false;
+        const endRaw = appt.customFields?.bookingSlotEnd;
+        let apptEndMs: number;
+        if (typeof endRaw === "string") {
+          const t = new Date(endRaw.trim()).getTime();
+          apptEndMs = Number.isFinite(t) ? t : apptStartMs + slotMinutes * 60_000;
+        } else {
+          apptEndMs = apptStartMs + slotMinutes * 60_000;
+        }
+        return rangesOverlap(slotStartMs, slotEndMs, apptStartMs, apptEndMs);
+      });
+      if (overlapsExisting) continue;
+
+      slots.push({ slotStart, slotEnd });
+    }
+
+    return slots;
+  } catch (e) {
+    console.error("[generateAvailableSlots] fatal (returning empty)", e);
+    return [];
   }
-
-  return slots;
 }
-

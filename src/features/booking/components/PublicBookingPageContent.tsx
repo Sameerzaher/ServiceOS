@@ -10,7 +10,10 @@ import { PublicBookingSuccessPanel } from "@/features/booking/components/PublicB
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { usePublicTeacherAppointments } from "@/features/booking/hooks/usePublicTeacherAppointments";
 import { generateAvailableSlots } from "@/features/booking/utils/generateAvailableSlots";
-import type { AvailabilitySettings } from "@/core/types/availability";
+import {
+  safeNormalizeAvailabilitySettings,
+  type AvailabilitySettings,
+} from "@/core/types/availability";
 import type { BusinessType } from "@/core/types/teacher";
 import { getVerticalPreset } from "@/config/verticals/registry";
 import { cn } from "@/lib/cn";
@@ -101,15 +104,27 @@ export function PublicBookingPageContent({
       setAppointmentsReloadKey((k) => k + 1),
   });
 
-  const availableSlots = useMemo(
-    () =>
-      generateAvailableSlots({
-        date: selectedDate,
-        availability,
-        existingAppointments: sortedAppointments,
-      }),
-    [selectedDate, availability, sortedAppointments],
+  const safeAvailability = useMemo(
+    () => safeNormalizeAvailabilitySettings(availability, teacherId),
+    [availability, teacherId],
   );
+
+  const availableSlots = useMemo(() => {
+    const appts = Array.isArray(sortedAppointments) ? sortedAppointments : [];
+    console.log("[PublicBookingPageContent] [TEMP] slot_generation_inputs", {
+      teacherId,
+      date: selectedDate,
+      bookingEnabled: safeAvailability.bookingEnabled,
+      daysAhead: safeAvailability.daysAhead,
+      slotDurationMinutes: safeAvailability.slotDurationMinutes,
+      appointmentCount: appts.length,
+    });
+    return generateAvailableSlots({
+      date: selectedDate,
+      availability: safeAvailability,
+      existingAppointments: appts,
+    });
+  }, [selectedDate, safeAvailability, sortedAppointments, teacherId]);
 
   const selectedSlot = useMemo(
     () =>
@@ -123,9 +138,10 @@ export function PublicBookingPageContent({
   }, [availableSlots, selectedSlotStart]);
 
   const maxBookDateYmd = useMemo(() => {
-    const ahead = Math.max(1, availability.daysAhead);
+    const da = safeAvailability.daysAhead;
+    const ahead = Math.max(1, Number.isFinite(da) ? da : 30);
     return addLocalDaysYmd(new Date(), ahead - 1);
-  }, [availability.daysAhead]);
+  }, [safeAvailability.daysAhead]);
 
   const publicBookingExtraFields = useMemo(
     () => getVerticalPreset(businessType).publicBookingFields,
@@ -257,7 +273,7 @@ export function PublicBookingPageContent({
               <div className={cn(ui.formCard, "space-y-3 p-3 sm:space-y-4 sm:p-4")}>
                 {!bookingDataReady ? (
                   <BookingSectionSkeleton />
-                ) : !availability.bookingEnabled ? (
+                ) : !safeAvailability.bookingEnabled ? (
                   <p className="text-xs text-neutral-700 dark:text-neutral-300 sm:text-sm">
                     {heUi.publicBooking.bookingClosed}
                   </p>

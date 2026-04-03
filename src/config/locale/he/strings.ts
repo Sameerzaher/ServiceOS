@@ -509,6 +509,8 @@ export const heUi = {
     dateLabel: "תאריך",
     bookingClosed:
       "ההזמנה המקוונת סגורה כרגע. אפשר לנסות שוב מאוחר יותר או לפנות ישירות לעסק.",
+    bookingDataIncomplete:
+      "לא הצלחנו לטעון את הגדרות הזמינות. נסו שוב בעוד רגע או פנו לעסק.",
     slotHeading: "שעות פנויות",
     slotEmptyTitle: "אין בשעה הזו שעות פנויות",
     slotEmptyDescription: "נסו תאריך אחר באותו השבוע, או חזרו מחר לבדיקה.",

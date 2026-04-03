@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
-import {
-  loadAppSettingsOrDefault,
-} from "@/core/repositories/supabase/appSettingsRepository";
+import { loadAppSettingsOrDefault } from "@/core/repositories/supabase/appSettingsRepository";
 import { loadBookingSettingsOrDefault } from "@/core/repositories/supabase/bookingSettingsRepository";
 import { teacherFromRow, type TeacherRow } from "@/core/storage/supabase/mappers";
 import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
@@ -44,7 +42,19 @@ type BootstrapErr = {
 };
 
 function jsonErr(message: string, status: number): NextResponse<BootstrapErr> {
-  return NextResponse.json({ ok: false as const, error: message }, { status });
+  try {
+    return NextResponse.json({ ok: false as const, error: message }, { status });
+  } catch (e) {
+    console.error("[public-booking/bootstrap] jsonErr failed", e);
+    return NextResponse.json(
+      { ok: false as const, error: heUi.publicBooking.errUnavailable },
+      { status: 503 },
+    );
+  }
+}
+
+function safeStr(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
 }
 
 function isUuidLike(v: string): boolean {
@@ -83,16 +93,20 @@ function bootstrapTeacherFromDbRow(
     return null;
   }
 
-  const mapped = teacherFromRow(row as unknown as TeacherRow);
-  if (mapped) {
-    return {
-      id: mapped.id,
-      slug: mapped.slug,
-      fullName: mapped.fullName,
-      businessName: mapped.businessName,
-      phone: mapped.phone,
-      businessType: mapped.businessType,
-    };
+  try {
+    const mapped = teacherFromRow(row as unknown as TeacherRow);
+    if (mapped) {
+      return {
+        id: mapped.id,
+        slug: mapped.slug,
+        fullName: mapped.fullName,
+        businessName: mapped.businessName,
+        phone: mapped.phone,
+        businessType: mapped.businessType,
+      };
+    }
+  } catch (e) {
+    console.error("[public-booking/bootstrap] teacherFromRow threw", e);
   }
 
   const id = asNonEmptyString(row.id);
@@ -101,24 +115,30 @@ function bootstrapTeacherFromDbRow(
     return null;
   }
 
-  const slug =
-    asNonEmptyString(row.slug) ?? urlSlugNormalized;
-  const fullName = typeof row.full_name === "string" ? row.full_name : "";
-  const businessName = typeof row.business_name === "string" ? row.business_name : "";
-  const phone = typeof row.phone === "string" ? row.phone : "";
+  const slug = asNonEmptyString(row.slug) ?? urlSlugNormalized;
+  const fullName = safeStr(row.full_name);
+  const businessName = safeStr(row.business_name);
+  const phone = safeStr(row.phone);
 
   console.warn(
     "[public-booking/bootstrap] teacherFromRow returned null; using raw row fields",
     { id, slug },
   );
 
+  let bt: BusinessType = "driving_instructor";
+  try {
+    bt = coerceBusinessType(row.business_type);
+  } catch (e) {
+    console.warn("[public-booking/bootstrap] coerceBusinessType failed", e);
+  }
+
   return {
     id,
     slug,
-    fullName: fullName.trim(),
-    businessName: businessName.trim(),
-    phone: phone.trim(),
-    businessType: coerceBusinessType(row.business_type),
+    fullName,
+    businessName,
+    phone,
+    businessType: bt,
   };
 }
 
@@ -132,15 +152,17 @@ async function loadLegacyBootstrap(
     businessId,
     teacherId: teacherIdForScope,
   });
+
   const legacySettings = await loadAppSettingsOrDefault(
     supabase,
     businessId,
     teacherIdForScope,
     "legacy-bootstrap",
   );
+
   console.log("[public-booking/bootstrap] Step=legacy_app_settings_result", {
-    hasBusinessName: legacySettings.businessName.trim().length > 0,
-    activePreset: legacySettings.activePreset,
+    hasBusinessName: safeStr(legacySettings?.businessName).length > 0,
+    activePreset: legacySettings?.activePreset,
   });
 
   const availability = await loadBookingSettingsOrDefault(
@@ -149,27 +171,35 @@ async function loadLegacyBootstrap(
     teacherIdForScope,
     "legacy-bootstrap",
   );
+
   console.log("[public-booking/bootstrap] Step=legacy_booking_settings_result", {
-    bookingEnabled: availability.bookingEnabled,
-    daysAhead: availability.daysAhead,
+    bookingEnabled: availability?.bookingEnabled,
+    daysAhead: availability?.daysAhead,
   });
 
-  return {
-    teacher: {
-      id: teacherIdForScope,
-      slug: slugForDisplay,
-      fullName: legacySettings.teacherName,
-      businessName: legacySettings.businessName,
-      phone: legacySettings.businessPhone,
-      businessType: coerceBusinessType(legacySettings.activePreset),
-    },
-    availability,
+  const teacher: BootstrapTeacher = {
+    id: teacherIdForScope,
+    slug: slugForDisplay,
+    fullName: safeStr(legacySettings?.teacherName),
+    businessName: safeStr(legacySettings?.businessName),
+    phone: safeStr(legacySettings?.businessPhone),
+    businessType: coerceBusinessType(legacySettings?.activePreset),
   };
+
+  return { teacher, availability };
 }
 
 export async function GET(req: Request): Promise<NextResponse<BootstrapOk | BootstrapErr>> {
   if (!isSupabaseAdminConfigured()) {
     console.error("[public-booking/bootstrap] Supabase admin not configured (URL / service role)");
+    return jsonErr(heUi.publicBooking.errUnavailable, 503);
+  }
+
+  let supabase: ReturnType<typeof getSupabaseAdminClient>;
+  try {
+    supabase = getSupabaseAdminClient();
+  } catch (e) {
+    console.error("[public-booking/bootstrap] getSupabaseAdminClient failed", e);
     return jsonErr(heUi.publicBooking.errUnavailable, 503);
   }
 
@@ -181,7 +211,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
     return jsonErr(heUi.publicBooking.invalidSlugMessage, 400);
   }
 
-  console.log("[public-booking/bootstrap] Step=start slug_received=", JSON.stringify(slug));
+  console.log("[public-booking/bootstrap] [TEMP] slug_received=", JSON.stringify(slug));
 
   if (!isValidPublicTeacherSlug(slug)) {
     console.warn("[public-booking/bootstrap] Step=validate_slug invalid format");
@@ -192,21 +222,30 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
   const envFallbackBusinessId = getSupabaseBusinessId();
 
   try {
-    const supabase = getSupabaseAdminClient();
-
-    let teacherRes = await supabase
-      .from("teachers")
-      .select("*")
-      .eq("slug", normalizedSlug)
-      .maybeSingle();
-
-    if (!teacherRes.data && !teacherRes.error && isUuidLike(normalizedSlug)) {
-      console.log("[public-booking/bootstrap] Step=lookup no row by slug; trying id=UUID");
+    let teacherRes;
+    try {
       teacherRes = await supabase
         .from("teachers")
         .select("*")
-        .eq("id", normalizedSlug)
+        .eq("slug", normalizedSlug)
         .maybeSingle();
+    } catch (e) {
+      console.error("[public-booking/bootstrap] teachers query threw", e);
+      return jsonErr(heUi.publicBooking.errUnavailable, 503);
+    }
+
+    if (!teacherRes.data && !teacherRes.error && isUuidLike(normalizedSlug)) {
+      console.log("[public-booking/bootstrap] Step=lookup no row by slug; trying id=UUID");
+      try {
+        teacherRes = await supabase
+          .from("teachers")
+          .select("*")
+          .eq("id", normalizedSlug)
+          .maybeSingle();
+      } catch (e) {
+        console.error("[public-booking/bootstrap] teachers id query threw", e);
+        return jsonErr(heUi.publicBooking.errUnavailable, 503);
+      }
     }
 
     const { data: row, error: teacherErr } = teacherRes;
@@ -218,6 +257,8 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       );
       return jsonErr(heUi.publicBooking.errUnavailable, 503);
     }
+
+    console.log("[public-booking/bootstrap] [TEMP] business_lookup row_present=", Boolean(row));
 
     if (!row) {
       if (!isUuidLike(normalizedSlug)) {
@@ -232,17 +273,26 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
         "[public-booking/bootstrap] Step=legacy_no_teacher_row using env business_id for UUID scope",
         normalizedSlug,
       );
-      const { teacher, availability } = await loadLegacyBootstrap(
-        supabase,
-        envFallbackBusinessId,
-        normalizedSlug,
-        normalizedSlug,
-      );
-      return NextResponse.json({
-        ok: true as const,
-        teacher,
-        availability,
-      });
+      try {
+        const { teacher, availability } = await loadLegacyBootstrap(
+          supabase,
+          envFallbackBusinessId,
+          normalizedSlug,
+          normalizedSlug,
+        );
+        console.log("[public-booking/bootstrap] [TEMP] legacy availability", {
+          bookingEnabled: availability?.bookingEnabled,
+          daysAhead: availability?.daysAhead,
+        });
+        return NextResponse.json({
+          ok: true as const,
+          teacher,
+          availability,
+        });
+      } catch (e) {
+        console.error("[public-booking/bootstrap] loadLegacyBootstrap failed", e);
+        return jsonErr(heUi.publicBooking.errUnavailable, 503);
+      }
     }
 
     console.log("[public-booking/bootstrap] Step=teacher_row_present");
@@ -269,16 +319,24 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       teacherId: teacher.id,
       businessId: teacherBusinessId,
     });
-    const appSettings = await loadAppSettingsOrDefault(
-      supabase,
-      teacherBusinessId,
-      teacher.id,
-      "bootstrap",
-    );
-    console.log("[public-booking/bootstrap] Step=app_settings_result", {
-      hasBusinessName: appSettings.businessName.trim().length > 0,
-      hasTeacherName: appSettings.teacherName.trim().length > 0,
-      activePreset: appSettings.activePreset,
+
+    let appSettings;
+    try {
+      appSettings = await loadAppSettingsOrDefault(
+        supabase,
+        teacherBusinessId,
+        teacher.id,
+        "bootstrap",
+      );
+    } catch (e) {
+      console.error("[public-booking/bootstrap] loadAppSettingsOrDefault failed", e);
+      return jsonErr(heUi.publicBooking.errUnavailable, 503);
+    }
+
+    console.log("[public-booking/bootstrap] [TEMP] app_settings_result", {
+      hasBusinessName: safeStr(appSettings?.businessName).length > 0,
+      hasTeacherName: safeStr(appSettings?.teacherName).length > 0,
+      activePreset: appSettings?.activePreset,
     });
 
     console.log("[public-booking/bootstrap] Step=load_booking_settings", {
@@ -286,37 +344,52 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       businessId: teacherBusinessId,
     });
 
-    const availability = await loadBookingSettingsOrDefault(
-      supabase,
-      teacherBusinessId,
-      teacher.id,
-      "bootstrap",
-    );
-    console.log("[public-booking/bootstrap] Step=booking_settings_result", {
-      bookingEnabled: availability.bookingEnabled,
-      daysAhead: availability.daysAhead,
-      slotDurationMinutes: availability.slotDurationMinutes,
+    let availability;
+    try {
+      availability = await loadBookingSettingsOrDefault(
+        supabase,
+        teacherBusinessId,
+        teacher.id,
+        "bootstrap",
+      );
+    } catch (e) {
+      console.error("[public-booking/bootstrap] loadBookingSettingsOrDefault failed", e);
+      return jsonErr(heUi.publicBooking.errUnavailable, 503);
+    }
+
+    console.log("[public-booking/bootstrap] [TEMP] booking_settings_result", {
+      bookingEnabled: availability?.bookingEnabled,
+      daysAhead: availability?.daysAhead,
+      slotDurationMinutes: availability?.slotDurationMinutes,
+      hasWeekly:
+        availability?.weeklyAvailability &&
+        typeof availability.weeklyAvailability === "object",
     });
 
     const businessName =
-      teacher.businessName.trim() ||
-      appSettings.businessName.trim() ||
+      safeStr(teacher.businessName) ||
+      safeStr(appSettings?.businessName) ||
       "";
     const fullName =
-      teacher.fullName.trim() ||
-      appSettings.teacherName.trim() ||
+      safeStr(teacher.fullName) ||
+      safeStr(appSettings?.teacherName) ||
       "";
     const phone =
-      teacher.phone.trim() || appSettings.businessPhone.trim() || "";
-    const businessType =
-      teacher.businessType ||
-      coerceBusinessType(appSettings.activePreset);
+      safeStr(teacher.phone) || safeStr(appSettings?.businessPhone) || "";
+    let businessType: BusinessType = teacher.businessType;
+    try {
+      businessType =
+        teacher.businessType || coerceBusinessType(appSettings?.activePreset);
+    } catch (e) {
+      console.warn("[public-booking/bootstrap] businessType merge failed", e);
+      businessType = "driving_instructor";
+    }
 
     console.log(
       "[public-booking/bootstrap] Step=done ok teacher_slug=",
       teacher.slug,
       "bookingEnabled=",
-      availability.bookingEnabled,
+      availability?.bookingEnabled,
     );
 
     return NextResponse.json({

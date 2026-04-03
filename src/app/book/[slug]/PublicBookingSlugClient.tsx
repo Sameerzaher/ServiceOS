@@ -5,26 +5,25 @@ import { notFound } from "next/navigation";
 
 import { heUi } from "@/config";
 import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
+import { safeNormalizeAvailabilitySettings } from "@/core/types/availability";
 import { Button, Spinner, ui } from "@/components/ui";
 import {
   PublicBookingPageContent,
   type PublicBookingIdentity,
 } from "@/features/booking/components/PublicBookingPageContent";
-import {
-  normalizeAvailabilitySettings,
-  type AvailabilitySettings,
-} from "@/core/types/availability";
 import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
 
 type LoadState =
   | { kind: "loading" }
   | { kind: "error"; message: string }
+  | { kind: "settings_unavailable"; message: string }
   | {
       kind: "ready";
       teacherId: string;
       businessType: BusinessType;
       identity: PublicBookingIdentity;
-      availability: AvailabilitySettings;
+      /** Always normalized — never pass raw API payload to slot logic. */
+      availability: ReturnType<typeof safeNormalizeAvailabilitySettings>;
     };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -51,7 +50,7 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
 
   const load = useCallback(async () => {
     const trimmed = typeof slug === "string" ? slug.trim() : "";
-    console.log("[PublicBooking DEBUG] bootstrap start", { slug: trimmed });
+    console.log("[PublicBookingSlugClient] [TEMP] bootstrap start", { slug: trimmed });
 
     if (!trimmed) {
       console.error("[BOOK_PAGE_ERROR]", new Error("empty_slug_prop"));
@@ -72,7 +71,7 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
 
     try {
       const url = `/api/public-booking/bootstrap?slug=${encodeURIComponent(trimmed)}`;
-      console.log("[PublicBooking DEBUG] fetch", { url });
+      console.log("[PublicBookingSlugClient] [TEMP] fetch", { url });
 
       let res: Response;
       try {
@@ -101,7 +100,7 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
         return;
       }
 
-      console.log("[PublicBooking DEBUG] bootstrap response", {
+      console.log("[PublicBookingSlugClient] [TEMP] bootstrap response", {
         status: res.status,
         ok: res.ok,
         hasTeacher: isRecord(raw) && raw.ok === true && isRecord(raw.teacher),
@@ -109,7 +108,7 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
       });
 
       if (res.status === 404) {
-        console.log("[PublicBooking DEBUG] notFound branch (404)");
+        console.log("[PublicBookingSlugClient] [TEMP] notFound (404)");
         notFound();
         return;
       }
@@ -145,14 +144,32 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
       }
 
       const availabilityRaw = raw.availability;
-      const availabilityPayload =
-        isRecord(availabilityRaw) ? availabilityRaw : {};
-      const availability = normalizeAvailabilitySettings({
-        ...availabilityPayload,
-        teacherId: teacher.id,
-      });
+      let availability: ReturnType<typeof safeNormalizeAvailabilitySettings>;
+      try {
+        availability = safeNormalizeAvailabilitySettings(
+          availabilityRaw ?? {},
+          teacher.id,
+        );
+      } catch (normErr) {
+        console.error("[BOOK_PAGE_ERROR] availability normalize", normErr);
+        setState({
+          kind: "settings_unavailable",
+          message: heUi.publicBooking.bookingDataIncomplete,
+        });
+        return;
+      }
 
-      const businessType = coerceBusinessType(teacher.businessType);
+      if (!availability.weeklyAvailability || typeof availability.weeklyAvailability !== "object") {
+        console.warn("[PublicBookingSlugClient] weeklyAvailability missing after normalize — safe defaults applied");
+      }
+
+      let businessType: BusinessType;
+      try {
+        businessType = coerceBusinessType(teacher.businessType);
+      } catch (e) {
+        console.warn("[PublicBookingSlugClient] coerceBusinessType", e);
+        businessType = "driving_instructor";
+      }
 
       const identity: PublicBookingIdentity = {
         businessName:
@@ -161,10 +178,12 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
         phone: typeof teacher.phone === "string" ? teacher.phone : "",
       };
 
-      console.log("[PublicBooking DEBUG] ready", {
+      console.log("[PublicBookingSlugClient] [TEMP] ready", {
         teacherId: teacher.id,
         businessType,
         bookingEnabled: availability.bookingEnabled,
+        daysAhead: availability.daysAhead,
+        slotDurationMinutes: availability.slotDurationMinutes,
       });
 
       setState({
@@ -208,7 +227,7 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
     );
   }
 
-  if (state.kind === "error") {
+  if (state.kind === "error" || state.kind === "settings_unavailable") {
     return (
       <main className={ui.pageMain}>
         <header className={ui.header}>

@@ -1,12 +1,5 @@
 "use client";
 
-/**
- * Do not import `@/components/ui` barrel here — production RSC/Flight can throw
- * `Cannot read properties of undefined (reading 'clientModules')`. Use direct files.
- *
- * Bisection: a minimal `export default function … { return <div>CLIENT OK</div> }` works;
- * re-adding `import { … } from "@/components/ui"` reproduces the crash — culprit is the barrel.
- */
 import { useCallback, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 

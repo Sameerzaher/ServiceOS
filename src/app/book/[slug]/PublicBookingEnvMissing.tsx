@@ -1,5 +1,6 @@
 import { heUi } from "@/config";
-import { ui } from "@/components/ui";
+/** Server-only: do not import `@/components/ui` barrel — it re-exports client modules and can break RSC `clientModules` in production. */
+import { ui } from "@/components/ui/theme";
 
 /** Server UI when Supabase public env is not set — avoids opaque 500s. */
 export function PublicBookingEnvMissing() {

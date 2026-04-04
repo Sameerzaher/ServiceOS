@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { heUi } from "@/config";
-import { DataLoadErrorBanner, useToast, ui } from "@/components/ui";
+import { DataLoadErrorBanner } from "@/components/ui/DataLoadErrorBanner";
+import { useToast } from "@/components/ui/Toast";
+import { ui } from "@/components/ui/theme";
 import { BookingSlotPicker } from "@/features/booking/components/BookingSlotPicker";
 import { PublicBookingForm } from "@/features/booking/components/PublicBookingForm";
 import { PublicBookingSuccessPanel } from "@/features/booking/components/PublicBookingSuccessPanel";

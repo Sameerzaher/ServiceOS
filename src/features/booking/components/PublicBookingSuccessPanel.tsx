@@ -1,7 +1,8 @@
 "use client";
 
 import { heUi } from "@/config";
-import { Button, ui } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { ui } from "@/components/ui/theme";
 import { publicInstructorWhatsAppHref } from "@/lib/booking/publicBookingWhatsApp";
 import { cn } from "@/lib/cn";
 

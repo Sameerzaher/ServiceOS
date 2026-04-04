@@ -3,7 +3,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { heUi } from "@/config";
-import { Button, Spinner, ui } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
+import { ui } from "@/components/ui/theme";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
 import {
   CustomFieldInputKind,

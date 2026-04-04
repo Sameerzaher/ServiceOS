@@ -1,7 +1,8 @@
 "use client";
 
 import { heUi } from "@/config";
-import { EmptyState, ui } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ui } from "@/components/ui/theme";
 import type { AvailableSlot } from "@/features/booking/utils/generateAvailableSlots";
 import { cn } from "@/lib/cn";
 

@@ -1,8 +1,10 @@
+"use client";
+
 import { heUi } from "@/config";
-/** Server-only: do not import `@/components/ui` barrel — it re-exports client modules and can break RSC `clientModules` in production. */
+/** Do not use `@/components/ui` barrel here — import `theme` directly. */
 import { ui } from "@/components/ui/theme";
 
-/** Server UI when Supabase public env is not set — avoids opaque 500s. */
+/** UI when Supabase public env is not set (works from client `page.tsx`). */
 export function PublicBookingEnvMissing() {
   return (
     <main className={ui.pageMain}>

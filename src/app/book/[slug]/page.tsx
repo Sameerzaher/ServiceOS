@@ -1,5 +1,7 @@
-import dynamic from "next/dynamic";
-import { notFound } from "next/navigation";
+"use client";
+
+import { notFound, useParams } from "next/navigation";
+import { useMemo } from "react";
 
 import {
   isValidPublicTeacherSlug,
@@ -8,24 +10,19 @@ import {
 import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
 
 import { PublicBookingEnvMissing } from "./PublicBookingEnvMissing";
-
-const PublicBookingSlugClient = dynamic(
-  () => import("./PublicBookingSlugClient"),
-  { ssr: true },
-);
-
-type PageProps = {
-  params: Promise<{ slug: string }> | { slug: string };
-};
+import PublicBookingSlugClient from "./PublicBookingSlugClient";
 
 /**
- * No try/catch around `notFound()` — catching can interfere with NEXT_NOT_FOUND.
- * Client tree via `dynamic()` for a stable production client-reference boundary.
+ * Entire segment is a Client Component so Vercel/Next never runs the buggy RSC path
+ * that reads `module.clientModules` as undefined for this route (`clientModules` crash).
+ * Slug comes from `useParams()` instead of async server `params`.
  */
-export default async function PublicBookingBySlugPage({ params }: PageProps) {
-  const resolved = await Promise.resolve(params);
-  const raw = resolved?.slug;
-  const slug = typeof raw === "string" ? normalizeTeacherSlug(raw) : "";
+export default function PublicBookingBySlugPage() {
+  const params = useParams();
+  const slug = useMemo(() => {
+    const raw = params?.slug;
+    return typeof raw === "string" ? normalizeTeacherSlug(raw) : "";
+  }, [params]);
 
   if (!slug || !isValidPublicTeacherSlug(slug)) {
     notFound();

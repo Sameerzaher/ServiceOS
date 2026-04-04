@@ -1,40 +1,56 @@
-import { notFound } from "next/navigation";
+// import { notFound } from "next/navigation";
 
-import {
-  isValidPublicTeacherSlug,
-  normalizeTeacherSlug,
-} from "@/core/validation/teacher";
-import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
+// import {
+//   isValidPublicTeacherSlug,
+//   normalizeTeacherSlug,
+// } from "@/core/validation/teacher";
+// import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
 
-import { PublicBookingEnvMissing } from "./PublicBookingEnvMissing";
-import PublicBookingSlugClient from "./PublicBookingSlugClient";
+// import { PublicBookingEnvMissing } from "./PublicBookingEnvMissing";
+// import PublicBookingSlugClient from "./PublicBookingSlugClient";
 
-type PageProps = {
-  /** Next 14: object. Next 15+: Promise — both supported. */
-  params: Promise<{ slug: string }> | { slug: string };
-};
+// type PageProps = {
+//   /** Next 14: object. Next 15+: Promise — both supported. */
+//   params: Promise<{ slug: string }> | { slug: string };
+// };
 
-/**
- * Server entry: validate slug + env, then one client boundary (`default` export).
- * Keep this file free of heavy imports to avoid RSC / client reference issues.
- */
-export default async function PublicBookingBySlugPage({ params }: PageProps) {
-  try {
-    const resolved = await Promise.resolve(params);
-    const raw = resolved?.slug;
-    const slug = typeof raw === "string" ? normalizeTeacherSlug(raw) : "";
+// /**
+//  * Server entry: validate slug + env, then one client boundary (`default` export).
+//  * Keep this file free of heavy imports to avoid RSC / client reference issues.
+//  */
+// export default async function PublicBookingBySlugPage({ params }: PageProps) {
+//   try {
+//     const resolved = await Promise.resolve(params);
+//     const raw = resolved?.slug;
+//     const slug = typeof raw === "string" ? normalizeTeacherSlug(raw) : "";
 
-    if (!slug || !isValidPublicTeacherSlug(slug)) {
-      notFound();
-    }
+//     if (!slug || !isValidPublicTeacherSlug(slug)) {
+//       notFound();
+//     }
 
-    if (!isPublicSupabaseEnvConfigured()) {
-      return <PublicBookingEnvMissing />;
-    }
+//     if (!isPublicSupabaseEnvConfigured()) {
+//       return <PublicBookingEnvMissing />;
+//     }
 
-    return <PublicBookingSlugClient slug={slug} />;
-  } catch (e) {
-    console.error("[book/slug page] fatal — notFound", e);
-    notFound();
-  }
+//     return <PublicBookingSlugClient slug={slug} />;
+//   } catch (e) {
+//     console.error("[book/slug page] fatal — notFound", e);
+//     notFound();
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+export default async function BookPage() {
+  return <div>BOOK PAGE OK</div>;
 }

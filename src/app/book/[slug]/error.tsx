@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 
 import { heUi } from "@/config";
-import { Button, ui } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { ui } from "@/components/ui/theme";
 
 /**
  * Catches render/runtime errors under `/book/[slug]` so production never shows a generic 500 shell.

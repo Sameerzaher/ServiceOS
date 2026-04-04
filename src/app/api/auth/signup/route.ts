@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
+import { isUsableBusinessId } from "@/core/constants/uuids";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -14,8 +15,9 @@ import {
 import type { SignupTeacherInput, BusinessType } from "@/core/types/teacher";
 import { persistAppSettings } from "@/core/repositories/supabase/appSettingsRepository";
 import { persistBookingSettings } from "@/core/repositories/supabase/bookingSettingsRepository";
+import { upsertBusinessRecord } from "@/core/repositories/supabase/businessRepository";
 import { DEFAULT_APP_SETTINGS } from "@/core/types/settings";
-import { DEFAULT_AVAILABILITY_SETTINGS } from "@/core/types/availability";
+import { buildDefaultBookingSettingsForNewTeacher } from "@/core/types/availability";
 
 export const runtime = "nodejs";
 
@@ -105,15 +107,22 @@ export async function POST(req: Request): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdminClient();
     const businessId = getSupabaseBusinessId();
-    
+
     console.log("[auth/signup] Business ID:", businessId);
 
-    // Check if email already exists
+    if (!isUsableBusinessId(businessId)) {
+      console.error("[auth/signup] Invalid NEXT_PUBLIC_BUSINESS_ID (nil or malformed)");
+      return NextResponse.json(
+        { ok: false as const, error: HE_ERR_GENERIC },
+        { status: 500 },
+      );
+    }
+
+    // Check if email already exists (unique on teachers.email — global)
     const { data: existingEmail, error: emailCheckError } = await supabase
       .from("teachers")
       .select("id")
       .eq("email", email.toLowerCase().trim())
-      .eq("business_id", businessId)
       .maybeSingle();
 
     if (emailCheckError) {
@@ -171,6 +180,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     const now = new Date().toISOString();
     const id = randomUUID();
 
+    try {
+      await upsertBusinessRecord(supabase, businessId, businessName.trim());
+      console.log("[auth/signup] Business record ensured");
+    } catch (e) {
+      console.error("[auth/signup] businesses upsert failed:", e);
+      return NextResponse.json(
+        { ok: false as const, error: HE_ERR_GENERIC },
+        { status: 500 },
+      );
+    }
+
     // Create teacher with auth fields
     console.log("[auth/signup] Creating teacher with id:", id, "role:", autoRole);
     const { error: insertError } = await supabase.from("teachers").insert({
@@ -197,8 +217,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     console.log("[auth/signup] Teacher created, initializing settings...");
-    
-    // Create initial settings for the new teacher
+
     try {
       await persistAppSettings(supabase, businessId, id, {
         ...DEFAULT_APP_SETTINGS,
@@ -207,12 +226,22 @@ export async function POST(req: Request): Promise<NextResponse> {
         businessPhone: phone?.trim() || "",
         activePreset: (businessType as BusinessType) || "driving_instructor",
       });
-      
-      await persistBookingSettings(supabase, businessId, id, DEFAULT_AVAILABILITY_SETTINGS);
-      
+
+      const bookingDefaults = buildDefaultBookingSettingsForNewTeacher(id);
+      await persistBookingSettings(supabase, businessId, id, bookingDefaults);
+
       console.log("[auth/signup] Initial settings created");
     } catch (settingsError) {
-      console.error("[auth/signup] Failed to create settings:", settingsError);
+      console.error("[auth/signup] Failed to create settings — rolling back teacher:", settingsError);
+      await supabase.from("teachers").delete().eq("id", id);
+      return NextResponse.json(
+        {
+          ok: false as const,
+          error:
+            "החשבון נוצר חלקית. נסה שוב או פנה לתמיכה (הגדרות הזמנה לא נשמרו).",
+        },
+        { status: 500 },
+      );
     }
 
     console.log("[auth/signup] SUCCESS - Teacher created:", { id, email, slug, role: autoRole });

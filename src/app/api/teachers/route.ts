@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "crypto";
-import { pbkdf2Sync } from "crypto";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
+import { isUsableBusinessId } from "@/core/constants/uuids";
 import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/adminClient";
-import { persistAppSettings } from "@/core/repositories/supabase/appSettingsRepository";
-import { persistBookingSettings } from "@/core/repositories/supabase/bookingSettingsRepository";
-import { DEFAULT_APP_SETTINGS } from "@/core/types/settings";
-import { DEFAULT_AVAILABILITY_SETTINGS } from "@/core/types/availability";
+import { createTeacherWithBusiness } from "@/core/services/teacherProvisioning";
 
 export const runtime = "nodejs";
 
@@ -21,7 +17,6 @@ export const dynamic = "force-dynamic";
 const HE_ERR_UNAVAILABLE = "רשימת המורים אינה זמינה כרגע.";
 const HE_ERR_GENERIC = "אירעה תקלה בטעינת המורים.";
 const HE_ERR_INVALID = "נתונים לא תקינים.";
-const HE_ERR_SLUG_EXISTS = "ה-slug כבר קיים במערכת.";
 
 export type TeacherListItem = {
   id: string;
@@ -37,7 +32,7 @@ export type TeacherListItem = {
 
 export async function GET(req: Request): Promise<NextResponse> {
   console.log("[teachers/get] Request to list teachers");
-  
+
   if (!isSupabaseAdminConfigured()) {
     console.error("[teachers/get] Supabase not configured");
     return NextResponse.json({ ok: false as const, error: HE_ERR_UNAVAILABLE }, { status: 503 });
@@ -45,8 +40,8 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    
+    const envBusinessId = getSupabaseBusinessId();
+
     // Get current authenticated teacher from session
     const { cookies } = await import("next/headers");
     const sessionToken = cookies().get("session_token")?.value;
@@ -75,14 +70,13 @@ export async function GET(req: Request): Promise<NextResponse> {
       );
     }
     
-    // Get the authenticated teacher's role
     const { data: currentTeacher } = await supabase
       .from("teachers")
-      .select("id, role, email")
+      .select("id, role, email, business_id, business_name")
       .eq("id", session.teacher_id)
       .eq("is_active", true)
       .maybeSingle();
-    
+
     if (!currentTeacher) {
       console.error("[teachers/get] Teacher not found for session");
       return NextResponse.json(
@@ -90,22 +84,26 @@ export async function GET(req: Request): Promise<NextResponse> {
         { status: 401 }
       );
     }
-    
-    console.log("[teachers/get] Authenticated as:", { 
-      email: currentTeacher.email, 
-      role: currentTeacher.role 
+
+    const scopeBusinessId = isUsableBusinessId(currentTeacher.business_id)
+      ? currentTeacher.business_id
+      : envBusinessId;
+
+    console.log("[teachers/get] Authenticated as:", {
+      email: currentTeacher.email,
+      role: currentTeacher.role,
+      scopeBusinessId,
     });
-    
+
     // Only admin can see all teachers
     if (currentTeacher.role !== "admin") {
       console.log("[teachers/get] Non-admin user - returning only self");
-      
-      // Regular users see only themselves
+
+      // Regular users see only themselves (load by id — avoids env/business mismatch)
       const { data: selfData, error: selfError } = await supabase
         .from("teachers")
         .select("*")
         .eq("id", currentTeacher.id)
-        .eq("business_id", businessId)
         .single();
       
       if (selfError || !selfData) {
@@ -142,12 +140,12 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
     
     // Admin can see all teachers in same business
-    console.log("[teachers/get] Admin user - loading all teachers for business:", businessId);
-    
+    console.log("[teachers/get] Admin user - loading all teachers for business:", scopeBusinessId);
+
     const { data, error } = await supabase
       .from("teachers")
       .select("*")
-      .eq("business_id", businessId)
+      .eq("business_id", scopeBusinessId)
       .order("full_name", { ascending: true });
 
     if (error) {
@@ -201,155 +199,131 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    
-    // Get current authenticated teacher from session
+    const envBusinessId = getSupabaseBusinessId();
+
     const { cookies } = await import("next/headers");
     const sessionToken = cookies().get("session_token")?.value;
-    
+
     if (!sessionToken) {
       console.error("[teachers/post] No session token - unauthorized");
       return NextResponse.json(
         { ok: false as const, error: "נדרשת התחברות" },
-        { status: 401 }
+        { status: 401 },
       );
     }
-    
-    // Validate session and get teacher
+
     const { data: session } = await supabase
       .from("sessions")
       .select("teacher_id")
       .eq("token", sessionToken)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
-    
+
     if (!session) {
       console.error("[teachers/post] Invalid or expired session");
       return NextResponse.json(
         { ok: false as const, error: "נדרשת התחברות" },
-        { status: 401 }
+        { status: 401 },
       );
     }
-    
-    // Get the authenticated teacher's role
+
     const { data: currentTeacher } = await supabase
       .from("teachers")
-      .select("id, role, email")
+      .select("id, role, email, business_id, business_name")
       .eq("id", session.teacher_id)
       .eq("is_active", true)
       .maybeSingle();
-    
+
     if (!currentTeacher) {
       console.error("[teachers/post] Teacher not found for session");
       return NextResponse.json(
         { ok: false as const, error: "נדרשת התחברות" },
-        { status: 401 }
+        { status: 401 },
       );
     }
-    
-    // Only admin can create teachers
+
     if (currentTeacher.role !== "admin") {
       console.error("[teachers/post] Non-admin attempted to create teacher:", currentTeacher.email);
       return NextResponse.json(
         { ok: false as const, error: "רק מנהל יכול ליצור מורים חדשים" },
-        { status: 403 }
+        { status: 403 },
       );
     }
-    
-    console.log("[teachers/post] Admin creating teacher:", currentTeacher.email);
-    
-    // Parse request body
+
+    const scopeBusinessId = isUsableBusinessId(currentTeacher.business_id)
+      ? currentTeacher.business_id
+      : envBusinessId;
+
+    if (!isUsableBusinessId(scopeBusinessId)) {
+      console.error("[teachers/post] Invalid business scope — run /api/admin/repair-teacher-data");
+      return NextResponse.json(
+        {
+          ok: false as const,
+          error:
+            "מזהה עסק לא תקין לחשבון המנהל. הרץ תיקון נתונים (מסך מורים) או פנה לתמיכה.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const organizationLabel =
+      typeof currentTeacher.business_name === "string" && currentTeacher.business_name.trim()
+        ? currentTeacher.business_name.trim()
+        : "Business";
+
+    console.log("[teachers/post] Admin creating teacher:", currentTeacher.email, {
+      scopeBusinessId,
+    });
+
     const body = await req.json();
     const { fullName, businessName, phone, slug, businessType, email, password, role } = body;
-    
+
     if (!fullName || !businessName || !slug || !email || !password) {
       console.error("[teachers/post] Missing required fields");
+      return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
+    }
+
+    const result = await createTeacherWithBusiness(
+      supabase,
+      scopeBusinessId,
+      organizationLabel,
+      {
+        fullName: String(fullName),
+        businessName: String(businessName),
+        phone: phone != null ? String(phone) : "",
+        slug: String(slug),
+        businessType: coerceBusinessType(businessType),
+        email: String(email),
+        password: String(password),
+        role: role === "admin" ? "admin" : "user",
+      },
+    );
+
+    if (!result.ok) {
+      const status =
+        result.code === "INVALID_INPUT" ||
+        result.code === "INVALID_BUSINESS_SCOPE" ||
+        result.code === "SLUG_TAKEN" ||
+        result.code === "EMAIL_TAKEN"
+          ? 400
+          : 500;
+      console.error("[teachers/post] Provision failed", result.code, result.details);
       return NextResponse.json(
-        { ok: false as const, error: HE_ERR_INVALID },
-        { status: 400 }
+        { ok: false as const, error: result.error, code: result.code },
+        { status },
       );
     }
-    
-    console.log("[teachers/post] Creating teacher:", { email, slug, role });
-    
-    // Check if slug already exists
-    const { data: existing } = await supabase
-      .from("teachers")
-      .select("id")
-      .eq("slug", slug)
-      .maybeSingle();
-    
-    if (existing) {
-      console.error("[teachers/post] Slug already exists:", slug);
-      return NextResponse.json(
-        { ok: false as const, error: HE_ERR_SLUG_EXISTS },
-        { status: 400 }
-      );
-    }
-    
-    // Hash password
-    const salt = randomUUID();
-    const passwordHash = pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
-    
-    // Create teacher
-    const id = randomUUID();
-    const now = new Date().toISOString();
-    
-    const { error: insertError } = await supabase
-      .from("teachers")
-      .insert({
-        id,
-        business_id: businessId,
-        full_name: fullName,
-        business_name: businessName,
-        phone: phone || null,
-        slug,
-        business_type: businessType || null,
-        email,
-        password_hash: passwordHash,
-        role: role || "user",
-        is_active: true,
-        created_at: now,
-        updated_at: now,
-      });
-    
-    if (insertError) {
-      console.error("[teachers/post] Database error:", insertError);
-      return NextResponse.json(
-        { ok: false as const, error: HE_ERR_GENERIC },
-        { status: 500 }
-      );
-    }
-    
-    console.log("[teachers/post] Teacher created, initializing settings...");
-    
-    // Create initial settings for the new teacher
-    try {
-      await persistAppSettings(supabase, businessId, id, {
-        ...DEFAULT_APP_SETTINGS,
-        businessName,
-        teacherName: fullName,
-        businessPhone: phone || "",
-        activePreset: (businessType as BusinessType) || "driving_instructor",
-      });
-      
-      await persistBookingSettings(supabase, businessId, id, DEFAULT_AVAILABILITY_SETTINGS);
-      
-      console.log("[teachers/post] Initial settings created");
-    } catch (settingsError) {
-      console.error("[teachers/post] Failed to create settings:", settingsError);
-    }
-    
-    console.log("[teachers/post] SUCCESS - Teacher created:", { id, email, slug, role: role || "user" });
-    
-    return NextResponse.json({ 
-      ok: true as const, 
-      teacher: { 
-        id, 
-        email, 
-        slug, 
-        role: role || "user" 
-      } 
+
+    console.log("[teachers/post] SUCCESS", { id: result.teacherId, email, slug });
+
+    return NextResponse.json({
+      ok: true as const,
+      teacher: {
+        id: result.teacherId,
+        email: String(email).trim().toLowerCase(),
+        slug: String(slug).trim(),
+        role: role === "admin" ? "admin" : "user",
+      },
     });
   } catch (e) {
     console.error("[teachers/post] Unexpected error:", e);

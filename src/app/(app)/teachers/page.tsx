@@ -32,6 +32,7 @@ export default function TeachersManagementPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isRepairing, setIsRepairing] = useState(false);
   
   const [formData, setFormData] = useState<TeacherFormData>({
     fullName: "",
@@ -153,6 +154,44 @@ export default function TeachersManagementPage() {
     }
   }
 
+  async function handleRepairLegacyData() {
+    if (isRepairing) return;
+    const ok = window.confirm(
+      "לתקן קישורי עסק והגדרות הזמנה לנתונים ישנים? מומלץ אם קישורי /book לא עובדים.",
+    );
+    if (!ok) return;
+    setIsRepairing(true);
+    try {
+      const res = await fetch("/api/admin/repair-teacher-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun: false }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.ok !== true) {
+        toast(data.error || "תיקון נכשל", "error");
+        return;
+      }
+      const r = data.report as {
+        businessesInserted?: number;
+        teachersFixedBusinessId?: number;
+        bookingSettingsInserted?: number;
+        errors?: string[];
+      };
+      const errs = r.errors?.length ? ` שגיאות: ${r.errors.length}` : "";
+      toast(
+        `תיקון הושלם: עסקים +${r.businessesInserted ?? 0}, מורים +${r.teachersFixedBusinessId ?? 0}, הגדרות +${r.bookingSettingsInserted ?? 0}.${errs}`,
+        r.errors?.length ? "error" : "success",
+      );
+      await ctx?.reloadTeachers();
+    } catch (e) {
+      console.error("[TeachersManagement] repair error:", e);
+      toast("שגיאה בתיקון", "error");
+    } finally {
+      setIsRepairing(false);
+    }
+  }
+
   async function handleDelete(teacherId: string) {
     if (isDeleting) return;
     
@@ -223,14 +262,25 @@ export default function TeachersManagementPage() {
               </span>
             </div>
           </div>
-          <Button 
-            type="button" 
-            variant="primary" 
-            onClick={openCreateForm}
-            className="px-6 py-3 font-bold shadow-lg"
-          >
-            ✨ הוסף מורה/עסק חדש
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleRepairLegacyData}
+              disabled={isRepairing}
+              className="px-4 py-2 text-sm"
+            >
+              {isRepairing ? "⏳ מתקן…" : "🩹 תיקון נתונים ישנים"}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={openCreateForm}
+              className="px-6 py-3 font-bold shadow-lg"
+            >
+              ✨ הוסף מורה/עסק חדש
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

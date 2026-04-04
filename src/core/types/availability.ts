@@ -77,6 +77,47 @@ export const DEFAULT_AVAILABILITY_SETTINGS: AvailabilitySettings = {
   },
 };
 
+/** Sunday–Thursday 09:00–14:00; Friday/Saturday off (Israel-oriented work week). */
+export function defaultWeeklyAvailabilityNewTeacher(): WeeklyAvailability {
+  const workDay: DayAvailability = {
+    enabled: true,
+    startTime: "09:00",
+    endTime: "14:00",
+  };
+  const off: DayAvailability = {
+    enabled: false,
+    startTime: "09:00",
+    endTime: "14:00",
+  };
+  return {
+    sunday: { ...workDay },
+    monday: { ...workDay },
+    tuesday: { ...workDay },
+    wednesday: { ...workDay },
+    thursday: { ...workDay },
+    friday: { ...off },
+    saturday: { ...off },
+  };
+}
+
+/** Defaults for newly provisioned teachers (public booking + dashboard). */
+export function buildDefaultBookingSettingsForNewTeacher(
+  teacherId: string,
+): AvailabilitySettings {
+  const tid = typeof teacherId === "string" ? teacherId.trim() : "";
+  return {
+    teacherId: tid,
+    bookingEnabled: true,
+    slotDurationMinutes: 60,
+    daysAhead: 14,
+    weeklyAvailability: defaultWeeklyAvailabilityNewTeacher(),
+    enableAutoReminders: false,
+    reminder24hBefore: true,
+    reminder1hBefore: true,
+    reminderCustomMessage: "",
+  };
+}
+
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
 }

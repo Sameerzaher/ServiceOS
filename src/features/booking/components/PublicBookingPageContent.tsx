@@ -119,11 +119,16 @@ export function PublicBookingPageContent({
       slotDurationMinutes: safeAvailability.slotDurationMinutes,
       appointmentCount: appts.length,
     });
-    return generateAvailableSlots({
-      date: selectedDate,
-      availability: safeAvailability,
-      existingAppointments: appts,
-    });
+    try {
+      return generateAvailableSlots({
+        date: selectedDate,
+        availability: safeAvailability,
+        existingAppointments: appts,
+      });
+    } catch (e) {
+      console.error("[PublicBookingPageContent] slot_generation_failed", e);
+      return [];
+    }
   }, [selectedDate, safeAvailability, sortedAppointments, teacherId]);
 
   const selectedSlot = useMemo(

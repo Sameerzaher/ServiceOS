@@ -7,7 +7,7 @@ import {
 import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
 
 import { PublicBookingEnvMissing } from "./PublicBookingEnvMissing";
-import { PublicBookingSlugClient } from "./PublicBookingSlugClient";
+import PublicBookingSlugClient from "./PublicBookingSlugClient";
 
 type PageProps = {
   /** Next 14: object. Next 15+: Promise — both supported. */
@@ -15,8 +15,8 @@ type PageProps = {
 };
 
 /**
- * Server entry: validate slug + env before any client fetch.
- * Wrapped so missing/invalid `params` never becomes an unhandled 500.
+ * Server entry: validate slug + env, then one client boundary (`default` export).
+ * Keep this file free of heavy imports to avoid RSC / client reference issues.
  */
 export default async function PublicBookingBySlugPage({ params }: PageProps) {
   try {
@@ -24,23 +24,17 @@ export default async function PublicBookingBySlugPage({ params }: PageProps) {
     const raw = resolved?.slug;
     const slug = typeof raw === "string" ? normalizeTeacherSlug(raw) : "";
 
-    console.log("[book/slug page] [TEMP] normalized_slug=", JSON.stringify(slug));
-
     if (!slug || !isValidPublicTeacherSlug(slug)) {
       notFound();
     }
 
     if (!isPublicSupabaseEnvConfigured()) {
-      console.error(
-        "[BOOK_PAGE_ERROR]",
-        new Error("server: missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-      );
       return <PublicBookingEnvMissing />;
     }
 
     return <PublicBookingSlugClient slug={slug} />;
   } catch (e) {
-    console.error("[book/slug page] fatal — falling back to notFound", e);
+    console.error("[book/slug page] fatal — notFound", e);
     notFound();
   }
 }

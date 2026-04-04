@@ -282,10 +282,13 @@ export function Dashboard({
                 const highTier =
                   index === 0 ||
                   (maxDebt > 0 && row.debt >= maxDebt * 0.55);
+                const c = row.client;
+                const cid = c?.id ?? `debt-${index}`;
+                const cname = c?.fullName?.trim() || "—";
                 return (
-                  <li key={row.client.id}>
+                  <li key={cid}>
                     <Link
-                      href={`/clients/${row.client.id}`}
+                      href={`/clients/${cid}`}
                       className={cn(
                         ui.card,
                         ui.cardPadding,
@@ -296,7 +299,7 @@ export function Dashboard({
                       )}
                     >
                       <span className="min-w-0 flex-1 font-medium text-neutral-900">
-                        {row.client.fullName}
+                        {cname}
                       </span>
                       <span
                         className={cn(

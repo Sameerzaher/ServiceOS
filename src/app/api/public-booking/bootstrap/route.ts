@@ -34,6 +34,8 @@ type BootstrapOk = {
   ok: true;
   teacher: BootstrapTeacher;
   availability: AvailabilitySettings;
+  /** Resolved tenant for settings queries — always present when ok */
+  business: { id: string };
 };
 
 type BootstrapErr = {
@@ -73,11 +75,44 @@ function asNonEmptyString(v: unknown): string | null {
   return t.length > 0 ? t : null;
 }
 
-function businessIdFromRow(row: unknown, fallback: string): string {
-  if (!isRecord(row)) return fallback;
-  const bid = row.business_id;
-  if (typeof bid === "string" && bid.trim().length > 0) return bid.trim();
-  return fallback;
+/**
+ * Resolves tenant UUID for booking bootstrap. Invalid non-empty `business_id` on the
+ * teacher row yields a controlled failure (503) instead of querying the wrong tenant.
+ * Missing/null `business_id` falls back to env / MVP default (legacy single-tenant).
+ */
+function resolveBootstrapBusinessId(
+  teacherRow: unknown,
+  envFallback: string,
+):
+  | { ok: true; businessId: string; usedFallback: boolean }
+  | { ok: false } {
+  const fallback =
+    typeof envFallback === "string" && isUuidLike(envFallback)
+      ? envFallback.trim()
+      : getSupabaseBusinessId();
+
+  if (!isRecord(teacherRow)) {
+    return { ok: true, businessId: fallback, usedFallback: true };
+  }
+
+  const raw = teacherRow.business_id;
+  if (raw == null || (typeof raw === "string" && raw.trim() === "")) {
+    console.warn(
+      "[public-booking/bootstrap] teacher.business_id missing; using env/default tenant",
+      { fallback },
+    );
+    return { ok: true, businessId: fallback, usedFallback: true };
+  }
+
+  if (typeof raw === "string" && isUuidLike(raw)) {
+    return { ok: true, businessId: raw.trim(), usedFallback: false };
+  }
+
+  console.error(
+    "[public-booking/bootstrap] invalid business_id on teacher row (not a UUID)",
+    typeof raw === "string" ? raw.slice(0, 64) : raw,
+  );
+  return { ok: false };
 }
 
 /**
@@ -177,13 +212,20 @@ async function loadLegacyBootstrap(
     daysAhead: availability?.daysAhead,
   });
 
+  let legacyBt: BusinessType = "driving_instructor";
+  try {
+    legacyBt = coerceBusinessType(legacySettings?.activePreset);
+  } catch (e) {
+    console.warn("[public-booking/bootstrap] legacy coerceBusinessType failed", e);
+  }
+
   const teacher: BootstrapTeacher = {
     id: teacherIdForScope,
     slug: slugForDisplay,
     fullName: safeStr(legacySettings?.teacherName),
     businessName: safeStr(legacySettings?.businessName),
     phone: safeStr(legacySettings?.businessPhone),
-    businessType: coerceBusinessType(legacySettings?.activePreset),
+    businessType: legacyBt,
   };
 
   return { teacher, availability };
@@ -284,10 +326,19 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
           bookingEnabled: availability?.bookingEnabled,
           daysAhead: availability?.daysAhead,
         });
+        console.log("[public-booking/bootstrap] [TEMP] legacy_entities", {
+          teacher: { id: teacher.id, slug: teacher.slug },
+          business: { id: envFallbackBusinessId },
+          bookingSettings: {
+            bookingEnabled: availability?.bookingEnabled,
+            daysAhead: availability?.daysAhead,
+          },
+        });
         return NextResponse.json({
           ok: true as const,
           teacher,
           availability,
+          business: { id: envFallbackBusinessId },
         });
       } catch (e) {
         console.error("[public-booking/bootstrap] loadLegacyBootstrap failed", e);
@@ -306,14 +357,11 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       return jsonErr(heUi.publicBooking.invalidSlugMessage, 404);
     }
 
-    let teacherBusinessId = businessIdFromRow(row, "");
-    if (!teacherBusinessId) {
-      teacherBusinessId = envFallbackBusinessId;
-      console.warn(
-        "[public-booking/bootstrap] Step=business_id missing on teacher row; using NEXT_PUBLIC_BUSINESS_ID / default",
-        { teacherId: teacher.id, fallback: teacherBusinessId },
-      );
+    const scope = resolveBootstrapBusinessId(row, envFallbackBusinessId);
+    if (!scope.ok) {
+      return jsonErr(heUi.publicBooking.businessScopeError, 503);
     }
+    const teacherBusinessId = scope.businessId;
 
     console.log("[public-booking/bootstrap] Step=load_app_settings", {
       teacherId: teacher.id,
@@ -385,6 +433,16 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       businessType = "driving_instructor";
     }
 
+    console.log("[public-booking/bootstrap] [TEMP] entities", {
+      teacher: { id: teacher.id, slug: teacher.slug, businessName, fullName },
+      business: { id: teacherBusinessId },
+      bookingSettings: {
+        bookingEnabled: availability?.bookingEnabled,
+        daysAhead: availability?.daysAhead,
+        slotDurationMinutes: availability?.slotDurationMinutes,
+      },
+    });
+
     console.log(
       "[public-booking/bootstrap] Step=done ok teacher_slug=",
       teacher.slug,
@@ -403,6 +461,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
         businessType,
       },
       availability,
+      business: { id: teacherBusinessId },
     });
   } catch (e) {
     console.error("[public-booking/bootstrap] Step=unhandled_exception:", e);

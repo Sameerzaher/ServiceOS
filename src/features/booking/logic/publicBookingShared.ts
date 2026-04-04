@@ -92,6 +92,7 @@ export function bookingOverlapsExistingAppointments(
   const slotDurationMs = slotEndMs - slotStartMs;
 
   return appointments.some((appt) => {
+    if (!appt || typeof appt !== "object") return false;
     if (appt.status === AppointmentStatus.Cancelled) return false;
     const apptStartMs = new Date(appt.startAt).getTime();
     if (!Number.isFinite(apptStartMs)) return false;

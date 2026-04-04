@@ -15,8 +15,8 @@ import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
 
 type LoadState =
   | { kind: "loading" }
-  | { kind: "error"; message: string }
-  | { kind: "settings_unavailable"; message: string }
+  | { kind: "error"; message: string; title?: string }
+  | { kind: "settings_unavailable"; message: string; title?: string }
   | {
       kind: "ready";
       teacherId: string;
@@ -45,7 +45,7 @@ function safeTeacherPayload(
   };
 }
 
-export function PublicBookingSlugClient({ slug }: { slug: string }) {
+function PublicBookingSlugClient({ slug }: { slug: string }) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   const load = useCallback(async () => {
@@ -128,10 +128,31 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
             ? raw.error
             : heUi.publicBooking.bootstrapLoadFailedTitle;
         if (res.status === 503 || res.status === 502) {
-          setState({ kind: "error", message: heUi.publicBooking.errUnavailable });
+          setState({
+            kind: "error",
+            message:
+              errMsg !== heUi.publicBooking.bootstrapLoadFailedTitle
+                ? errMsg
+                : heUi.publicBooking.errUnavailable,
+          });
         } else {
           setState({ kind: "error", message: errMsg });
         }
+        return;
+      }
+
+      const businessPayload = (raw as Record<string, unknown>).business;
+      const businessId =
+        isRecord(businessPayload) && typeof businessPayload.id === "string"
+          ? businessPayload.id.trim()
+          : "";
+      if (!businessId) {
+        console.error("[BOOK_PAGE_ERROR]", new Error("bootstrap_missing_business"));
+        setState({
+          kind: "error",
+          title: heUi.publicBooking.businessNotFound,
+          message: heUi.publicBooking.businessNotFound,
+        });
         return;
       }
 
@@ -143,7 +164,26 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
         return;
       }
 
+      console.log("[PublicBookingSlugClient] [TEMP] teacher", {
+        id: teacher.id,
+        businessType: teacher.businessType,
+        businessName: teacher.businessName,
+      });
+      console.log("[PublicBookingSlugClient] [TEMP] business", { id: businessId });
+
       const availabilityRaw = raw.availability;
+      if (
+        availabilityRaw == null ||
+        typeof availabilityRaw !== "object" ||
+        Array.isArray(availabilityRaw)
+      ) {
+        console.warn("[PublicBookingSlugClient] booking settings missing on payload");
+        setState({
+          kind: "settings_unavailable",
+          message: heUi.publicBooking.bookingDataIncomplete,
+        });
+        return;
+      }
       let availability: ReturnType<typeof safeNormalizeAvailabilitySettings>;
       try {
         availability = safeNormalizeAvailabilitySettings(
@@ -177,6 +217,14 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
         teacherName: typeof teacher.fullName === "string" ? teacher.fullName : "",
         phone: typeof teacher.phone === "string" ? teacher.phone : "",
       };
+
+      console.log("[PublicBookingSlugClient] [TEMP] bookingSettings", {
+        businessId,
+        teacherId: teacher.id,
+        bookingEnabled: availability.bookingEnabled,
+        daysAhead: availability.daysAhead,
+        slotDurationMinutes: availability.slotDurationMinutes,
+      });
 
       console.log("[PublicBookingSlugClient] [TEMP] ready", {
         teacherId: teacher.id,
@@ -228,10 +276,15 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
   }
 
   if (state.kind === "error" || state.kind === "settings_unavailable") {
+    const heading =
+      state.title ??
+      (state.kind === "settings_unavailable"
+        ? heUi.publicBooking.bootstrapLoadFailedTitle
+        : heUi.publicBooking.invalidSlugTitle);
     return (
       <main className={ui.pageMain}>
         <header className={ui.header}>
-          <h1 className={ui.pageTitle}>{heUi.publicBooking.invalidSlugTitle}</h1>
+          <h1 className={ui.pageTitle}>{heading}</h1>
           <p className="mt-2 max-w-prose text-sm leading-relaxed text-neutral-600">
             {state.message}
           </p>
@@ -264,3 +317,5 @@ export function PublicBookingSlugClient({ slug }: { slug: string }) {
     />
   );
 }
+
+export default PublicBookingSlugClient;

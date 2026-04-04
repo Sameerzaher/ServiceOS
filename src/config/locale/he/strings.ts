@@ -511,6 +511,10 @@ export const heUi = {
       "ההזמנה המקוונת סגורה כרגע. אפשר לנסות שוב מאוחר יותר או לפנות ישירות לעסק.",
     bookingDataIncomplete:
       "לא הצלחנו לטעון את הגדרות הזמינות. נסו שוב בעוד רגע או פנו לעסק.",
+    /** Business tenant could not be resolved for this booking link */
+    businessNotFound: "העסק לא נמצא",
+    businessScopeError:
+      "לא ניתן לטעון את פרטי העסק לקישור הזה. פנו לעסק או נסו שוב מאוחר יותר.",
     slotHeading: "שעות פנויות",
     slotEmptyTitle: "אין בשעה הזו שעות פנויות",
     slotEmptyDescription: "נסו תאריך אחר באותו השבוע, או חזרו מחר לבדיקה.",

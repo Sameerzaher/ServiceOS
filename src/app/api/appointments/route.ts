@@ -175,10 +175,15 @@ function toApiAppointment(
   const phoneFromSnap =
     typeof snapPhoneRaw === "string" ? snapPhoneRaw.trim() : "";
 
+  const clientNameResolved =
+    nameFromSnap || client?.fullName || "ללא שם";
+
   return {
     id: row.id,
     teacherId: row.teacherId,
-    clientName: nameFromSnap || client?.fullName || "",
+    clientName: clientNameResolved,
+    client: { name: clientNameResolved },
+    entry: row.customFields?.entry ?? null,
     phone: phoneFromSnap || client?.phone || "",
     time: startTime,
     studentId: row.clientId,

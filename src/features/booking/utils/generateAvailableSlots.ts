@@ -159,10 +159,15 @@ export function generateAvailableSlots({
       if (slotStartMs < nowMs) continue;
 
       const overlapsExisting = activeAppointments.some((appt) => {
-        if (!appt?.startAt || typeof appt.startAt !== "string") return false;
+        if (!appt || typeof appt !== "object") return false;
+        if (!appt.startAt || typeof appt.startAt !== "string") return false;
         const apptStartMs = new Date(appt.startAt).getTime();
         if (!Number.isFinite(apptStartMs)) return false;
-        const endRaw = appt.customFields?.bookingSlotEnd;
+        const cf =
+          appt.customFields && typeof appt.customFields === "object"
+            ? appt.customFields
+            : {};
+        const endRaw = cf.bookingSlotEnd;
         let apptEndMs: number;
         if (typeof endRaw === "string") {
           const t = new Date(endRaw.trim()).getTime();

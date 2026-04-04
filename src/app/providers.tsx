@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { ToastProvider } from "@/components/ui";
+import { ToastProvider } from "@/components/ui/Toast";
 import { StorageProvider, StorageBootstrapNotifier } from "@/core/storage";
 import { ThemeProvider } from "@/features/theme/ThemeProvider";
 import { LocaleProvider } from "@/features/locale/LocaleProvider";

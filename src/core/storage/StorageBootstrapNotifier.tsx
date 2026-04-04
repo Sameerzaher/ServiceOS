@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { useToast } from "@/components/ui";
+import { useToast } from "@/components/ui/Toast";
 import { heUi } from "@/config";
 import { isSupabaseConfigured } from "@/core/config/supabaseEnv";
 import {

@@ -13,27 +13,29 @@ const withPWA = withPWAInit({
   },
 });
 
+const isVercel = process.env.VERCEL === "1";
+const isWin = process.platform === "win32";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /**
    * On some Windows setups, `next build` fails during "Collecting build traces"
    * with ENOENT for `.nft.json` / rename under `.next`. Disabling tracing avoids
-   * that flake (larger deploy image if you use `output: 'standalone'` elsewhere).
+   * that flake. Vercel/Linux builds should keep tracing on so the serverless
+   * bundle includes the app correctly (avoids `clientReferenceManifest` / `clientModules` crashes).
    */
-  outputFileTracing: false,
+  outputFileTracing: isVercel || !isWin,
 
   /**
    * Avoid server async chunks (`./<id>.js`) that can go missing under Windows
    * dev HMR / parallel workers (`MODULE_NOT_FOUND` from webpack-runtime).
-   * Slightly larger server bundles; stable requires at runtime.
+   * Do not force this on Vercel/Linux server builds — it can break the client
+   * reference manifest used by App Router RSC (`Cannot read ... 'clientModules'`).
    */
   webpack: (config, { dev, isServer }) => {
-    /**
-     * Server: always disable async chunks (Windows missing `./<id>.js`).
-     * Client dev: same issue manifests as `originalFactory is undefined` /
-     * broken HMR when split chunks desync. Prod client keeps default splitting.
-     */
-    if (isServer || (!isServer && dev)) {
+    const disableSplitChunks =
+      (!isServer && dev) || (isServer && isWin);
+    if (disableSplitChunks) {
       config.optimization = {
         ...config.optimization,
         splitChunks: false,

@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { heUi } from "@/config";
-import { ui } from "@/components/ui";
+import { ui } from "@/components/ui/theme";
 
 /**
  * `/book` without a teacher slug is no longer a valid public entry point.

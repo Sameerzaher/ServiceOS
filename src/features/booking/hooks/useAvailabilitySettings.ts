@@ -75,10 +75,14 @@ export function useAvailabilitySettings(): UseAvailabilitySettingsResult {
         await storage.persistAvailabilitySettings(settings);
         if (cancelled) return;
         setSyncError(null);
+        /**
+         * Do not re-fetch after save. A reload was resetting toggles like
+         * `enableAutoReminders` when the DB row or API mapping omitted reminder
+         * columns — the checkbox expanded block then vanished immediately after click.
+         * Local state already matches what we POSTed to `/api/availability-settings`.
+         */
         if (remote) {
           skipPersistAfterLoadRef.current = true;
-          const next = await storage.loadAvailabilitySettings();
-          if (!cancelled) setSettings(next);
         }
       } catch (e) {
         console.error("[ServiceOS] useAvailabilitySettings persist", e);
@@ -104,8 +108,6 @@ export function useAvailabilitySettings(): UseAvailabilitySettingsResult {
         setSyncError(null);
         if (remote) {
           skipPersistAfterLoadRef.current = true;
-          const next = await storage.loadAvailabilitySettings();
-          setSettings(next);
         }
       } catch (e) {
         console.error("[ServiceOS] useAvailabilitySettings retrySync", e);

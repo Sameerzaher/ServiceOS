@@ -19,6 +19,18 @@ const STORAGE_KEY = "serviceos.dashboardTeacherId";
 const TEACHERS_CACHE_KEY = "serviceos.teachersCache";
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+/** Sync read so `StorageProvider` / availability load use the real teacher id immediately (avoids a second load that wipes UI state). */
+function readStoredTeacherId(fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const v = window.localStorage.getItem(STORAGE_KEY)?.trim();
+    if (v) return v;
+  } catch {
+    /* private mode / quota */
+  }
+  return fallback;
+}
+
 type CachedTeachers = {
   teachers: DashboardTeacherSummary[];
   timestamp: number;
@@ -76,7 +88,9 @@ type TeachersApiErr = { ok: false; error: string };
 
 export function DashboardTeacherProvider({ children }: { children: ReactNode }) {
   const defaultId = getSupabaseDefaultTeacherId();
-  const [teacherId, setTeacherIdState] = useState(defaultId);
+  const [teacherId, setTeacherIdState] = useState(() =>
+    readStoredTeacherId(defaultId),
+  );
   const [teachers, setTeachers] = useState<DashboardTeacherSummary[]>([]);
   const [teachersReady, setTeachersReady] = useState(false);
   const [loadKey, setLoadKey] = useState(0);

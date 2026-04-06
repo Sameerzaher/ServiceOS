@@ -13,6 +13,8 @@ import {
   PublicBookingPageContent,
   type PublicBookingIdentity,
 } from "@/features/booking/components/PublicBookingPageContent";
+import { HILAI_NAILS_SLUG } from "@/features/booking/hilai/constants";
+import { cn } from "@/lib/cn";
 import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
 
 type LoadState =
@@ -263,14 +265,31 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
   }, [load]);
 
   if (state.kind === "loading") {
+    const trimmedSlug = typeof slug === "string" ? slug.trim() : "";
+    const hilaiLoad = trimmedSlug === HILAI_NAILS_SLUG;
     return (
-      <main className={ui.pageMain}>
+      <main
+        className={cn(
+          ui.pageMain,
+          hilaiLoad &&
+            "min-h-screen bg-gradient-to-b from-[#fdf8fa] via-[#fffcfd] to-[#faf8ff]",
+        )}
+        dir={hilaiLoad ? "rtl" : undefined}
+        lang={hilaiLoad ? "he" : undefined}
+      >
         <div
           className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-neutral-600"
           role="status"
           aria-live="polite"
         >
-          <Spinner className="size-8 border-neutral-300 border-t-neutral-700" />
+          <Spinner
+            className={cn(
+              "size-8",
+              hilaiLoad
+                ? "border-rose-100 border-t-[#c4a5bc]"
+                : "border-neutral-300 border-t-neutral-700",
+            )}
+          />
           <span className="sr-only">{heUi.loading.ariaBusy}</span>
         </div>
       </main>
@@ -310,12 +329,18 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
     return null;
   }
 
+  const demoVariant =
+    typeof slug === "string" && slug.trim() === HILAI_NAILS_SLUG
+      ? ("hilai-nails" as const)
+      : ("default" as const);
+
   return (
     <PublicBookingPageContent
       teacherId={tid}
       businessType={state.businessType}
       identity={state.identity}
       availability={state.availability}
+      variant={demoVariant}
     />
   );
 }

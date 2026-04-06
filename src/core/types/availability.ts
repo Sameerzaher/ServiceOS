@@ -122,6 +122,19 @@ function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
 }
 
+/** Postgres/JSON sometimes yields non-boolean types — avoids toggles snapping back. */
+function coerceBool(v: unknown, fallback: boolean): boolean {
+  if (typeof v === "boolean") return v;
+  if (v === null || v === undefined) return fallback;
+  if (typeof v === "number" && Number.isFinite(v)) return v !== 0;
+  if (typeof v === "string") {
+    const t = v.trim().toLowerCase();
+    if (t === "true" || t === "1" || t === "t" || t === "yes") return true;
+    if (t === "false" || t === "0" || t === "f" || t === "no") return false;
+  }
+  return fallback;
+}
+
 function coerceClampedInt(
   v: unknown,
   fallback: number,
@@ -184,10 +197,10 @@ export function normalizeAvailabilitySettings(raw: unknown): AvailabilitySetting
 
   return {
     teacherId,
-    bookingEnabled:
-      typeof raw.bookingEnabled === "boolean"
-        ? raw.bookingEnabled
-        : DEFAULT_AVAILABILITY_SETTINGS.bookingEnabled,
+    bookingEnabled: coerceBool(
+      raw.bookingEnabled,
+      DEFAULT_AVAILABILITY_SETTINGS.bookingEnabled,
+    ),
     slotDurationMinutes: coerceClampedInt(
       raw.slotDurationMinutes,
       DEFAULT_AVAILABILITY_SETTINGS.slotDurationMinutes,
@@ -215,18 +228,18 @@ export function normalizeAvailabilitySettings(raw: unknown): AvailabilitySetting
       friday: normalizeDayAvailability(weeklyRaw.friday, defaults.friday),
       saturday: normalizeDayAvailability(weeklyRaw.saturday, defaults.saturday),
     },
-    enableAutoReminders:
-      typeof raw.enableAutoReminders === "boolean"
-        ? raw.enableAutoReminders
-        : DEFAULT_AVAILABILITY_SETTINGS.enableAutoReminders,
-    reminder24hBefore:
-      typeof raw.reminder24hBefore === "boolean"
-        ? raw.reminder24hBefore
-        : DEFAULT_AVAILABILITY_SETTINGS.reminder24hBefore,
-    reminder1hBefore:
-      typeof raw.reminder1hBefore === "boolean"
-        ? raw.reminder1hBefore
-        : DEFAULT_AVAILABILITY_SETTINGS.reminder1hBefore,
+    enableAutoReminders: coerceBool(
+      raw.enableAutoReminders,
+      DEFAULT_AVAILABILITY_SETTINGS.enableAutoReminders ?? false,
+    ),
+    reminder24hBefore: coerceBool(
+      raw.reminder24hBefore,
+      DEFAULT_AVAILABILITY_SETTINGS.reminder24hBefore ?? true,
+    ),
+    reminder1hBefore: coerceBool(
+      raw.reminder1hBefore,
+      DEFAULT_AVAILABILITY_SETTINGS.reminder1hBefore ?? true,
+    ),
     reminderCustomMessage:
       typeof raw.reminderCustomMessage === "string"
         ? raw.reminderCustomMessage

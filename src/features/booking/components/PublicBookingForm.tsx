@@ -31,6 +31,16 @@ export interface PublicBookingFormProps {
   submitError?: string | null;
   isSubmitting: boolean;
   className?: string;
+  /** Shown above the submit button (e.g. missing service selection). */
+  preflightError?: string | null;
+  /** Override default CTA label (idle state). */
+  submitIdleLabel?: string;
+  /** Extra classes for the outer form card (branded public pages). */
+  formCardClassName?: string;
+  /** Override primary CTA appearance (e.g. branded gradient). */
+  submitButtonClassName?: string;
+  /** Softer field + slot summary styling for branded public demos (no logic change). */
+  visualTone?: "default" | "hilai";
 }
 
 interface FieldErrors {
@@ -161,7 +171,24 @@ export function PublicBookingForm({
   submitError = null,
   isSubmitting,
   className,
+  preflightError = null,
+  submitIdleLabel,
+  formCardClassName,
+  submitButtonClassName,
+  visualTone = "default",
 }: PublicBookingFormProps) {
+  const hilaiVisual = visualTone === "hilai";
+  const fieldLabel = cn(
+    ui.label,
+    "text-xs sm:text-sm",
+    hilaiVisual && "font-medium text-stone-600",
+  );
+  const fieldInput = cn(
+    ui.input,
+    "text-xs sm:text-sm",
+    hilaiVisual &&
+      "rounded-2xl border-stone-200/80 bg-white/95 shadow-none transition-shadow placeholder:text-stone-400 focus:border-rose-300/80 focus:ring-2 focus:ring-rose-200/40",
+  );
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -263,13 +290,39 @@ export function PublicBookingForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className={cn(ui.formCard, "space-y-4 p-3 sm:space-y-5 sm:p-4", className)}
+      className={cn(
+        ui.formCard,
+        hilaiVisual ? "space-y-5 p-4 sm:space-y-6 sm:p-6" : "space-y-4 p-3 sm:space-y-5 sm:p-4",
+        formCardClassName,
+        className,
+      )}
     >
-      <div className="rounded-lg border border-neutral-200 bg-neutral-50/90 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800">
-        <p className="text-[10px] text-neutral-600 dark:text-neutral-400 sm:text-xs">
+      <div
+        className={cn(
+          "rounded-lg border px-3 py-2",
+          hilaiVisual
+            ? "border-stone-200/60 bg-gradient-to-b from-stone-50/90 to-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9)]"
+            : "border-neutral-200 bg-neutral-50/90 dark:border-neutral-700 dark:bg-neutral-800",
+        )}
+      >
+        <p
+          className={cn(
+            "text-[10px] sm:text-xs",
+            hilaiVisual
+              ? "font-medium text-stone-500"
+              : "text-neutral-600 dark:text-neutral-400",
+          )}
+        >
           {heUi.publicBooking.selectedSlotLabel}
         </p>
-        <p className="mt-1 text-xs font-semibold text-neutral-900 dark:text-neutral-100 sm:text-sm">
+        <p
+          className={cn(
+            "mt-1 text-xs sm:text-sm",
+            hilaiVisual
+              ? "font-semibold text-stone-800"
+              : "font-semibold text-neutral-900 dark:text-neutral-100",
+          )}
+        >
           {selectedSlotLabel || heUi.publicBooking.noSlotSelected}
         </p>
         {errors.slot ? (
@@ -278,7 +331,7 @@ export function PublicBookingForm({
       </div>
 
       <div>
-        <label htmlFor="public-booking-name" className={cn(ui.label, "text-xs sm:text-sm")}>
+        <label htmlFor="public-booking-name" className={fieldLabel}>
           {heUi.publicBooking.fullNameLabel}
         </label>
         <input
@@ -290,7 +343,7 @@ export function PublicBookingForm({
             setFullName(e.target.value);
             setErrors((prev) => ({ ...prev, fullName: undefined }));
           }}
-          className={cn(ui.input, "text-xs sm:text-sm")}
+          className={fieldInput}
           autoComplete="name"
           aria-invalid={errors.fullName ? true : undefined}
           aria-describedby={errors.fullName ? "public-booking-name-error" : undefined}
@@ -303,7 +356,7 @@ export function PublicBookingForm({
       </div>
 
       <div>
-        <label htmlFor="public-booking-phone" className={cn(ui.label, "text-xs sm:text-sm")}>
+        <label htmlFor="public-booking-phone" className={fieldLabel}>
           {heUi.publicBooking.phoneLabel}
         </label>
         <input
@@ -315,7 +368,7 @@ export function PublicBookingForm({
             setPhone(e.target.value);
             setErrors((prev) => ({ ...prev, phone: undefined }));
           }}
-          className={cn(ui.input, "text-xs sm:text-sm")}
+          className={fieldInput}
           autoComplete="tel"
           inputMode="tel"
           aria-invalid={errors.phone ? true : undefined}
@@ -329,7 +382,7 @@ export function PublicBookingForm({
       </div>
 
       <div>
-        <label htmlFor="public-booking-notes" className={cn(ui.label, "text-xs sm:text-sm")}>
+        <label htmlFor="public-booking-notes" className={fieldLabel}>
           {heUi.publicBooking.notesLabel}
         </label>
         <textarea
@@ -338,7 +391,7 @@ export function PublicBookingForm({
           disabled={isSubmitting}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className={cn(ui.input, "min-h-[5.5rem] resize-y text-xs sm:text-sm")}
+          className={cn(fieldInput, "min-h-[5.5rem] resize-y")}
         />
       </div>
 
@@ -376,10 +429,20 @@ export function PublicBookingForm({
         </div>
       ))}
 
+      {preflightError ? (
+        <p className="text-xs text-red-600 sm:text-sm" role="alert">
+          {preflightError}
+        </p>
+      ) : null}
+
       <Button
         type="submit"
         variant="primary"
-        className="w-full text-xs sm:text-sm"
+        className={cn(
+          "w-full text-xs sm:text-sm",
+          hilaiVisual && "min-h-[3.25rem] rounded-2xl text-[15px] font-semibold tracking-wide shadow-[0_12px_36px_-16px_rgba(190,130,155,0.55)]",
+          submitButtonClassName,
+        )}
         disabled={isSubmitting}
         aria-busy={isSubmitting}
       >
@@ -389,7 +452,7 @@ export function PublicBookingForm({
             {heUi.publicBooking.submitSubmitting}
           </span>
         ) : (
-          heUi.publicBooking.submitIdle
+          submitIdleLabel ?? heUi.publicBooking.submitIdle
         )}
       </Button>
       {submitError ? (

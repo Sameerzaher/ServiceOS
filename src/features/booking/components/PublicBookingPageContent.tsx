@@ -25,7 +25,8 @@ import { HILAI_NAILS_COPY } from "@/features/booking/hilai/constants";
 import {
   HilaiNailsHero,
   HilaiNailsServiceGrid,
-  HilaiNailsTrustStrip,
+  HilaiNailsTrustChips,
+  HilaiSectionDivider,
   HilaiSectionHeading,
 } from "@/features/booking/components/hilai/HilaiNailsSections";
 import { cn } from "@/lib/cn";
@@ -271,7 +272,7 @@ export function PublicBookingPageContent({
   const showSuccess = Boolean(isSuccess && successSnapshot);
 
   const hilaiMainClass =
-    "min-h-screen bg-gradient-to-b from-[#fef7fb] via-white to-[#faf5ff] pb-6 pt-3 sm:pb-10 sm:pt-6";
+    "min-h-screen bg-gradient-to-b from-[#fff5f9] via-white to-[#faf8ff] pb-8 pt-3 sm:pb-12 sm:pt-5";
   const hilaiCardClass =
     "rounded-2xl border border-pink-100/60 bg-white/95 shadow-lg shadow-pink-200/15";
 
@@ -282,16 +283,19 @@ export function PublicBookingPageContent({
         dir="rtl"
         lang="he"
       >
-        <div className="mx-auto flex max-w-md flex-col gap-6 sm:gap-8">
+        <div className="mx-auto flex max-w-md flex-col gap-5 sm:gap-7">
           <HilaiNailsHero
             title={HILAI_NAILS_COPY.heroTitle}
             subtitle={HILAI_NAILS_COPY.subtitle}
-            supportingLine={HILAI_NAILS_COPY.heroSupporting}
+            emotionalHook={HILAI_NAILS_COPY.emotionalHook}
+            instructionLine={HILAI_NAILS_COPY.instructionLine}
           />
-          <HilaiNailsTrustStrip
-            lineA={HILAI_NAILS_COPY.trustA}
-            lineB={HILAI_NAILS_COPY.trustB}
+          <HilaiNailsTrustChips
+            line1={HILAI_NAILS_COPY.trust1}
+            line2={HILAI_NAILS_COPY.trust2}
+            line3={HILAI_NAILS_COPY.trust3}
           />
+          <HilaiSectionDivider />
 
           <div className="flex flex-col gap-3">
             {appointmentsLoadError ? (
@@ -324,6 +328,8 @@ export function PublicBookingPageContent({
                   disabled={isSubmitting}
                 />
               </section>
+
+              <HilaiSectionDivider />
 
               <section className={cn(ui.section, "space-y-4 sm:space-y-5")}>
                 <HilaiSectionHeading
@@ -382,6 +388,8 @@ export function PublicBookingPageContent({
                 </div>
               </section>
 
+              <HilaiSectionDivider />
+
               <section className={cn(ui.section, "space-y-4 sm:space-y-5")}>
                 <HilaiSectionHeading title={HILAI_NAILS_COPY.sectionContact} />
                 {phoneLine ? (
@@ -403,9 +411,10 @@ export function PublicBookingPageContent({
                   formCardClassName={hilaiCardClass}
                   preflightError={servicePreflightError}
                   submitIdleLabel={HILAI_NAILS_COPY.submitCta}
+                  ctaHelperText={HILAI_NAILS_COPY.ctaHelper}
                   visualTone="hilai"
                   stickyMobileCta
-                  submitButtonClassName="!min-h-[3.5rem] !rounded-2xl !border-pink-300/90 !bg-gradient-to-r !from-pink-400 !via-pink-500 !to-fuchsia-500 !text-[16px] !font-bold !text-white !shadow-[0_12px_40px_-12px_rgba(219,39,119,0.45)] !transition-all !duration-200 hover:!brightness-105 active:!scale-[0.98] focus-visible:!outline-pink-400/70 sm:!static sm:!min-h-[3.25rem] sm:!shadow-[0_12px_36px_-16px_rgba(219,39,119,0.4)]"
+                  submitButtonClassName="!min-h-[3.75rem] !rounded-2xl !border-pink-300/90 !bg-gradient-to-r !from-pink-400 !via-pink-500 !to-fuchsia-500 !text-[17px] !font-bold !text-white !shadow-[0_14px_44px_-14px_rgba(219,39,119,0.5)] !transition-all !duration-200 hover:!brightness-[1.06] active:!scale-[0.97] focus-visible:!outline-pink-400/70 sm:!static sm:!min-h-[3.35rem] sm:!shadow-[0_12px_36px_-16px_rgba(219,39,119,0.42)]"
                 />
               </section>
             </>

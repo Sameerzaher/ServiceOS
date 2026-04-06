@@ -10,3 +10,10 @@ if (existsSync(nextDir)) {
 } else {
   console.log("No .next to remove");
 }
+
+/** Clears persistent webpack/turbo caches that can cause `__webpack_modules__[moduleId] is not a function` after HMR flakes (esp. Windows). */
+const webpackCache = join(root, "node_modules", ".cache");
+if (existsSync(webpackCache)) {
+  rmSync(webpackCache, { recursive: true, force: true });
+  console.log("Removed node_modules/.cache");
+}

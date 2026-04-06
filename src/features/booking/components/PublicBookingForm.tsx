@@ -43,6 +43,8 @@ export interface PublicBookingFormProps {
   visualTone?: "default" | "hilai";
   /** Pin primary CTA to bottom on small screens (Hilai demo). */
   stickyMobileCta?: boolean;
+  /** Short reassurance line above the primary CTA (conversion copy). */
+  ctaHelperText?: string;
 }
 
 interface FieldErrors {
@@ -179,6 +181,7 @@ export function PublicBookingForm({
   submitButtonClassName,
   visualTone = "default",
   stickyMobileCta = false,
+  ctaHelperText,
 }: PublicBookingFormProps) {
   const hilaiVisual = visualTone === "hilai";
   const stickyHilai = hilaiVisual && stickyMobileCta;
@@ -467,10 +470,22 @@ export function PublicBookingForm({
 
       {stickyHilai ? (
         <div className="max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:z-40 max-sm:border-t max-sm:border-pink-100/70 max-sm:bg-gradient-to-t max-sm:from-[#fef7fb] max-sm:via-[#fef7fb]/97 max-sm:to-transparent max-sm:px-4 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:pt-3 max-sm:shadow-[0_-12px_40px_-16px_rgba(219,39,119,0.12)]">
+          {ctaHelperText ? (
+            <p className="mb-3 text-center text-[13px] font-medium leading-snug text-stone-600 sm:mb-4 sm:text-sm">
+              {ctaHelperText}
+            </p>
+          ) : null}
           {submitCta}
         </div>
       ) : (
-        submitCta
+        <>
+          {ctaHelperText && hilaiVisual ? (
+            <p className="mb-2 text-center text-[13px] font-medium text-stone-600 sm:mb-3 sm:text-sm">
+              {ctaHelperText}
+            </p>
+          ) : null}
+          {submitCta}
+        </>
       )}
       {submitError ? (
         <p className="text-xs text-red-600 sm:text-sm" role="alert">

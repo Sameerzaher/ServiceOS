@@ -99,7 +99,7 @@ export function BookingSlotPicker({
                     tone === "hilai"
                       ? selected
                         ? "rounded-full border border-transparent bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white shadow-md shadow-pink-400/35 ring-2 ring-pink-200/60"
-                        : "rounded-full border border-pink-200/80 bg-white text-stone-700 shadow-sm transition-all duration-200 hover:border-pink-300 hover:bg-pink-50/80 active:scale-[0.97] dark:border-pink-900/40 dark:bg-stone-900 dark:text-stone-100"
+                        : "rounded-full border border-pink-200/80 bg-white text-stone-700 shadow-sm hover:scale-[1.03] hover:border-pink-300 hover:bg-pink-50/80 active:scale-[0.97] dark:border-pink-900/40 dark:bg-stone-900 dark:text-stone-100"
                       : selected
                         ? "rounded-2xl border-neutral-900 bg-neutral-900 text-white shadow-sm dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
                         : "rounded-2xl bg-white text-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700",

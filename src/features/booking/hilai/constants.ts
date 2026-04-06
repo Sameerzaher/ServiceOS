@@ -20,19 +20,22 @@ export const HILAI_SERVICE_EMOJI: Record<string, string> = {
   קישוטים: "✨",
 };
 
-/** Conversion-focused copy — Hebrew only except brand name */
+/** Conversion copy — Hebrew only except brand name */
 export const HILAI_NAILS_COPY = {
+  /** Dominant hook — two lines, shown first (use \n for break) */
+  primaryHook: "קבעי תור בקלות 💅\nבלי הודעות, בלי בלאגן",
+  instructionLine: "בחרי טיפול כדי להתחיל 👇",
   heroTitle: "Hilai Nails 💅",
   subtitle: "קביעת תורים אונליין בקלות ובנוחות",
-  emotionalHook: "קבעי תור בלי הודעות, בלי בלאגן ✨",
-  instructionLine: "בחרי טיפול כדי להתחיל 👇",
-  trust1: "פשוט, מהיר ונוח",
-  trust2: "לקוחות קובעות תור לבד",
+  /** Single micro trust line (under hero) */
+  trustMicro: "לקוחות קובעות תור לבד בלי התעסקות",
+  trust1: "פשוט, מהיר ונוח ✨",
+  trust2: "אישור מהיר מהסטודיו",
   trust3: "בלי התעסקות בוואטסאפ",
   sectionServices: "בחרי טיפול",
   sectionServicesHint: "תלחצי על טיפול כדי להמשיך",
-  sectionDate: "יום ושעה",
-  sectionDateHint: "עכשיו בחרי יום ושעה שמתאימים לך",
+  sectionDate: "בחרי יום ושעה",
+  sectionDateHint: "קודם תאריך, אחר כך שעה מהרשימה",
   sectionContact: "פרטים לאישור",
   slotIntro: "שעות פנויות",
   serviceRequired: "נא לבחור טיפול מהרשימה.",

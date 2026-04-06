@@ -10,15 +10,28 @@ import {
 export function HilaiSectionHeading({
   title,
   hint,
+  stepNumber,
 }: {
   title: string;
   hint?: string;
+  /** Clear step marker for conversion flow */
+  stepNumber?: 1 | 2 | 3;
 }) {
   return (
-    <div className="space-y-2">
-      <h2 className="text-lg font-bold tracking-tight text-stone-800 sm:text-xl">
-        {title}
-      </h2>
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-3">
+        {stepNumber != null ? (
+          <span
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-100 to-pink-50 text-sm font-extrabold text-pink-700 shadow-sm ring-2 ring-white"
+            aria-hidden
+          >
+            {stepNumber}
+          </span>
+        ) : null}
+        <h2 className="min-w-0 flex-1 text-lg font-bold leading-snug tracking-tight text-stone-800 sm:text-xl">
+          {title}
+        </h2>
+      </div>
       {hint ? (
         <p className="text-[13px] leading-relaxed text-stone-500 sm:text-sm">{hint}</p>
       ) : null}
@@ -26,11 +39,11 @@ export function HilaiSectionHeading({
   );
 }
 
-/** Optional logo area — feels bespoke for the business owner */
+/** Subtle brand mark — swap for real logo image later */
 function HilaiLogoPlaceholder() {
   return (
     <div
-      className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-dashed border-pink-200/60 bg-white/60 text-2xl shadow-inner shadow-pink-100/40"
+      className="mx-auto mb-6 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-pink-200/50 bg-white/80 text-3xl shadow-md shadow-pink-200/25 ring-4 ring-pink-50/80"
       aria-hidden
     >
       💅
@@ -39,16 +52,17 @@ function HilaiLogoPlaceholder() {
 }
 
 export function HilaiNailsHero({
+  primaryHook,
+  instructionLine,
   title,
   subtitle,
-  emotionalHook,
-  instructionLine,
   showLogoPlaceholder = true,
 }: {
+  /** Main value prop — may contain \n for two lines */
+  primaryHook: string;
+  instructionLine: string;
   title: string;
   subtitle: string;
-  emotionalHook: string;
-  instructionLine: string;
   showLogoPlaceholder?: boolean;
 }) {
   return (
@@ -56,7 +70,7 @@ export function HilaiNailsHero({
       className={cn(
         "relative overflow-hidden rounded-[1.75rem] border border-pink-100/80",
         "bg-gradient-to-b from-[#fce7f3] via-[#fffafd] to-[#f5f0ff]",
-        "px-5 pb-10 pt-8 shadow-[0_24px_64px_-28px_rgba(219,39,119,0.2),0_0_0_1px_rgba(255,255,255,0.85)_inset]",
+        "px-5 pb-11 pt-9 shadow-[0_24px_64px_-28px_rgba(219,39,119,0.2),0_0_0_1px_rgba(255,255,255,0.85)_inset]",
         "sm:rounded-[2rem] sm:px-10 sm:pb-12 sm:pt-10",
       )}
     >
@@ -72,20 +86,31 @@ export function HilaiNailsHero({
       <div className="relative mx-auto max-w-sm text-center sm:max-w-md">
         {showLogoPlaceholder ? <HilaiLogoPlaceholder /> : null}
 
-        <h1 className="text-balance font-serif text-[1.85rem] font-semibold leading-tight tracking-tight text-stone-900 sm:text-3xl">
-          {title}
-        </h1>
-        <p className="mx-auto mt-3 text-[15px] leading-relaxed text-stone-600 sm:mt-4 sm:text-lg">
-          {subtitle}
+        <p
+          className="whitespace-pre-line text-balance text-[1.5rem] font-extrabold leading-snug tracking-tight text-stone-900 sm:text-[2rem] sm:leading-[1.15]"
+        >
+          {primaryHook}
         </p>
-        <p className="mx-auto mt-5 max-w-[26ch] text-[16px] font-semibold leading-snug text-pink-900/90 sm:max-w-md sm:text-[17px]">
-          {emotionalHook}
-        </p>
-        <p className="mx-auto mt-6 text-[14px] font-medium text-stone-600 sm:text-[15px]">
+
+        <p className="mx-auto mt-5 max-w-[28ch] text-[15px] font-medium leading-relaxed text-stone-500 sm:mt-6 sm:max-w-none sm:text-base">
           {instructionLine}
+        </p>
+
+        <p className="mt-8 text-base font-semibold text-pink-900/85 sm:text-lg">{title}</p>
+        <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-stone-600 sm:text-sm">
+          {subtitle}
         </p>
       </div>
     </header>
+  );
+}
+
+/** Single-line trust microcopy — high clarity, low noise */
+export function HilaiTrustMicroLine({ text }: { text: string }) {
+  return (
+    <p className="text-center text-[13px] font-medium leading-relaxed text-stone-500 sm:text-sm">
+      {text}
+    </p>
   );
 }
 
@@ -144,16 +169,18 @@ export function HilaiNailsServiceGrid({
   disabled,
   heading,
   hint,
+  stepNumber = 1,
 }: {
   selected: string | null;
   onSelect: (name: string) => void;
   disabled?: boolean;
   heading: string;
   hint?: string;
+  stepNumber?: 1 | 2 | 3;
 }) {
   return (
     <div className="space-y-5 sm:space-y-6">
-      <HilaiSectionHeading title={heading} hint={hint} />
+      <HilaiSectionHeading title={heading} hint={hint} stepNumber={stepNumber} />
       <ul className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
         {HILAI_NAILS_SERVICES.map((name) => {
           const isOn = selected === name;

@@ -28,6 +28,7 @@ import {
   HilaiNailsTrustChips,
   HilaiSectionDivider,
   HilaiSectionHeading,
+  HilaiTrustMicroLine,
 } from "@/features/booking/components/hilai/HilaiNailsSections";
 import { cn } from "@/lib/cn";
 
@@ -283,13 +284,14 @@ export function PublicBookingPageContent({
         dir="rtl"
         lang="he"
       >
-        <div className="mx-auto flex max-w-md flex-col gap-5 sm:gap-7">
+        <div className="mx-auto flex max-w-md flex-col gap-7 sm:gap-10">
           <HilaiNailsHero
+            primaryHook={HILAI_NAILS_COPY.primaryHook}
+            instructionLine={HILAI_NAILS_COPY.instructionLine}
             title={HILAI_NAILS_COPY.heroTitle}
             subtitle={HILAI_NAILS_COPY.subtitle}
-            emotionalHook={HILAI_NAILS_COPY.emotionalHook}
-            instructionLine={HILAI_NAILS_COPY.instructionLine}
           />
+          <HilaiTrustMicroLine text={HILAI_NAILS_COPY.trustMicro} />
           <HilaiNailsTrustChips
             line1={HILAI_NAILS_COPY.trust1}
             line2={HILAI_NAILS_COPY.trust2}
@@ -323,6 +325,7 @@ export function PublicBookingPageContent({
                 <HilaiNailsServiceGrid
                   heading={HILAI_NAILS_COPY.sectionServices}
                   hint={HILAI_NAILS_COPY.sectionServicesHint}
+                  stepNumber={1}
                   selected={selectedService}
                   onSelect={(name) => setSelectedService(name)}
                   disabled={isSubmitting}
@@ -335,6 +338,7 @@ export function PublicBookingPageContent({
                 <HilaiSectionHeading
                   title={HILAI_NAILS_COPY.sectionDate}
                   hint={HILAI_NAILS_COPY.sectionDateHint}
+                  stepNumber={2}
                 />
                 <div
                   className={cn(
@@ -391,7 +395,7 @@ export function PublicBookingPageContent({
               <HilaiSectionDivider />
 
               <section className={cn(ui.section, "space-y-4 sm:space-y-5")}>
-                <HilaiSectionHeading title={HILAI_NAILS_COPY.sectionContact} />
+                <HilaiSectionHeading title={HILAI_NAILS_COPY.sectionContact} stepNumber={3} />
                 {phoneLine ? (
                   <p className="text-[13px] text-stone-500" dir="ltr">
                     {phoneLine}
@@ -414,7 +418,7 @@ export function PublicBookingPageContent({
                   ctaHelperText={HILAI_NAILS_COPY.ctaHelper}
                   visualTone="hilai"
                   stickyMobileCta
-                  submitButtonClassName="!min-h-[3.75rem] !rounded-2xl !border-pink-300/90 !bg-gradient-to-r !from-pink-400 !via-pink-500 !to-fuchsia-500 !text-[17px] !font-bold !text-white !shadow-[0_14px_44px_-14px_rgba(219,39,119,0.5)] !transition-all !duration-200 hover:!brightness-[1.06] active:!scale-[0.97] focus-visible:!outline-pink-400/70 sm:!static sm:!min-h-[3.35rem] sm:!shadow-[0_12px_36px_-16px_rgba(219,39,119,0.42)]"
+                  submitButtonClassName="!min-h-[3.85rem] !rounded-xl !border-pink-300/90 !bg-gradient-to-r !from-pink-400 !via-pink-500 !to-fuchsia-500 !text-[17px] !font-bold !text-white !shadow-[0_14px_44px_-14px_rgba(219,39,119,0.5)] !transition-all !duration-200 hover:!brightness-[1.06] hover:!shadow-[0_18px_48px_-16px_rgba(219,39,119,0.45)] active:!scale-[0.96] active:!shadow-[0_8px_24px_-12px_rgba(219,39,119,0.4)] focus-visible:!outline-pink-400/70 sm:!static sm:!min-h-[3.4rem] sm:!shadow-[0_12px_36px_-16px_rgba(219,39,119,0.42)]"
                 />
               </section>
             </>

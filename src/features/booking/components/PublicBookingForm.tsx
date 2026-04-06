@@ -41,6 +41,8 @@ export interface PublicBookingFormProps {
   submitButtonClassName?: string;
   /** Softer field + slot summary styling for branded public demos (no logic change). */
   visualTone?: "default" | "hilai";
+  /** Pin primary CTA to bottom on small screens (Hilai demo). */
+  stickyMobileCta?: boolean;
 }
 
 interface FieldErrors {
@@ -176,8 +178,10 @@ export function PublicBookingForm({
   formCardClassName,
   submitButtonClassName,
   visualTone = "default",
+  stickyMobileCta = false,
 }: PublicBookingFormProps) {
   const hilaiVisual = visualTone === "hilai";
+  const stickyHilai = hilaiVisual && stickyMobileCta;
   const fieldLabel = cn(
     ui.label,
     "text-xs sm:text-sm",
@@ -285,6 +289,32 @@ export function PublicBookingForm({
       setErrors({});
     }
   }
+
+  const submitCtaClassName = cn(
+    "w-full text-xs sm:text-sm",
+    hilaiVisual &&
+      "min-h-[3.25rem] rounded-2xl text-[15px] font-semibold tracking-wide shadow-[0_12px_36px_-16px_rgba(190,130,155,0.55)]",
+    submitButtonClassName,
+  );
+
+  const submitCta = (
+    <Button
+      type="submit"
+      variant="primary"
+      className={submitCtaClassName}
+      disabled={isSubmitting}
+      aria-busy={isSubmitting}
+    >
+      {isSubmitting ? (
+        <span className="flex items-center justify-center gap-2">
+          <Spinner className="size-4 border-white/40 border-t-white" />
+          {heUi.publicBooking.submitSubmitting}
+        </span>
+      ) : (
+        submitIdleLabel ?? heUi.publicBooking.submitIdle
+      )}
+    </Button>
+  );
 
   return (
     <form
@@ -435,26 +465,13 @@ export function PublicBookingForm({
         </p>
       ) : null}
 
-      <Button
-        type="submit"
-        variant="primary"
-        className={cn(
-          "w-full text-xs sm:text-sm",
-          hilaiVisual && "min-h-[3.25rem] rounded-2xl text-[15px] font-semibold tracking-wide shadow-[0_12px_36px_-16px_rgba(190,130,155,0.55)]",
-          submitButtonClassName,
-        )}
-        disabled={isSubmitting}
-        aria-busy={isSubmitting}
-      >
-        {isSubmitting ? (
-          <span className="flex items-center justify-center gap-2">
-            <Spinner className="size-4 border-white/40 border-t-white" />
-            {heUi.publicBooking.submitSubmitting}
-          </span>
-        ) : (
-          submitIdleLabel ?? heUi.publicBooking.submitIdle
-        )}
-      </Button>
+      {stickyHilai ? (
+        <div className="max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:z-40 max-sm:border-t max-sm:border-pink-100/70 max-sm:bg-gradient-to-t max-sm:from-[#fef7fb] max-sm:via-[#fef7fb]/97 max-sm:to-transparent max-sm:px-4 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:pt-3 max-sm:shadow-[0_-12px_40px_-16px_rgba(219,39,119,0.12)]">
+          {submitCta}
+        </div>
+      ) : (
+        submitCta
+      )}
       {submitError ? (
         <p className="text-xs text-red-600 sm:text-sm" role="alert">
           {submitError}

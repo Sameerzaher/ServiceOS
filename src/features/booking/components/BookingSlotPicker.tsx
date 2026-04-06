@@ -80,13 +80,13 @@ export function BookingSlotPicker({
         <ul
           className={cn(
             "grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3",
-            tone === "hilai" && "gap-3",
+            tone === "hilai" && "gap-3 sm:gap-3.5",
           )}
         >
           {availableSlots.map((slot) => {
             const selected = selectedSlotStart === slot.slotStart;
             return (
-              <li key={slot.slotStart}>
+              <li key={slot.slotStart} className={cn(tone === "hilai" && "min-w-0")}>
                 <button
                   type="button"
                   disabled={disabled}
@@ -94,15 +94,15 @@ export function BookingSlotPicker({
                   aria-pressed={selected}
                   className={cn(
                     ui.input,
-                    "min-h-[2.65rem] justify-center rounded-2xl text-center text-xs font-medium sm:min-h-[3rem] sm:text-sm",
+                    "w-full min-h-[2.85rem] justify-center px-3 text-center text-xs font-semibold transition-all duration-200 sm:min-h-[3rem] sm:text-sm",
                     disabled && "cursor-not-allowed opacity-50",
                     tone === "hilai"
                       ? selected
-                        ? "border-transparent bg-gradient-to-br from-[#e8a0b3] via-[#d4a5c9] to-[#c4b5d4] text-white shadow-[0_10px_28px_-14px_rgba(180,120,150,0.55)] ring-1 ring-white/30"
-                        : "border-stone-200/70 bg-white text-stone-700 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.06)] hover:border-rose-200/80 hover:bg-rose-50/50 hover:shadow-[0_8px_20px_-12px_rgba(200,150,165,0.2)] dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100"
+                        ? "rounded-full border border-transparent bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white shadow-md shadow-pink-400/35 ring-2 ring-pink-200/60"
+                        : "rounded-full border border-pink-200/80 bg-white text-stone-700 shadow-sm transition-all duration-200 hover:border-pink-300 hover:bg-pink-50/80 active:scale-[0.97] dark:border-pink-900/40 dark:bg-stone-900 dark:text-stone-100"
                       : selected
-                        ? "border-neutral-900 bg-neutral-900 text-white shadow-sm dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-                        : "bg-white text-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700",
+                        ? "rounded-2xl border-neutral-900 bg-neutral-900 text-white shadow-sm dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
+                        : "rounded-2xl bg-white text-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700",
                   )}
                 >
                   {formatTimeRange(slot.slotStart, slot.slotEnd)}

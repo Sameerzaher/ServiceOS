@@ -25,7 +25,7 @@ import { HILAI_NAILS_COPY } from "@/features/booking/hilai/constants";
 import {
   HilaiNailsHero,
   HilaiNailsServiceGrid,
-  HilaiNailsTrustLines,
+  HilaiNailsTrustStrip,
   HilaiSectionHeading,
 } from "@/features/booking/components/hilai/HilaiNailsSections";
 import { cn } from "@/lib/cn";
@@ -155,14 +155,6 @@ export function PublicBookingPageContent({
 
   const availableSlots = useMemo(() => {
     const appts = Array.isArray(sortedAppointments) ? sortedAppointments : [];
-    console.log("[PublicBookingPageContent] [TEMP] slot_generation_inputs", {
-      teacherId,
-      date: selectedDate,
-      bookingEnabled: safeAvailability.bookingEnabled,
-      daysAhead: safeAvailability.daysAhead,
-      slotDurationMinutes: safeAvailability.slotDurationMinutes,
-      appointmentCount: appts.length,
-    });
     try {
       return generateAvailableSlots({
         date: selectedDate,
@@ -173,7 +165,7 @@ export function PublicBookingPageContent({
       console.error("[PublicBookingPageContent] slot_generation_failed", e);
       return [];
     }
-  }, [selectedDate, safeAvailability, sortedAppointments, teacherId]);
+  }, [selectedDate, safeAvailability, sortedAppointments]);
 
   const selectedSlot = useMemo(
     () =>
@@ -279,24 +271,24 @@ export function PublicBookingPageContent({
   const showSuccess = Boolean(isSuccess && successSnapshot);
 
   const hilaiMainClass =
-    "min-h-screen bg-gradient-to-b from-[#fdf8fa] via-[#fffcfd] to-[#faf8ff] pb-20 pt-3 sm:pb-24 sm:pt-6";
+    "min-h-screen bg-gradient-to-b from-[#fef7fb] via-white to-[#faf5ff] pb-6 pt-3 sm:pb-10 sm:pt-6";
   const hilaiCardClass =
-    "rounded-[1.75rem] border border-stone-200/40 bg-white/90 shadow-[0_16px_48px_-20px_rgba(170,130,145,0.18)] backdrop-blur-[2px]";
+    "rounded-2xl border border-pink-100/60 bg-white/95 shadow-lg shadow-pink-200/15";
 
   if (isHilai) {
-    const displayBusiness = businessLine || "Hilai Nails";
     return (
       <main
         className={cn(hilaiMainClass, "px-4 sm:px-6")}
         dir="rtl"
         lang="he"
       >
-        <div className="mx-auto flex max-w-md flex-col gap-8 sm:gap-10">
+        <div className="mx-auto flex max-w-md flex-col gap-6 sm:gap-8">
           <HilaiNailsHero
-            businessName={displayBusiness}
+            title={HILAI_NAILS_COPY.heroTitle}
             subtitle={HILAI_NAILS_COPY.subtitle}
+            supportingLine={HILAI_NAILS_COPY.heroSupporting}
           />
-          <HilaiNailsTrustLines
+          <HilaiNailsTrustStrip
             lineA={HILAI_NAILS_COPY.trustA}
             lineB={HILAI_NAILS_COPY.trustB}
           />
@@ -343,6 +335,7 @@ export function PublicBookingPageContent({
                     ui.formCard,
                     hilaiCardClass,
                     "space-y-5 p-4 sm:space-y-6 sm:p-6",
+                    "overflow-hidden",
                   )}
                 >
                   {!bookingDataReady ? (
@@ -354,7 +347,7 @@ export function PublicBookingPageContent({
                       <div className="space-y-2">
                         <label
                           htmlFor="book-date-hilai"
-                          className="text-xs font-medium text-stone-600 sm:text-sm"
+                          className="text-xs font-medium text-stone-500 sm:text-sm"
                         >
                           {heUi.publicBooking.dateLabel}
                         </label>
@@ -363,9 +356,9 @@ export function PublicBookingPageContent({
                           type="date"
                           className={cn(
                             ui.input,
-                            "min-h-[3rem] w-full rounded-2xl border-stone-200/80 bg-white/95 text-sm",
-                            "text-stone-800 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]",
-                            "focus:border-rose-300/90 focus:outline-none focus:ring-2 focus:ring-rose-200/50",
+                            "min-h-[3rem] w-full min-w-0 rounded-2xl border-pink-100/90 bg-[#fefcfb] text-sm",
+                            "text-stone-800 shadow-inner shadow-stone-100/80",
+                            "transition-all duration-200 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-200/60",
                           )}
                           min={todayLocalYmd()}
                           max={maxBookDateYmd}
@@ -403,12 +396,16 @@ export function PublicBookingPageContent({
                   submitError={error}
                   isSubmitting={isSubmitting}
                   onSubmit={(input) => submitBooking(input)}
-                  className={!isReady ? "opacity-80" : ""}
+                  className={cn(
+                    !isReady ? "opacity-80" : "",
+                    "pb-[calc(5.5rem_+_env(safe-area-inset-bottom))] sm:pb-0",
+                  )}
                   formCardClassName={hilaiCardClass}
                   preflightError={servicePreflightError}
                   submitIdleLabel={HILAI_NAILS_COPY.submitCta}
                   visualTone="hilai"
-                  submitButtonClassName="!border-rose-300/90 !bg-gradient-to-r !from-[#e8a0b3] !via-[#d4a5c9] !to-[#c4b5d4] !text-white !shadow-[0_14px_40px_-18px_rgba(170,110,140,0.55)] hover:!brightness-[1.03] focus-visible:!outline-rose-300/80 active:!scale-[0.99] dark:!border-rose-400/50"
+                  stickyMobileCta
+                  submitButtonClassName="!min-h-[3.5rem] !rounded-2xl !border-pink-300/90 !bg-gradient-to-r !from-pink-400 !via-pink-500 !to-fuchsia-500 !text-[16px] !font-bold !text-white !shadow-[0_12px_40px_-12px_rgba(219,39,119,0.45)] !transition-all !duration-200 hover:!brightness-105 active:!scale-[0.98] focus-visible:!outline-pink-400/70 sm:!static sm:!min-h-[3.25rem] sm:!shadow-[0_12px_36px_-16px_rgba(219,39,119,0.4)]"
                 />
               </section>
             </>

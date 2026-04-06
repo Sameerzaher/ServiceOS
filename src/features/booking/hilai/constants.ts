@@ -10,16 +10,28 @@ export const HILAI_NAILS_SERVICES: readonly string[] = [
   "קישוטים",
 ] as const;
 
+/** Emoji per service — aligned with `HILAI_NAILS_SERVICES` order */
+export const HILAI_SERVICE_EMOJI: Record<string, string> = {
+  מניקור: "💅",
+  "מבנה אנטומי": "✨",
+  "בנייה בטיפסים הפוכים": "🌸",
+  "חיזוק בג׳ל": "💎",
+  "תיקון ציפורן": "🩷",
+  קישוטים: "✨",
+};
+
 export const HILAI_NAILS_COPY = {
-  subtitle: "קביעת תורים אונליין — בקלות, בנוחות, בלי הרבה מילים",
-  trustA: "בוחרים טיפול, יום ושעה — ואנחנו דואגים לשאר",
-  trustB: "בלי התעסקות, בלי בלבול — רק מה שצריך",
-  sectionServices: "מה נרצה היום?",
-  sectionServicesHint: "טיפול אחד לכל תור — רשמי בקצרה בהערות אם צריך משהו מיוחד",
+  heroTitle: "Hilai Nails 💅",
+  subtitle: "קביעת תורים אונליין בקלות ובנוחות",
+  heroSupporting: "בחרי טיפול, יום ושעה — והכל מסודר ✨",
+  trustA: "פשוט, מהיר ונוח",
+  trustB: "בלי הודעות, בלי בלאגן",
+  sectionServices: "בוחרים טיפול",
+  sectionServicesHint: "לחצי על הכרטיס המתאים — אפשר לפרט בהערות",
   sectionDate: "מתי נוח לך?",
-  sectionDateHint: "בוחרים תאריך ואז שעה מהרשימה",
-  sectionContact: "איך נחזור אליך?",
-  slotIntro: "שעות פנויות ליום שנבחר",
+  sectionDateHint: "תאריך ואז שעה מהרשימה",
+  sectionContact: "פרטים לחזרה",
+  slotIntro: "שעות פנויות",
   serviceRequired: "נא לבחור טיפול מהרשימה.",
   submitCta: "קבעי תור",
 } as const;

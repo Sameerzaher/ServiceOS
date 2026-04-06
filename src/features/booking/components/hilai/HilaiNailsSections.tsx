@@ -2,20 +2,22 @@
 
 import { cn } from "@/lib/cn";
 
-import { HILAI_NAILS_SERVICES } from "@/features/booking/hilai/constants";
+import {
+  HILAI_NAILS_SERVICES,
+  HILAI_SERVICE_EMOJI,
+} from "@/features/booking/hilai/constants";
 
-/** Consistent section titles — warm, editorial, not “system”. */
+/** Consistent section titles */
 export function HilaiSectionHeading({
   title,
   hint,
 }: {
   title: string;
-  /** Optional softer line under the title */
   hint?: string;
 }) {
   return (
-    <div className="space-y-1">
-      <h2 className="text-lg font-medium tracking-tight text-stone-800 sm:text-[1.35rem]">
+    <div className="space-y-1.5">
+      <h2 className="text-lg font-semibold tracking-tight text-stone-800 sm:text-xl">
         {title}
       </h2>
       {hint ? (
@@ -26,56 +28,65 @@ export function HilaiSectionHeading({
 }
 
 export function HilaiNailsHero({
-  businessName,
+  title,
   subtitle,
+  supportingLine,
 }: {
-  businessName: string;
+  title: string;
   subtitle: string;
+  supportingLine: string;
 }) {
   return (
-    <header className="relative overflow-hidden rounded-[2rem] border border-rose-100/40 bg-gradient-to-b from-[#fff9fb] via-[#fef6f8] to-[#faf8ff] px-6 pb-12 pt-11 shadow-[0_24px_56px_-20px_rgba(200,150,170,0.28)] sm:px-10 sm:pb-14 sm:pt-14">
-      {/* Soft light bloom — no harsh neon */}
+    <header
+      className={cn(
+        "relative overflow-hidden rounded-[1.75rem] border border-pink-100/80",
+        "bg-gradient-to-b from-[#fce7f3] via-white to-[#faf5ff]",
+        "px-5 pb-10 pt-10 shadow-[0_20px_60px_-24px_rgba(219,39,119,0.22),0_0_0_1px_rgba(255,255,255,0.8)_inset]",
+        "sm:rounded-[2rem] sm:px-8 sm:pb-12 sm:pt-12",
+      )}
+    >
       <div
-        className="pointer-events-none absolute -left-20 -top-24 size-[13rem] rounded-full bg-gradient-to-br from-rose-200/25 to-transparent blur-3xl"
+        className="pointer-events-none absolute -left-16 -top-20 size-[14rem] rounded-full bg-pink-200/35 blur-3xl"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -bottom-16 -right-16 size-[11rem] rounded-full bg-gradient-to-tl from-violet-200/20 to-transparent blur-3xl"
+        className="pointer-events-none absolute -bottom-20 -right-12 size-[12rem] rounded-full bg-violet-200/30 blur-3xl"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute left-1/2 top-8 h-px w-12 -translate-x-1/2 bg-gradient-to-r from-transparent via-rose-300/50 to-transparent sm:top-10"
+        className="pointer-events-none absolute left-1/2 top-6 h-1 w-16 -translate-x-1/2 rounded-full bg-gradient-to-r from-transparent via-pink-300/60 to-transparent sm:top-8"
         aria-hidden
       />
 
-      <div className="relative mx-auto max-w-sm text-center sm:max-w-none">
-        <p className="text-[13px] font-medium text-rose-400/90 sm:text-sm">סטודיו לציפורניים</p>
-        <h1 className="mt-3 font-serif text-[1.85rem] font-semibold leading-[1.15] tracking-tight text-stone-900 sm:text-4xl sm:leading-tight">
-          {businessName}
+      <div className="relative mx-auto max-w-sm text-center sm:max-w-md">
+        <h1 className="text-balance font-serif text-[1.75rem] font-semibold leading-tight tracking-tight text-stone-900 sm:text-3xl">
+          {title}
         </h1>
-        <p className="mx-auto mt-4 max-w-[20rem] text-[15px] leading-relaxed text-stone-500 sm:mt-5 sm:max-w-md sm:text-base">
+        <p className="mx-auto mt-4 max-w-[22ch] text-[15px] leading-relaxed text-stone-600 sm:mt-5 sm:max-w-none sm:text-lg">
           {subtitle}
+        </p>
+        <p className="mx-auto mt-5 max-w-[28ch] text-[13px] leading-relaxed text-stone-500 sm:text-[15px]">
+          {supportingLine}
         </p>
       </div>
     </header>
   );
 }
 
-export function HilaiNailsTrustLines({
-  lineA,
-  lineB,
-}: {
-  lineA: string;
-  lineB: string;
-}) {
+export function HilaiNailsTrustStrip({ lineA, lineB }: { lineA: string; lineB: string }) {
   return (
-    <div className="rounded-[1.35rem] border border-white/70 bg-white/55 px-5 py-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_8px_28px_-12px_rgba(180,140,155,0.2)] backdrop-blur-md sm:px-6 sm:py-6">
-      <div className="flex flex-col gap-3.5 text-center">
+    <div
+      className={cn(
+        "rounded-2xl border border-pink-100/70 bg-white/70 px-4 py-4",
+        "shadow-md shadow-pink-200/20 backdrop-blur-sm",
+        "sm:px-6 sm:py-5",
+      )}
+    >
+      <div className="flex flex-col items-center gap-3 text-center">
         <p className="text-[15px] font-medium leading-snug text-stone-700 sm:text-base">{lineA}</p>
-        <div
-          className="mx-auto h-px w-10 bg-gradient-to-r from-transparent via-rose-200/90 to-transparent"
-          aria-hidden
-        />
+        <span className="text-pink-300" aria-hidden>
+          ·
+        </span>
         <p className="text-[13px] leading-relaxed text-stone-500 sm:text-sm">{lineB}</p>
       </div>
     </div>
@@ -98,9 +109,10 @@ export function HilaiNailsServiceGrid({
   return (
     <div className="space-y-5 sm:space-y-6">
       <HilaiSectionHeading title={heading} hint={hint} />
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4">
         {HILAI_NAILS_SERVICES.map((name) => {
           const isOn = selected === name;
+          const emoji = HILAI_SERVICE_EMOJI[name] ?? "💅";
           return (
             <li key={name}>
               <button
@@ -109,21 +121,28 @@ export function HilaiNailsServiceGrid({
                 onClick={() => onSelect(name)}
                 aria-pressed={isOn}
                 className={cn(
-                  "group relative flex w-full min-h-[3.25rem] items-center justify-center rounded-2xl border px-4 py-3.5 text-center text-[15px] font-medium transition-all duration-200 sm:min-h-[3.5rem] sm:py-4",
+                  "group flex w-full min-h-[4.25rem] items-center gap-3 rounded-xl border bg-white p-4 shadow-md transition-all duration-200 sm:min-h-[4.5rem] sm:p-5",
+                  "touch-manipulation",
                   disabled && "cursor-not-allowed opacity-50",
                   isOn
-                    ? "border-rose-200/80 bg-gradient-to-br from-rose-50 via-white to-pink-50/90 text-stone-900 shadow-[0_10px_28px_-14px_rgba(200,130,150,0.45)] ring-1 ring-rose-200/60"
-                    : "border-stone-200/55 bg-white/90 text-stone-700 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] hover:border-rose-200/60 hover:bg-[#fffafc] hover:shadow-[0_12px_28px_-12px_rgba(200,150,165,0.18)] active:scale-[0.99]",
+                    ? "border-pink-400/80 shadow-lg shadow-pink-300/30 ring-2 ring-pink-300/50"
+                    : "border-stone-100/90 shadow-stone-200/40 hover:scale-[1.02] hover:border-pink-200/90 hover:shadow-lg hover:shadow-pink-200/25 active:scale-[0.98]",
                 )}
               >
                 <span
                   className={cn(
-                    "absolute inset-x-4 -top-px h-px bg-gradient-to-r from-transparent via-white/90 to-transparent opacity-0 transition-opacity",
-                    isOn && "opacity-100",
+                    "min-w-0 flex-1 text-start text-[15px] font-semibold leading-snug sm:text-base",
+                    isOn ? "text-pink-950" : "text-stone-800 group-hover:text-stone-900",
                   )}
+                >
+                  {name}
+                </span>
+                <span
+                  className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-50 to-violet-50 text-2xl shadow-inner sm:size-14 sm:text-[1.65rem]"
                   aria-hidden
-                />
-                {name}
+                >
+                  {emoji}
+                </span>
               </button>
             </li>
           );

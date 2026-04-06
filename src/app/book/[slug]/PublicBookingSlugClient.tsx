@@ -272,7 +272,7 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
         className={cn(
           ui.pageMain,
           hilaiLoad &&
-            "min-h-screen bg-gradient-to-b from-[#fdf8fa] via-[#fffcfd] to-[#faf8ff]",
+            "min-h-screen bg-gradient-to-b from-[#fef7fb] via-white to-[#faf5ff]",
         )}
         dir={hilaiLoad ? "rtl" : undefined}
         lang={hilaiLoad ? "he" : undefined}

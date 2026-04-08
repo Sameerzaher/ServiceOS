@@ -6,6 +6,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { heUi } from "@/config";
 import { Button, EmptyState, ui, useToast } from "@/components/ui";
 import {
+  dedupeReminderBuckets,
   formatAmountDueForTemplate,
   getPaymentReminderCandidates,
   getSameDayReminderCandidates,
@@ -86,17 +87,20 @@ export function RemindersPanel({
   const reference = new Date();
   const sendDateYmd = getLocalDateYmd(reference);
 
-  const tomorrowRows = !workflow.reminderTomorrow
+  const rawTomorrow = !workflow.reminderTomorrow
     ? []
     : getTomorrowReminderCandidates(appointments, reference);
 
-  const sameDayRows = !workflow.reminderSameDay
+  const rawSameDay = !workflow.reminderSameDay
     ? []
     : getSameDayReminderCandidates(appointments, reference);
 
-  const paymentRows = !workflow.reminderPaymentUnpaid
+  const rawPayment = !workflow.reminderPaymentUnpaid
     ? []
     : getPaymentReminderCandidates(appointments);
+
+  const { tomorrow: tomorrowRows, sameDay: sameDayRows, payment: paymentRows } =
+    dedupeReminderBuckets(rawTomorrow, rawSameDay, rawPayment);
 
   const clientById = useMemo(
     () => new Map(clients.map((c) => [c.id, c])),

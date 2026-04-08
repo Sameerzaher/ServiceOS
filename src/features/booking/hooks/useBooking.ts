@@ -12,6 +12,8 @@ export interface BookingSubmitInput {
   slotStart: string;
   slotEnd: string;
   bookingCustomFields: Record<string, string>;
+  /** Optional label for confirmation UI (e.g. selected service name). */
+  serviceName?: string;
 }
 
 export interface UseBookingOptions {
@@ -24,6 +26,7 @@ export interface UseBookingOptions {
 export interface BookingSuccessSnapshot {
   slotStart: string;
   slotEnd: string;
+  serviceName?: string;
 }
 
 export interface UseBookingResult {
@@ -144,6 +147,7 @@ export function useBooking(options?: UseBookingOptions): UseBookingResult {
         setSuccessSnapshot({
           slotStart: input.slotStart,
           slotEnd: input.slotEnd,
+          serviceName: input.serviceName,
         });
         onSuccessRef.current?.();
         return true;

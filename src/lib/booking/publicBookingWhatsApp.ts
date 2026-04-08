@@ -45,3 +45,26 @@ export function publicInstructorWhatsAppHref(
   const msg = buildPublicBookingConfirmationMessage(dateLabel, timeLabel);
   return buildWhatsAppHref(instructorPhone, msg);
 }
+
+/** Message: "היי, קבעתי תור ל־… בשעה …" — optional service name. */
+export function buildFlowBookingWhatsAppMessage(
+  isoSlotStart: string,
+  serviceName?: string | null,
+): string {
+  const dateLabel = formatBookingDateHe(isoSlotStart);
+  const timeLabel = formatBookingStartTimeHe(isoSlotStart);
+  const s = serviceName?.trim();
+  if (s) {
+    return `היי, קבעתי תור לשירות «${s}» ב־${dateLabel} בשעה ${timeLabel}`;
+  }
+  return `היי, קבעתי תור ל־${dateLabel} בשעה ${timeLabel}`;
+}
+
+export function publicFlowWhatsAppHref(
+  instructorPhone: string,
+  isoSlotStart: string,
+  serviceName?: string | null,
+): string | null {
+  const msg = buildFlowBookingWhatsAppMessage(isoSlotStart, serviceName);
+  return buildWhatsAppHref(instructorPhone, msg);
+}

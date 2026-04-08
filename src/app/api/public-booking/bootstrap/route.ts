@@ -37,6 +37,14 @@ type BootstrapBranding = {
   accentColor: string | null;
 };
 
+/** Active catalog rows for public booking (empty → UI falls back to vertical presets). */
+export type BootstrapService = {
+  id: string;
+  name: string;
+  price: number;
+  durationMinutes: number;
+};
+
 type BootstrapOk = {
   ok: true;
   teacher: BootstrapTeacher;
@@ -45,6 +53,8 @@ type BootstrapOk = {
   business: { id: string };
   /** Public booking page theme (from app settings). */
   branding: BootstrapBranding;
+  /** From `services` table when present; otherwise []. */
+  services: BootstrapService[];
 };
 
 function brandingFromAppSettings(app: AppSettings): BootstrapBranding {
@@ -54,6 +64,47 @@ function brandingFromAppSettings(app: AppSettings): BootstrapBranding {
     primaryColor: app.brandPrimaryColor?.trim() || null,
     accentColor: app.brandAccentColor?.trim() || null,
   };
+}
+
+async function loadPublicServicesCatalog(
+  supabase: ReturnType<typeof getSupabaseAdminClient>,
+  businessId: string,
+  teacherId: string,
+): Promise<BootstrapService[]> {
+  try {
+    const { data, error } = await supabase
+      .from("services")
+      .select("id, name, price, duration_minutes, display_order")
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
+      .eq("is_active", true)
+      .order("display_order", { ascending: true });
+
+    if (error) {
+      console.warn("[public-booking/bootstrap] services:", error.message);
+      return [];
+    }
+    const rows = Array.isArray(data) ? data : [];
+    const out: BootstrapService[] = [];
+    for (const r of rows) {
+      if (!isRecord(r)) continue;
+      const id = typeof r.id === "string" ? r.id.trim() : "";
+      const name = typeof r.name === "string" ? r.name.trim() : "";
+      if (!id || !name) continue;
+      const price =
+        typeof r.price === "number" && Number.isFinite(r.price) ? r.price : 0;
+      const dm =
+        typeof r.duration_minutes === "number" &&
+        Number.isFinite(r.duration_minutes)
+          ? Math.max(1, Math.trunc(r.duration_minutes))
+          : 45;
+      out.push({ id, name, price, durationMinutes: dm });
+    }
+    return out;
+  } catch (e) {
+    console.warn("[public-booking/bootstrap] services catalog", e);
+    return [];
+  }
 }
 
 type BootstrapErr = {
@@ -363,6 +414,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
           availability,
           business: { id: envFallbackBusinessId },
           branding: brandingFromAppSettings(legacyAppSettings),
+          services: [],
         });
       } catch (e) {
         console.error("[public-booking/bootstrap] loadLegacyBootstrap failed", e);
@@ -474,6 +526,12 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       availability?.bookingEnabled,
     );
 
+    const servicesCatalog = await loadPublicServicesCatalog(
+      supabase,
+      teacherBusinessId,
+      teacher.id,
+    );
+
     return NextResponse.json({
       ok: true as const,
       teacher: {
@@ -487,6 +545,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       availability,
       business: { id: teacherBusinessId },
       branding: brandingFromAppSettings(appSettings),
+      services: servicesCatalog,
     });
   } catch (e) {
     console.error("[public-booking/bootstrap] Step=unhandled_exception:", e);

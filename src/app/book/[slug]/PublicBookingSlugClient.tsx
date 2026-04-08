@@ -13,6 +13,8 @@ import {
   PublicBookingPageContent,
   type PublicBookingIdentity,
 } from "@/features/booking/components/PublicBookingPageContent";
+import { PublicBookingMobileFlow } from "@/features/booking/components/public-flow/PublicBookingMobileFlow";
+import type { PublicCatalogService } from "@/features/booking/components/public-flow/types";
 import { HILAI_NAILS_SLUG } from "@/features/booking/hilai/constants";
 import { cn } from "@/lib/cn";
 import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
@@ -33,10 +35,32 @@ type LoadState =
         primaryColor: string | null;
         accentColor: string | null;
       };
+      services: PublicCatalogService[];
     };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
+}
+
+function parseServicesFromBootstrap(raw: unknown): PublicCatalogService[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PublicCatalogService[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const o = item as Record<string, unknown>;
+    const id = typeof o.id === "string" ? o.id.trim() : "";
+    const name = typeof o.name === "string" ? o.name.trim() : "";
+    if (!id || !name) continue;
+    const price =
+      typeof o.price === "number" && Number.isFinite(o.price) ? o.price : 0;
+    const dmRaw = o.durationMinutes ?? o.duration_minutes;
+    const durationMinutes =
+      typeof dmRaw === "number" && Number.isFinite(dmRaw)
+        ? Math.max(1, Math.trunc(dmRaw))
+        : 45;
+    out.push({ id, name, price, durationMinutes });
+  }
+  return out;
 }
 
 function safeTeacherPayload(
@@ -239,6 +263,9 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
         identity,
         availability,
         branding,
+        services: parseServicesFromBootstrap(
+          isRecord(raw) ? raw.services : undefined,
+        ),
       });
     } catch (e) {
       console.error("[BOOK_PAGE_ERROR]", e);
@@ -324,19 +351,29 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
     return null;
   }
 
-  const demoVariant =
-    typeof slug === "string" && slug.trim() === HILAI_NAILS_SLUG
-      ? ("hilai-nails" as const)
-      : ("default" as const);
+  const isHilai =
+    typeof slug === "string" && slug.trim() === HILAI_NAILS_SLUG;
+
+  if (isHilai) {
+    return (
+      <PublicBookingPageContent
+        teacherId={tid}
+        businessType={state.businessType}
+        identity={state.identity}
+        availability={state.availability}
+        branding={state.branding}
+      />
+    );
+  }
 
   return (
-    <PublicBookingPageContent
+    <PublicBookingMobileFlow
       teacherId={tid}
       businessType={state.businessType}
       identity={state.identity}
       availability={state.availability}
       branding={state.branding}
-      variant={demoVariant}
+      catalogServices={state.services}
     />
   );
 }

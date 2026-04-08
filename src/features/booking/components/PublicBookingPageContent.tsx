@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { heUi } from "@/config";
 import { DataLoadErrorBanner } from "@/components/ui/DataLoadErrorBanner";
@@ -19,11 +12,7 @@ import {
   type PublicBookingFormSubmitInput,
 } from "@/features/booking/components/PublicBookingForm";
 import { PublicBookingSuccessPanel } from "@/features/booking/components/PublicBookingSuccessPanel";
-import {
-  PublicBookingHero,
-  PublicBookingTrustStrip,
-} from "@/features/booking/components/public/PublicBookingHero";
-import { PublicBookingServiceGrid } from "@/features/booking/components/public/PublicBookingServiceGrid";
+import { PublicBookingTrustStrip } from "@/features/booking/components/public/PublicBookingHero";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { usePublicTeacherAppointments } from "@/features/booking/hooks/usePublicTeacherAppointments";
 import { generateAvailableSlots } from "@/features/booking/utils/generateAvailableSlots";
@@ -31,8 +20,8 @@ import {
   safeNormalizeAvailabilitySettings,
   type AvailabilitySettings,
 } from "@/core/types/availability";
+import type { CustomFieldDefinition } from "@/core/types/vertical";
 import type { BusinessType } from "@/core/types/teacher";
-import { getVerticalPreset } from "@/config/verticals/registry";
 import {
   HILAI_PREMIUM,
   HILAI_PREMIUM_FORM_COPY,
@@ -107,8 +96,6 @@ export type PublicBookingBranding = {
   accentColor: string | null;
 };
 
-export type PublicBookingPageVariant = "default" | "hilai-nails";
-
 export interface PublicBookingPageContentProps {
   teacherId: string;
   businessType: BusinessType;
@@ -116,17 +103,15 @@ export interface PublicBookingPageContentProps {
   availability: AvailabilitySettings;
   /** Business logo + colors from app settings (optional). */
   branding?: PublicBookingBranding | null;
-  /** Branded layout for specific demo slugs (see `HILAI_NAILS_SLUG`). */
-  variant?: PublicBookingPageVariant;
 }
 
+/** Hilai Nails branded single-page booking (used when slug matches `HILAI_NAILS_SLUG`). */
 export function PublicBookingPageContent({
   teacherId,
-  businessType,
+  businessType: _businessType,
   identity,
   availability,
   branding = null,
-  variant = "default",
 }: PublicBookingPageContentProps) {
   const toast = useToast();
   const toastShownForError = useRef<string | null>(null);
@@ -135,16 +120,7 @@ export function PublicBookingPageContent({
   const [selectedSlotStart, setSelectedSlotStart] = useState<string | null>(null);
   const [appointmentsReloadKey, setAppointmentsReloadKey] = useState(0);
   const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [selectedPresetService, setSelectedPresetService] = useState<string | null>(
-    null,
-  );
   const [servicePreflightError, setServicePreflightError] = useState<string | null>(null);
-
-  const isHilai = variant === "hilai-nails";
-
-  const verticalPreset = useMemo(() => getVerticalPreset(businessType), [businessType]);
-  const showServiceCards =
-    !isHilai && verticalPreset.defaultServices.length > 0;
 
   const {
     sortedAppointments,
@@ -169,62 +145,21 @@ export function PublicBookingPageContent({
 
   const submitBooking = useCallback(
     async (input: PublicBookingFormSubmitInput) => {
-      if (isHilai) {
-        const svc = selectedService?.trim();
-        if (!svc) {
-          setServicePreflightError(HILAI_PREMIUM.serviceRequired);
-          return false;
-        }
-        setServicePreflightError(null);
-        return submitBookingRaw({
-          ...input,
-          bookingCustomFields: {
-            ...input.bookingCustomFields,
-            treatmentType: svc,
-          },
-        });
-      }
-
-      if (showServiceCards) {
-        const svc = selectedPresetService?.trim();
-        if (!svc) {
-          setServicePreflightError(heUi.publicBooking.serviceRequiredSelect);
-          return false;
-        }
+      const svc = selectedService?.trim();
+      if (!svc) {
+        setServicePreflightError(HILAI_PREMIUM.serviceRequired);
+        return false;
       }
       setServicePreflightError(null);
-
-      const hasTreatmentKey = verticalPreset.publicBookingFields.some(
-        (f) => f.key === "treatmentType",
-      );
-      let notes = input.notes;
-      let bookingCustomFields = { ...input.bookingCustomFields };
-
-      if (showServiceCards && selectedPresetService?.trim()) {
-        const svc = selectedPresetService.trim();
-        if (hasTreatmentKey) {
-          bookingCustomFields = { ...bookingCustomFields, treatmentType: svc };
-        } else {
-          notes = notes.trim()
-            ? `שירות: ${svc}\n${notes}`.trim()
-            : `שירות: ${svc}`;
-        }
-      }
-
       return submitBookingRaw({
         ...input,
-        notes,
-        bookingCustomFields,
+        bookingCustomFields: {
+          ...input.bookingCustomFields,
+          treatmentType: svc,
+        },
       });
     },
-    [
-      isHilai,
-      selectedService,
-      showServiceCards,
-      selectedPresetService,
-      verticalPreset.publicBookingFields,
-      submitBookingRaw,
-    ],
+    [selectedService, submitBookingRaw],
   );
 
   const safeAvailability = useMemo(
@@ -263,23 +198,11 @@ export function PublicBookingPageContent({
     return addLocalDaysYmd(new Date(), ahead - 1);
   }, [safeAvailability.daysAhead]);
 
-  const publicBookingExtraFields = useMemo(
-    () => (isHilai ? [] : verticalPreset.publicBookingFields),
-    [isHilai, verticalPreset.publicBookingFields],
-  );
-
-  const extraFieldsForForm = useMemo(() => {
-    if (isHilai) return publicBookingExtraFields;
-    let fields = publicBookingExtraFields;
-    if (showServiceCards) {
-      fields = fields.filter((f) => f.key !== "treatmentType");
-    }
-    return fields.filter((f) => f.required);
-  }, [isHilai, publicBookingExtraFields, showServiceCards]);
+  const publicBookingExtraFields = useMemo((): readonly CustomFieldDefinition[] => [], []);
 
   useEffect(() => {
-    if (selectedService || selectedPresetService) setServicePreflightError(null);
-  }, [selectedService, selectedPresetService]);
+    if (selectedService) setServicePreflightError(null);
+  }, [selectedService]);
 
   useEffect(() => {
     const min = todayLocalYmd();
@@ -330,9 +253,8 @@ export function PublicBookingPageContent({
   const handleBookAnother = useCallback(() => {
     resetState();
     setSelectedSlotStart(null);
-    if (isHilai) setSelectedService(null);
-    else setSelectedPresetService(null);
-  }, [resetState, isHilai]);
+    setSelectedService(null);
+  }, [resetState]);
 
   const onDateChange = useCallback(
     (next: string) => {
@@ -382,9 +304,8 @@ export function PublicBookingPageContent({
   const hilaiCardClass =
     "rounded-3xl border border-pink-100/50 bg-white/95 shadow-xl shadow-pink-200/20";
 
-  if (isHilai) {
-    return (
-      <main
+  return (
+    <main
         className={cn(hilaiMainClass, "px-4 sm:px-6")}
         dir="ltr"
         lang="en"
@@ -563,152 +484,5 @@ export function PublicBookingPageContent({
           ) : null}
         </div>
       </main>
-    );
-  }
-
-  const defaultCardClass =
-    "rounded-2xl border border-neutral-200/90 bg-white/90 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/35";
-
-  return (
-    <main
-      className={cn(
-        ui.pageMain,
-        "min-h-screen px-4 pb-10 pt-6 sm:px-5 sm:pb-14 sm:pt-8",
-      )}
-      style={
-        branding?.primaryColor
-          ? ({
-              ["--public-booking-accent"]: branding.primaryColor,
-            } as CSSProperties)
-          : undefined
-      }
-    >
-      <div className="mx-auto max-w-md space-y-8 sm:space-y-10">
-        <PublicBookingHero
-          businessName={businessLine || heUi.publicBooking.pageTitle}
-          teacherName={teacherLine || undefined}
-          logoUrl={branding?.logoUrl}
-          accentColor={branding?.primaryColor}
-        />
-
-        {phoneLine ? (
-          <p
-            className="text-center text-sm font-medium text-neutral-600 dark:text-neutral-400 sm:text-start"
-            dir="ltr"
-          >
-            {phoneLine}
-          </p>
-        ) : null}
-
-        <div className="flex flex-col gap-3">
-          {appointmentsLoadError ? (
-            <DataLoadErrorBanner
-              title={appointmentsLoadError}
-              description={heUi.data.loadFailedHint}
-              onRetry={retryAppointmentsLoad}
-            />
-          ) : null}
-        </div>
-
-        {showSuccess && successSnapshot ? (
-          <PublicBookingSuccessPanel
-            instructorPhone={phoneLine}
-            slotStart={successSnapshot.slotStart}
-            slotEnd={successSnapshot.slotEnd}
-            onBookAnother={handleBookAnother}
-          />
-        ) : null}
-
-        {!showSuccess ? (
-          <>
-            {showServiceCards ? (
-              <section className={cn(ui.section, "space-y-0")}>
-                <div className={cn(ui.formCard, defaultCardClass, "p-4 sm:p-5")}>
-                  <PublicBookingServiceGrid
-                    services={verticalPreset.defaultServices}
-                    heading={heUi.publicBooking.sectionServices}
-                    selectedName={selectedPresetService}
-                    onSelect={setSelectedPresetService}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </section>
-            ) : null}
-
-            <section className={cn(ui.section, "space-y-3")}>
-              <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 sm:text-xl">
-                {heUi.publicBooking.sectionDate}
-              </h2>
-              <div className={cn(ui.formCard, defaultCardClass, "space-y-5 p-4 sm:p-5")}>
-                {!bookingDataReady ? (
-                  <BookingSectionSkeleton />
-                ) : !safeAvailability.bookingEnabled ? (
-                  <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-                    {heUi.publicBooking.bookingClosed}
-                  </p>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="book-date"
-                        className={cn(ui.label, "text-sm font-semibold")}
-                      >
-                        {heUi.publicBooking.dateLabel}
-                      </label>
-                      <input
-                        id="book-date"
-                        type="date"
-                        className={cn(
-                          ui.input,
-                          "min-h-[3.25rem] rounded-2xl text-base sm:min-h-[3rem] sm:text-sm",
-                        )}
-                        min={todayLocalYmd()}
-                        max={maxBookDateYmd}
-                        value={selectedDate}
-                        disabled={isSubmitting}
-                        onChange={(e) => onDateChange(e.target.value)}
-                      />
-                    </div>
-
-                    <BookingSlotPicker
-                      availableSlots={availableSlots}
-                      selectedSlotStart={selectedSlotStart}
-                      onSelect={onSlotSelect}
-                      disabled={isSubmitting}
-                      emptyTitle={heUi.publicBooking.slotEmptyTitle}
-                      emptyDescription={heUi.publicBooking.slotEmptyDescription}
-                    />
-                  </>
-                )}
-              </div>
-            </section>
-
-            <section className={cn(ui.section, "space-y-3")}>
-              <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 sm:text-xl">
-                {heUi.publicBooking.sectionContactShort}
-              </h2>
-              <PublicBookingForm
-                extraFields={extraFieldsForForm}
-                selectedSlot={selectedSlot}
-                isSelectedSlotAvailable={isSelectedSlotAvailable}
-                submitError={error}
-                isSubmitting={isSubmitting}
-                onSubmit={(input) => submitBooking(input)}
-                className={cn(
-                  !isReady ? "opacity-80" : "",
-                  "pb-[calc(6.5rem_+_env(safe-area-inset-bottom))] sm:pb-0",
-                )}
-                preflightError={servicePreflightError}
-                minimalContact
-                ctaHelperText={heUi.publicBooking.whatsappHelper}
-                stickyMobileCta
-                trustBeforeSubmit={<PublicBookingTrustStrip />}
-                submitButtonClassName="min-h-[3.35rem] rounded-2xl text-[15px] font-semibold shadow-md shadow-emerald-900/10 sm:min-h-[3.25rem]"
-              />
-            </section>
-          </>
-        ) : null}
-      </div>
-    </main>
   );
 }

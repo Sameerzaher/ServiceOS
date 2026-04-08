@@ -19,6 +19,8 @@ export interface GenerateAvailableSlotsInput {
   existingAppointments: readonly AppointmentRecord[] | unknown;
   /** Optional deterministic "now" (for tests). */
   now?: Date;
+  /** When set (e.g. selected service duration), overrides `availability.slotDurationMinutes`. */
+  slotDurationMinutesOverride?: number;
 }
 
 function toWeekdayKey(date: Date): WeekdayKey {
@@ -66,6 +68,7 @@ export function generateAvailableSlots({
   availability: availabilityRaw,
   existingAppointments: appointmentsRaw,
   now = new Date(),
+  slotDurationMinutesOverride,
 }: GenerateAvailableSlotsInput): AvailableSlot[] {
   try {
     const availability = safeNormalizeAvailabilitySettings(availabilityRaw);
@@ -121,9 +124,11 @@ export function generateAvailableSlots({
     const slotMinutes = Math.max(
       1,
       Math.trunc(
-        Number.isFinite(availability.slotDurationMinutes)
-          ? availability.slotDurationMinutes
-          : 45,
+        Number.isFinite(slotDurationMinutesOverride)
+          ? (slotDurationMinutesOverride as number)
+          : Number.isFinite(availability.slotDurationMinutes)
+            ? availability.slotDurationMinutes
+            : 45,
       ),
     );
     const nowMs = now.getTime();

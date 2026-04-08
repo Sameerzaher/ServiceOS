@@ -1,6 +1,9 @@
+import "server-only";
+
 import {
   getGoogleCalendarClientId,
   getGoogleCalendarClientSecret,
+  getGoogleCalendarRedirectUri,
 } from "./env";
 
 type TokenResponse = {
@@ -17,7 +20,7 @@ export async function exchangeAuthorizationCode(code: string): Promise<{
 } | null> {
   const clientId = getGoogleCalendarClientId();
   const clientSecret = getGoogleCalendarClientSecret();
-  const redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI?.trim();
+  const redirectUri = getGoogleCalendarRedirectUri();
   if (!clientId || !clientSecret || !redirectUri) return null;
 
   const body = new URLSearchParams({

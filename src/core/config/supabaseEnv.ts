@@ -1,3 +1,5 @@
+import { isPublicSupabaseEnvConfigured } from "@/config/env.public";
+
 /**
  * MVP: single tenant per deployment via fixed business UUID.
  * Must match RLS policies in `supabase/migrations/001_serviceos_core.sql` (or update both).
@@ -31,9 +33,7 @@ export function getSupabaseDefaultTeacherId(): string {
 }
 
 export function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  return Boolean(url && key);
+  return isPublicSupabaseEnvConfigured();
 }
 
 /**

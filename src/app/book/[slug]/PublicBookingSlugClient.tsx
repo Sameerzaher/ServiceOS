@@ -17,7 +17,7 @@ import { PublicBookingMobileFlow } from "@/features/booking/components/public-fl
 import type { PublicCatalogService } from "@/features/booking/components/public-flow/types";
 import { HILAI_NAILS_SLUG } from "@/features/booking/hilai/constants";
 import { cn } from "@/lib/cn";
-import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
+import { isPublicSupabaseEnvConfigured } from "@/config/env.public";
 
 type LoadState =
   | { kind: "loading" }

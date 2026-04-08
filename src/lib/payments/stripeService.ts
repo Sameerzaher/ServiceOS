@@ -1,3 +1,7 @@
+import "server-only";
+
+import { getServerStripeSecretKey } from "@/config/env.server";
+
 /**
  * Payment Integration Guide (Stripe)
  * 
@@ -56,14 +60,19 @@ import Stripe from "stripe";
 
 let stripe: Stripe | null = null;
 
+function safeStripeUserMessage(e: unknown): string {
+  return process.env.NODE_ENV === "development" ? String(e) : "Payment request failed";
+}
+
 function getStripeClient(): Stripe | null {
-  if (!process.env.STRIPE_SECRET_KEY) {
+  const secret = getServerStripeSecretKey();
+  if (!secret) {
     console.warn("[payment] STRIPE_SECRET_KEY not configured");
     return null;
   }
 
   if (!stripe) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    stripe = new Stripe(secret, {
       apiVersion: "2026-03-25.dahlia",
       typescript: true,
     });
@@ -120,7 +129,7 @@ export async function createCheckoutSession(
     return { ok: true, url: session.url || undefined };
   } catch (e) {
     console.error("[payment] Create checkout error:", e);
-    return { ok: false, error: String(e) };
+    return { ok: false, error: safeStripeUserMessage(e) };
   }
 }
 
@@ -161,7 +170,7 @@ export async function createPaymentLink(params: {
     return { ok: true, url: paymentLink.url };
   } catch (e) {
     console.error("[payment] Create link error:", e);
-    return { ok: false, error: String(e) };
+    return { ok: false, error: safeStripeUserMessage(e) };
   }
 }
 
@@ -187,6 +196,6 @@ export async function processRefund(params: {
     return { ok: true, refundId: refund.id };
   } catch (e) {
     console.error("[payment] Refund error:", e);
-    return { ok: false, error: String(e) };
+    return { ok: false, error: safeStripeUserMessage(e) };
   }
 }

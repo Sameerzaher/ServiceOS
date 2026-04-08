@@ -1,30 +1,39 @@
+import "server-only";
+
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  getServerSupabaseServiceRoleKey,
+  getServerSupabaseUrl,
+  isSupabaseServiceEnvComplete,
+} from "@/config/env.server";
+
 /**
- * Server-only client with the service role. Never import this from client components.
+ * Server-only service-role client. Build will fail if this file is imported from a Client Component.
+ * Never log the service role key or return it from an API response.
+ * Keys are read via `@/config/env.server`.
  */
 export function getSupabaseUrl(): string | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  return url || null;
+  return getServerSupabaseUrl() ?? null;
 }
 
 export function getSupabaseServiceRoleKey(): string | null {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  return key || null;
+  return getServerSupabaseServiceRoleKey() ?? null;
 }
 
 export function isSupabaseAdminConfigured(): boolean {
-  return Boolean(getSupabaseUrl() && getSupabaseServiceRoleKey());
+  return isSupabaseServiceEnvComplete();
 }
 
 let adminClient: SupabaseClient | null = null;
 
-export function getSupabaseAdminClient(): SupabaseClient {
+/** Service-role Supabase client — use **only** in API routes / Server Actions after auth checks. */
+export function createSupabaseAdminClient(): SupabaseClient {
   const url = getSupabaseUrl();
   const key = getSupabaseServiceRoleKey();
   if (!url || !key) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (server only)",
     );
   }
   if (!adminClient) {
@@ -37,3 +46,6 @@ export function getSupabaseAdminClient(): SupabaseClient {
   }
   return adminClient;
 }
+
+/** @deprecated Use `createSupabaseAdminClient` for clarity at call sites. */
+export const getSupabaseAdminClient = createSupabaseAdminClient;

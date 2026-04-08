@@ -1,3 +1,10 @@
+import "server-only";
+
+import {
+  getServerResendApiKey,
+  getServerResendFromEmail,
+} from "@/config/env.server";
+
 /**
  * Email Service Integration Guide
  * 
@@ -48,13 +55,14 @@ import { Resend } from "resend";
 let resend: Resend | null = null;
 
 function getResendClient(): Resend | null {
-  if (!process.env.RESEND_API_KEY) {
+  const apiKey = getServerResendApiKey();
+  if (!apiKey) {
     console.warn("[email] RESEND_API_KEY not configured");
     return null;
   }
 
   if (!resend) {
-    resend = new Resend(process.env.RESEND_API_KEY);
+    resend = new Resend(apiKey);
   }
 
   return resend;
@@ -75,7 +83,10 @@ export async function sendEmail(params: SendEmailParams): Promise<{ ok: boolean;
   }
 
   try {
-    const from = params.from || process.env.RESEND_FROM_EMAIL || "ServiceOS <noreply@serviceos.app>";
+    const from =
+      params.from ||
+      getServerResendFromEmail() ||
+      "ServiceOS <noreply@serviceos.app>";
 
     const result = await client.emails.send({
       from,
@@ -93,7 +104,11 @@ export async function sendEmail(params: SendEmailParams): Promise<{ ok: boolean;
     return { ok: true };
   } catch (e) {
     console.error("[email] Unexpected error:", e);
-    return { ok: false, error: String(e) };
+    const safe =
+      process.env.NODE_ENV === "development"
+        ? String(e)
+        : "Failed to send email";
+    return { ok: false, error: safe };
   }
 }
 

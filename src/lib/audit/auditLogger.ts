@@ -1,3 +1,5 @@
+import "server-only";
+
 import { getSupabaseAdminClient } from "@/lib/supabase/adminClient";
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
 

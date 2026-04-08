@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { getServerOpenAiApiKey } from "@/config/env.server";
 import { buildFallbackReminderMessage } from "@/lib/aiReminderFallback";
+import { parseJsonBody } from "@/lib/api/parseJsonBody";
 
 export const runtime = "nodejs";
 
@@ -30,12 +32,11 @@ function parseBody(raw: Body): {
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  let raw: unknown;
-  try {
-    raw = await req.json();
-  } catch {
+  const parsed = await parseJsonBody(req);
+  if (!parsed.ok) {
     return NextResponse.json({ error: "בקשה לא תקינה." }, { status: 400 });
   }
+  const raw = parsed.data;
 
   const input = parseBody(raw as Body);
   if (!input) {
@@ -46,7 +47,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const fallback = buildFallbackReminderMessage(input);
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = getServerOpenAiApiKey();
   if (!apiKey) {
     return NextResponse.json({ message: fallback, fallback: true });
   }

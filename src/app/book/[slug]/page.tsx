@@ -7,7 +7,7 @@ import {
   isValidPublicTeacherSlug,
   normalizeTeacherSlug,
 } from "@/core/validation/teacher";
-import { isPublicSupabaseEnvConfigured } from "@/lib/env/publicSupabaseEnv";
+import { isPublicSupabaseEnvConfigured } from "@/config/env.public";
 
 import { PublicBookingEnvMissing } from "./PublicBookingEnvMissing";
 import PublicBookingSlugClient from "./PublicBookingSlugClient";

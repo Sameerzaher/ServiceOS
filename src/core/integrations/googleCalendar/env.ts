@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Google Calendar integration environment.
  *
@@ -25,6 +27,12 @@ export function getGoogleCalendarClientSecret(): string | null {
 
 export function getGoogleCalendarRedirectUri(): string | null {
   const v = process.env.GOOGLE_CALENDAR_REDIRECT_URI?.trim();
+  return v && v.length > 0 ? v : null;
+}
+
+/** Optional AES key material for token encryption (hex 64 chars or long passphrase). */
+export function getGoogleCalendarTokenEncryptionKeyRaw(): string | null {
+  const v = process.env.GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY?.trim();
   return v && v.length > 0 ? v : null;
 }
 

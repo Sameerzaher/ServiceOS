@@ -1,6 +1,11 @@
+import "server-only";
+
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
 
-import { getGoogleCalendarClientSecret } from "./env";
+import {
+  getGoogleCalendarClientSecret,
+  getGoogleCalendarTokenEncryptionKeyRaw,
+} from "./env";
 
 const IV_LEN = 12;
 const TAG_LEN = 16;
@@ -8,7 +13,7 @@ const KEY_LEN = 32;
 const SALT = "serviceos-google-cal-v1";
 
 function deriveKeyFromEnv(): Buffer | null {
-  const raw = process.env.GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY?.trim();
+  const raw = getGoogleCalendarTokenEncryptionKeyRaw();
   if (!raw) return null;
   if (/^[0-9a-f]{64}$/i.test(raw)) {
     return Buffer.from(raw, "hex");

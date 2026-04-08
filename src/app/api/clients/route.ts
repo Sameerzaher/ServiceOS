@@ -1,11 +1,12 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
-import { getSupabaseBusinessId, getSupabaseClientsTable } from "@/core/config/supabaseEnv";
+import { getSupabaseClientsTable } from "@/core/config/supabaseEnv";
 import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { clientFromRow, type ClientRow } from "@/core/storage/supabase/mappers";
 import type { Client } from "@/core/types/client";
-import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
+import { resolveTeacherScopeFromSession } from "@/lib/api/resolveTeacherId";
+import { validateSession } from "@/lib/auth/session";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -57,9 +58,22 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req);
-    
+
+    const sessionValidation = await validateSession(req);
+    if (!sessionValidation.ok || !sessionValidation.businessId || !sessionValidation.teacherId) {
+      return NextResponse.json(
+        { ok: false as const, error: "לא מאומת" },
+        { status: 401 },
+      );
+    }
+
+    const businessId = sessionValidation.businessId;
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId,
+      sessionValidation.role,
+    );
+
     console.log("[clients/get] Fetching clients for:", { businessId, teacherId });
     
     const table = getSupabaseClientsTable();
@@ -137,8 +151,22 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req, raw);
+
+    const sessionValidation = await validateSession(req);
+    if (!sessionValidation.ok || !sessionValidation.businessId || !sessionValidation.teacherId) {
+      return NextResponse.json(
+        { ok: false as const, error: "לא מאומת" },
+        { status: 401 },
+      );
+    }
+
+    const businessId = sessionValidation.businessId;
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId,
+      sessionValidation.role,
+      raw,
+    );
     const table = getSupabaseClientsTable();
 
     const basePayload = {

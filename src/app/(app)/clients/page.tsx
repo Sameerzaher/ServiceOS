@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -19,6 +19,8 @@ import { ClientList } from "@/features/clients/components/ClientList";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import { cn } from "@/lib/cn";
 import { ONBOARDING_ANCHORS } from "@/features/onboarding/components/FirstRunOnboarding";
+import { getNextLesson } from "@/core/utils/clientSchedule";
+import { sumClientDebt } from "@/core/utils/insights";
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -45,6 +47,25 @@ export default function ClientsPage() {
   } = useServiceApp();
 
   const [addClientOpen, setAddClientOpen] = useState(false);
+  const [clientListSegment, setClientListSegment] = useState<
+    "all" | "debt" | "upcoming"
+  >("all");
+
+  const clientsForList = useMemo(() => {
+    const ref = referenceDate ?? new Date();
+    let list = filteredClients;
+    if (clientListSegment === "debt") {
+      list = list.filter(
+        (c) => sumClientDebt(sortedAppointments, c.id) > 0,
+      );
+    }
+    if (clientListSegment === "upcoming") {
+      list = list.filter(
+        (c) => getNextLesson(c.id, sortedAppointments, ref) != null,
+      );
+    }
+    return list;
+  }, [filteredClients, clientListSegment, sortedAppointments, referenceDate]);
 
   useEffect(() => {
     if (needsFirstClient) setAddClientOpen(true);
@@ -140,25 +161,54 @@ export default function ClientsPage() {
 
         <section className={ui.section}>
           <h2 className={ui.sectionHeading}>{preset.labels.students}</h2>
-          <div className="mb-4">
-            <label htmlFor="client-search" className="sr-only">
-              {heUi.forms.searchClients}
-            </label>
-            <input
-              id="client-search"
-              type="search"
-              value={clientSearch}
-              onChange={(e) => setClientSearch(e.target.value)}
-              placeholder={heUi.forms.searchClients}
-              className={ui.input}
-              autoComplete="off"
-            />
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <label htmlFor="client-search" className="sr-only">
+                {heUi.forms.searchClients}
+              </label>
+              <input
+                id="client-search"
+                type="search"
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                placeholder={heUi.forms.searchClients}
+                className={ui.input}
+                autoComplete="off"
+              />
+            </div>
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label={heUi.forms.searchClients}
+            >
+              {(
+                [
+                  ["all", heUi.clientsPage.filterAll],
+                  ["debt", heUi.clientsPage.filterDebt],
+                  ["upcoming", heUi.clientsPage.filterUpcoming],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setClientListSegment(key)}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm",
+                    clientListSegment === key
+                      ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           {!clientsReady ? (
             <InlineLoading className="py-2" />
           ) : (
             <ClientList
-              clients={filteredClients}
+              clients={clientsForList}
               totalClientCount={sortedClients.length}
               preset={preset}
               appointments={sortedAppointments}

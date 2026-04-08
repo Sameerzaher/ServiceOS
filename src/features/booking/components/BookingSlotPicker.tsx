@@ -18,11 +18,17 @@ export interface BookingSlotPickerProps {
   tone?: "default" | "hilai";
   /** Overrides default slot section heading (e.g. warmer copy for Hilai). */
   slotHeadingOverride?: string;
+  /** Locale for time display (default Hebrew). */
+  timeLocale?: string;
 }
 
-function formatTimeRange(startIso: string, endIso: string): string {
+function formatTimeRange(
+  startIso: string,
+  endIso: string,
+  locale: string,
+): string {
   try {
-    const fmt = new Intl.DateTimeFormat("he-IL", { timeStyle: "short" });
+    const fmt = new Intl.DateTimeFormat(locale, { timeStyle: "short" });
     return `${fmt.format(new Date(startIso))} - ${fmt.format(new Date(endIso))}`;
   } catch {
     return `${startIso} - ${endIso}`;
@@ -38,6 +44,7 @@ export function BookingSlotPicker({
   disabled = false,
   tone = "default",
   slotHeadingOverride,
+  timeLocale = "he-IL",
 }: BookingSlotPickerProps) {
   const title = emptyTitle ?? heUi.publicBooking.slotsEmptyShort;
   const slotHeadingText = slotHeadingOverride ?? heUi.publicBooking.slotHeading;
@@ -46,7 +53,9 @@ export function BookingSlotPicker({
       <EmptyState
         tone="muted"
         className={cn(
-          "py-10",
+          "py-10 sm:py-12",
+          tone === "default" &&
+            "rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/80 dark:border-neutral-700 dark:bg-neutral-900/40",
           tone === "hilai" &&
             "border-rose-100/50 bg-gradient-to-b from-rose-50/50 to-white/90 shadow-[0_4px_24px_-12px_rgba(200,150,165,0.15)] ring-rose-100/20",
         )}
@@ -72,14 +81,14 @@ export function BookingSlotPicker({
           className={cn(
             tone === "hilai"
               ? "text-sm font-medium text-stone-600 sm:text-[15px]"
-              : "text-xs font-semibold text-neutral-900 dark:text-neutral-100 sm:text-sm",
+              : "text-sm font-semibold text-neutral-900 dark:text-neutral-100 sm:text-base",
           )}
         >
           {slotHeadingText}
         </h3>
         <ul
           className={cn(
-            "grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3",
+            "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5",
             tone === "hilai" && "gap-3 sm:gap-3.5",
           )}
         >
@@ -94,18 +103,19 @@ export function BookingSlotPicker({
                   aria-pressed={selected}
                   className={cn(
                     ui.input,
-                    "w-full min-h-[2.85rem] justify-center px-3 text-center text-xs font-semibold transition-all duration-200 sm:min-h-[3rem] sm:text-sm",
-                    disabled && "cursor-not-allowed opacity-50",
+                    "w-full min-h-[3.15rem] touch-manipulation justify-center px-3 text-center text-[13px] font-semibold transition-all duration-200 sm:min-h-[3.35rem] sm:text-sm",
+                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+                    disabled && "cursor-not-allowed opacity-45 grayscale-[0.3]",
                     tone === "hilai"
                       ? selected
                         ? "rounded-full border border-transparent bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white shadow-md shadow-pink-400/35 ring-2 ring-pink-200/60"
                         : "rounded-full border border-pink-200/80 bg-white text-stone-700 shadow-sm hover:scale-[1.03] hover:border-pink-300 hover:bg-pink-50/80 active:scale-[0.97] dark:border-pink-900/40 dark:bg-stone-900 dark:text-stone-100"
                       : selected
-                        ? "rounded-2xl border-neutral-900 bg-neutral-900 text-white shadow-sm dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-                        : "rounded-2xl bg-white text-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700",
+                        ? "rounded-full border border-transparent bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/20 ring-2 ring-emerald-300/50 dark:from-emerald-500 dark:to-teal-500 dark:ring-emerald-400/30"
+                        : "rounded-full border border-neutral-200/90 bg-white text-neutral-900 shadow-sm hover:border-emerald-300/60 hover:bg-emerald-50/50 active:scale-[0.98] dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:border-emerald-700/50 dark:hover:bg-emerald-950/30",
                   )}
                 >
-                  {formatTimeRange(slot.slotStart, slot.slotEnd)}
+                  {formatTimeRange(slot.slotStart, slot.slotEnd, timeLocale)}
                 </button>
               </li>
             );

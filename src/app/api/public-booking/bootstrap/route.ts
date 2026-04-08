@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
 import { loadAppSettingsOrDefault } from "@/core/repositories/supabase/appSettingsRepository";
+import type { AppSettings } from "@/core/types/settings";
 import { loadBookingSettingsOrDefault } from "@/core/repositories/supabase/bookingSettingsRepository";
 import { teacherFromRow, type TeacherRow } from "@/core/storage/supabase/mappers";
 import { coerceBusinessType, type BusinessType } from "@/core/types/teacher";
@@ -30,13 +31,30 @@ type BootstrapTeacher = {
   businessType: BusinessType;
 };
 
+type BootstrapBranding = {
+  logoUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+};
+
 type BootstrapOk = {
   ok: true;
   teacher: BootstrapTeacher;
   availability: AvailabilitySettings;
   /** Resolved tenant for settings queries — always present when ok */
   business: { id: string };
+  /** Public booking page theme (from app settings). */
+  branding: BootstrapBranding;
 };
+
+function brandingFromAppSettings(app: AppSettings): BootstrapBranding {
+  const logo = typeof app.brandLogoUrl === "string" ? app.brandLogoUrl.trim() : "";
+  return {
+    logoUrl: logo.length > 0 ? logo : null,
+    primaryColor: app.brandPrimaryColor?.trim() || null,
+    accentColor: app.brandAccentColor?.trim() || null,
+  };
+}
 
 type BootstrapErr = {
   ok: false;
@@ -182,7 +200,11 @@ async function loadLegacyBootstrap(
   businessId: string,
   teacherIdForScope: string,
   slugForDisplay: string,
-): Promise<{ teacher: BootstrapTeacher; availability: AvailabilitySettings }> {
+): Promise<{
+  teacher: BootstrapTeacher;
+  availability: AvailabilitySettings;
+  appSettings: AppSettings;
+}> {
   console.log("[public-booking/bootstrap] Step=legacy_load_app_settings", {
     businessId,
     teacherId: teacherIdForScope,
@@ -228,7 +250,7 @@ async function loadLegacyBootstrap(
     businessType: legacyBt,
   };
 
-  return { teacher, availability };
+  return { teacher, availability, appSettings: legacySettings };
 }
 
 export async function GET(req: Request): Promise<NextResponse<BootstrapOk | BootstrapErr>> {
@@ -316,7 +338,8 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
         normalizedSlug,
       );
       try {
-        const { teacher, availability } = await loadLegacyBootstrap(
+        const { teacher, availability, appSettings: legacyAppSettings } =
+          await loadLegacyBootstrap(
           supabase,
           envFallbackBusinessId,
           normalizedSlug,
@@ -339,6 +362,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
           teacher,
           availability,
           business: { id: envFallbackBusinessId },
+          branding: brandingFromAppSettings(legacyAppSettings),
         });
       } catch (e) {
         console.error("[public-booking/bootstrap] loadLegacyBootstrap failed", e);
@@ -462,6 +486,7 @@ export async function GET(req: Request): Promise<NextResponse<BootstrapOk | Boot
       },
       availability,
       business: { id: teacherBusinessId },
+      branding: brandingFromAppSettings(appSettings),
     });
   } catch (e) {
     console.error("[public-booking/bootstrap] Step=unhandled_exception:", e);

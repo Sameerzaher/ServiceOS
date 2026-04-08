@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { PRODUCT_BRANDING } from "@/config/branding";
 
 export const metadata: Metadata = {
@@ -61,5 +62,5 @@ export default function LandingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <MarketingShell>{children}</MarketingShell>;
 }

@@ -4,7 +4,12 @@ import { heUi } from "@/config";
 import { Button, EmptyState, ui } from "@/components/ui";
 import type { AppointmentRecord } from "@/core/types/appointment";
 import type { Client, ClientId } from "@/core/types/client";
-import { getNextLesson } from "@/core/utils/clientSchedule";
+import {
+  getLastLesson,
+  getNextLesson,
+} from "@/core/utils/clientSchedule";
+import { formatIls } from "@/core/utils/currency";
+import { sumClientDebt } from "@/core/utils/insights";
 import {
   CustomFieldInputKind,
   type CustomFieldDefinition,
@@ -35,6 +40,18 @@ function formatNextWhen(iso: string): string {
       month: "short",
       hour: "2-digit",
       minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function formatShortDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("he-IL", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     }).format(new Date(iso));
   } catch {
     return iso;
@@ -102,6 +119,14 @@ export function ClientList({
           appointments && appointments.length > 0
             ? getNextLesson(client.id, appointments, ref)
             : null;
+        const last =
+          appointments && appointments.length > 0
+            ? getLastLesson(client.id, appointments, ref)
+            : null;
+        const debt =
+          appointments && appointments.length > 0
+            ? sumClientDebt(appointments, client.id)
+            : 0;
         return (
         <li key={client.id}>
           <article
@@ -113,7 +138,7 @@ export function ClientList({
             )}
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-              <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-base font-semibold leading-tight text-neutral-900 dark:text-neutral-100 sm:text-lg">
                     {client.fullName}
@@ -141,20 +166,43 @@ export function ClientList({
                   )}
                 </p>
                 {appointments && appointments.length > 0 ? (
-                  <p className="text-xs text-neutral-800 dark:text-neutral-200 sm:text-sm">
-                    <span className="font-semibold text-neutral-900 dark:text-neutral-100">
-                      {heUi.clientCard.nextLesson}:{" "}
-                    </span>
-                    {next ? (
-                      <span className="text-neutral-800 dark:text-neutral-300">
-                        {formatNextWhen(next.startAt)}
+                  <div className="grid gap-1.5 rounded-xl border border-neutral-100 bg-neutral-50/80 p-3 text-xs dark:border-neutral-700 dark:bg-neutral-800/40 sm:grid-cols-2 sm:text-sm">
+                    <p className="text-neutral-800 dark:text-neutral-200">
+                      <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                        {heUi.clientCard.nextLesson}:{" "}
                       </span>
-                    ) : (
-                      <span className="text-neutral-500 dark:text-neutral-500">
-                        {heUi.clientCard.noUpcoming}
+                      {next ? (
+                        <span>{formatNextWhen(next.startAt)}</span>
+                      ) : (
+                        <span className="text-neutral-500">
+                          {heUi.clientCard.noUpcoming}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-neutral-800 dark:text-neutral-200">
+                      <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                        {heUi.clientsPage.colLastVisit}:{" "}
                       </span>
-                    )}
-                  </p>
+                      {last ? (
+                        <span>{formatShortDate(last.startAt)}</span>
+                      ) : (
+                        <span className="text-neutral-500">—</span>
+                      )}
+                    </p>
+                    <p
+                      className={cn(
+                        "sm:col-span-2",
+                        debt > 0
+                          ? "font-semibold text-amber-900 dark:text-amber-200"
+                          : "text-neutral-700 dark:text-neutral-300",
+                      )}
+                    >
+                      <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                        {heUi.clientsPage.colDebt}:{" "}
+                      </span>
+                      <span className="tabular-nums">{formatIls(debt)}</span>
+                    </p>
+                  </div>
                 ) : null}
               </div>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:flex-col">

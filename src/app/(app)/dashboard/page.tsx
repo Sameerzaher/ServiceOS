@@ -11,9 +11,10 @@ import {
   ui,
   useToast,
 } from "@/components/ui";
-import { DemoExportBar } from "@/features/demo/components/DemoExportBar";
 import { ExportLessonsPanel } from "@/features/export/components/ExportLessonsPanel";
 import { exportStudentsCsv } from "@/features/export/csvExport";
+import { BusinessKpiStrip } from "@/features/dashboard/components/BusinessKpiStrip";
+import { OwnerOnboardingBanner } from "@/features/dashboard/components/OwnerOnboardingBanner";
 import { HomeQuickDashboard } from "@/features/dashboard/components/HomeQuickDashboard";
 import { BookingRequestsPanel } from "@/features/dashboard/components/BookingRequestsPanel";
 import { AnalyticsDashboard } from "@/features/analytics/components/AnalyticsDashboard";
@@ -129,6 +130,7 @@ export default function DashboardPage() {
       </header>
 
       <div className={ui.pageStack}>
+        <OwnerOnboardingBanner />
         <div className="flex flex-col gap-3">
           {clientsLoadError ? (
             <DataLoadErrorBanner
@@ -266,16 +268,27 @@ export default function DashboardPage() {
               <InlineLoading className="py-6" />
             ) : (
               <>
-                <AnalyticsDashboard />
+                <BusinessKpiStrip appointments={sortedAppointments} />
+                <div className="mt-4 sm:mt-6">
+                  <AnalyticsDashboard />
+                </div>
                 <div className="mt-4 sm:mt-6">
                   <HomeQuickDashboard
                     appointments={sortedAppointments}
                     clients={sortedClients}
                     pendingBookingRequests={pendingBookingRequests}
                     lessonLabelPlural={preset.labels.lessons}
-                    reminderTemplate={settings.reminderTemplate}
-                    businessName={settings.businessName}
-                    businessPhone={settings.businessPhone}
+                    reminderWorkflow={{
+                      remindersEnabled: settings.remindersEnabled,
+                      reminderTomorrow: settings.reminderTomorrow,
+                      reminderSameDay: settings.reminderSameDay,
+                      reminderPaymentUnpaid: settings.reminderPaymentUnpaid,
+                      reminderTemplate: settings.reminderTemplate,
+                      sameDayReminderTemplate: settings.sameDayReminderTemplate,
+                      paymentReminderTemplate: settings.paymentReminderTemplate,
+                      businessName: settings.businessName,
+                      businessPhone: settings.businessPhone,
+                    }}
                     onReminderCopied={() => toast(heUi.toast.reminderCopied)}
                     onQuickAddClient={() => {
                       router.push("/clients");
@@ -290,18 +303,22 @@ export default function DashboardPage() {
                     {heUi.dashboard.exportToolsSummary}
                   </summary>
                   <div className="space-y-3 border-t border-neutral-200/70 pb-2 pt-3 dark:border-neutral-700 sm:space-y-4 sm:pt-4">
-                    <DemoExportBar
-                      onLoadDemo={handleRequestLoadDemo}
-                      onRequestReset={() => setDemoResetOpen(true)}
-                      onExportStudents={() => {
-                        if (sortedClients.length === 0) {
-                          toast(heUi.export.noStudentsToExport, "error");
-                          return;
-                        }
-                        exportStudentsCsv(sortedClients);
-                        toast(heUi.toast.exportStudents);
-                      }}
-                    />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                      <button
+                        type="button"
+                        className="inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+                        onClick={() => {
+                          if (sortedClients.length === 0) {
+                            toast(heUi.export.noStudentsToExport, "error");
+                            return;
+                          }
+                          exportStudentsCsv(sortedClients);
+                          toast(heUi.toast.exportStudents);
+                        }}
+                      >
+                        {heUi.export.students}
+                      </button>
+                    </div>
                     <ExportLessonsPanel
                       appointments={sortedAppointments}
                       clients={sortedClients}

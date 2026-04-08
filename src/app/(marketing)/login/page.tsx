@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { WhatsAppCtaLink } from "@/components/marketing/WhatsAppCtaLink";
 import { PRODUCT_BRANDING } from "@/config/branding";
 import { Button, ui } from "@/components/ui";
 import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
@@ -137,7 +138,7 @@ function LoginForm() {
         </div>
 
         {/* Demo link */}
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <Link
             href="/demo"
             className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-medium text-neutral-700 shadow-md transition-all hover:shadow-lg hover:text-emerald-600"
@@ -145,6 +146,9 @@ function LoginForm() {
             <span>🎮</span>
             <span>רוצים לראות איך זה עובד? נסו את הדמו</span>
           </Link>
+          <WhatsAppCtaLink variant="soft" className="text-sm" prefillMessage="היי, לא מצליח להתחבר — אפשר עזרה?">
+            צריכים עזרה? ווטסאפ
+          </WhatsAppCtaLink>
         </div>
       </div>
     </div>

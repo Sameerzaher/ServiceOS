@@ -41,6 +41,23 @@ function togglePaymentStatus(current: PaymentStatus): PaymentStatus {
   return isPaidStatus(current) ? PaymentStatus.Unpaid : PaymentStatus.Paid;
 }
 
+/** Unpaid → partial → paid → unpaid (quick owner actions on list). */
+function cyclePaymentStatusQuick(current: PaymentStatus): PaymentStatus {
+  switch (current) {
+    case PaymentStatus.Unpaid:
+      return PaymentStatus.Partial;
+    case PaymentStatus.Partial:
+    case PaymentStatus.Pending:
+      return PaymentStatus.Paid;
+    case PaymentStatus.Paid:
+    case PaymentStatus.Waived:
+    case PaymentStatus.Refunded:
+      return PaymentStatus.Unpaid;
+    default:
+      return PaymentStatus.Unpaid;
+  }
+}
+
 function isPendingPublicApproval(customFields: Record<string, unknown>): boolean {
   return (
     customFields.bookingSource === "public" &&
@@ -300,6 +317,15 @@ export function useServiceAppState() {
     toast(heUi.toast.paymentToggled);
   }
 
+  function handleCycleAppointmentPayment(id: string): void {
+    const row = sortedAppointments.find((a) => a.id === id);
+    if (!row) return;
+    updateAppointment(id, {
+      paymentStatus: cyclePaymentStatusQuick(row.paymentStatus),
+    });
+    toast(heUi.toast.paymentCycled);
+  }
+
   async function handleApprovePublicBooking(id: string): Promise<void> {
     const row = sortedAppointments.find((a) => a.id === id);
     if (!row) return;
@@ -436,17 +462,13 @@ export function useServiceAppState() {
   function openApprovalWhatsapp(row: AppointmentRecord): void {
     const client = sortedClients.find((c) => c.id === row.clientId);
     if (!client) return;
-    const baseHref = buildWhatsAppHref(client.phone);
-    if (!baseHref) return;
     const message = heUi.appointments.approvalWhatsappText({
       name: client.fullName.trim() || "לקוח",
       dateTime: formatAppointmentDateTime(row.startAt),
     });
-    const sep = baseHref.includes("?") ? "&" : "?";
-    const href = `${baseHref}${sep}text=${encodeURIComponent(message)}`;
-    if (typeof window !== "undefined") {
-      window.open(href, "_blank", "noopener,noreferrer");
-    }
+    const href = buildWhatsAppHref(client.phone, message);
+    if (!href || typeof window === "undefined") return;
+    window.open(href, "_blank", "noopener,noreferrer");
   }
 
   return {
@@ -532,6 +554,7 @@ export function useServiceAppState() {
     needsFirstAppointment,
     handleConfirmDelete,
     handleToggleAppointmentPaid,
+    handleCycleAppointmentPayment,
     handleApprovePublicBooking,
     handleApproveAndSendPublicBookingWhatsapp,
     handleRejectPublicBooking,

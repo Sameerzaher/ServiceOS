@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getSupabaseBusinessId } from "@/core/config/supabaseEnv";
-import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
+import { resolveTeacherScopeFromSession } from "@/lib/api/resolveTeacherId";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -26,16 +25,21 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req);
 
     const sessionValidation = await validateSession(req);
-    if (!sessionValidation.ok) {
+    if (!sessionValidation.ok || !sessionValidation.businessId || !sessionValidation.teacherId) {
       return NextResponse.json(
         { ok: false, error: "לא מאומת" },
         { status: 401 }
       );
     }
+
+    const businessId = sessionValidation.businessId;
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId,
+      sessionValidation.role,
+    );
 
     const { data, error } = await supabase
       .from("services")
@@ -83,19 +87,26 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    const teacherId = resolveTeacherIdFromRequest(req);
 
     const sessionValidation = await validateSession(req);
-    if (!sessionValidation.ok) {
+    if (!sessionValidation.ok || !sessionValidation.businessId || !sessionValidation.teacherId) {
       return NextResponse.json(
         { ok: false, error: "לא מאומת" },
         { status: 401 }
       );
     }
 
+    const businessId = sessionValidation.businessId;
+
     const body = await req.json();
     const { name, description, price, durationMinutes, isActive, displayOrder } = body;
+
+    const teacherId = resolveTeacherScopeFromSession(
+      req,
+      sessionValidation.teacherId,
+      sessionValidation.role,
+      body,
+    );
 
     if (!name || typeof price !== "number" || typeof durationMinutes !== "number") {
       return NextResponse.json(
@@ -124,7 +135,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       .single();
 
     if (error) {
-      console.error("[services/post] Error:", error);
+      console.error("[services/post] Error:", error.message, error.code, error.details);
       return NextResponse.json(
         { ok: false, error: "שגיאה ביצירת שירות" },
         { status: 500 }

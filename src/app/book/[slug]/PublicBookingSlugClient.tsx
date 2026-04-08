@@ -28,6 +28,11 @@ type LoadState =
       identity: PublicBookingIdentity;
       /** Always normalized — never pass raw API payload to slot logic. */
       availability: ReturnType<typeof safeNormalizeAvailabilitySettings>;
+      branding: {
+        logoUrl: string | null;
+        primaryColor: string | null;
+        accentColor: string | null;
+      };
     };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -54,7 +59,6 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
 
   const load = useCallback(async () => {
     const trimmed = typeof slug === "string" ? slug.trim() : "";
-    console.log("[PublicBookingSlugClient] [TEMP] bootstrap start", { slug: trimmed });
 
     if (!trimmed) {
       console.error("[BOOK_PAGE_ERROR]", new Error("empty_slug_prop"));
@@ -75,7 +79,6 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
 
     try {
       const url = `/api/public-booking/bootstrap?slug=${encodeURIComponent(trimmed)}`;
-      console.log("[PublicBookingSlugClient] [TEMP] fetch", { url });
 
       let res: Response;
       try {
@@ -104,15 +107,7 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
         return;
       }
 
-      console.log("[PublicBookingSlugClient] [TEMP] bootstrap response", {
-        status: res.status,
-        ok: res.ok,
-        hasTeacher: isRecord(raw) && raw.ok === true && isRecord(raw.teacher),
-        keys: isRecord(raw) ? Object.keys(raw) : [],
-      });
-
       if (res.status === 404) {
-        console.log("[PublicBookingSlugClient] [TEMP] notFound (404)");
         notFound();
         return;
       }
@@ -168,13 +163,6 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
         return;
       }
 
-      console.log("[PublicBookingSlugClient] [TEMP] teacher", {
-        id: teacher.id,
-        businessType: teacher.businessType,
-        businessName: teacher.businessName,
-      });
-      console.log("[PublicBookingSlugClient] [TEMP] business", { id: businessId });
-
       const availabilityRaw = raw.availability;
       if (
         availabilityRaw == null ||
@@ -222,21 +210,27 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
         phone: typeof teacher.phone === "string" ? teacher.phone : "",
       };
 
-      console.log("[PublicBookingSlugClient] [TEMP] bookingSettings", {
-        businessId,
-        teacherId: teacher.id,
-        bookingEnabled: availability.bookingEnabled,
-        daysAhead: availability.daysAhead,
-        slotDurationMinutes: availability.slotDurationMinutes,
-      });
-
-      console.log("[PublicBookingSlugClient] [TEMP] ready", {
-        teacherId: teacher.id,
-        businessType,
-        bookingEnabled: availability.bookingEnabled,
-        daysAhead: availability.daysAhead,
-        slotDurationMinutes: availability.slotDurationMinutes,
-      });
+      const brandingRaw = (raw as Record<string, unknown>).branding;
+      const branding = isRecord(brandingRaw)
+        ? {
+            logoUrl:
+              typeof brandingRaw.logoUrl === "string" && brandingRaw.logoUrl.length > 0
+                ? brandingRaw.logoUrl
+                : null,
+            primaryColor:
+              typeof brandingRaw.primaryColor === "string" && brandingRaw.primaryColor.length > 0
+                ? brandingRaw.primaryColor
+                : null,
+            accentColor:
+              typeof brandingRaw.accentColor === "string" && brandingRaw.accentColor.length > 0
+                ? brandingRaw.accentColor
+                : null,
+          }
+        : {
+            logoUrl: null,
+            primaryColor: null,
+            accentColor: null,
+          };
 
       setState({
         kind: "ready",
@@ -244,6 +238,7 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
         businessType,
         identity,
         availability,
+        branding,
       });
     } catch (e) {
       console.error("[BOOK_PAGE_ERROR]", e);
@@ -272,10 +267,10 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
         className={cn(
           ui.pageMain,
           hilaiLoad &&
-            "min-h-screen bg-gradient-to-b from-[#fef7fb] via-white to-[#faf5ff]",
+            "min-h-screen bg-gradient-to-b from-[#fff0f7] via-[#fffbfd] to-[#f5f0ff]",
         )}
-        dir={hilaiLoad ? "rtl" : undefined}
-        lang={hilaiLoad ? "he" : undefined}
+        dir={hilaiLoad ? "ltr" : undefined}
+        lang={hilaiLoad ? "en" : undefined}
       >
         <div
           className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-neutral-600"
@@ -340,6 +335,7 @@ function PublicBookingSlugClient({ slug }: { slug: string }) {
       businessType={state.businessType}
       identity={state.identity}
       availability={state.availability}
+      branding={state.branding}
       variant={demoVariant}
     />
   );

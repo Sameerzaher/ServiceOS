@@ -1,5 +1,5 @@
 import type { AppointmentRecord } from "@/core/types/appointment";
-import { PaymentStatus } from "@/core/types/appointment";
+import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
 import { isLocalCalendarDay } from "@/core/reminders/tomorrow";
 import { isInLocalWeek } from "@/core/utils/week";
@@ -17,7 +17,7 @@ export function isDebtStatus(status: PaymentStatus): boolean {
 }
 
 export function sumAmount(
-  rows: AppointmentRecord[],
+  rows: readonly AppointmentRecord[],
   predicate: (a: AppointmentRecord) => boolean,
 ): number {
   return rows.reduce((sum, a) => {
@@ -26,16 +26,16 @@ export function sumAmount(
   }, 0);
 }
 
-export function sumPaidTotal(appointments: AppointmentRecord[]): number {
+export function sumPaidTotal(appointments: readonly AppointmentRecord[]): number {
   return sumAmount(appointments, (a) => isPaidStatus(a.paymentStatus));
 }
 
-export function sumUnpaidDebt(appointments: AppointmentRecord[]): number {
+export function sumUnpaidDebt(appointments: readonly AppointmentRecord[]): number {
   return sumAmount(appointments, (a) => isDebtStatus(a.paymentStatus));
 }
 
 export function sumClientDebt(
-  appointments: AppointmentRecord[],
+  appointments: readonly AppointmentRecord[],
   clientId: string,
 ): number {
   return sumAmount(
@@ -46,7 +46,7 @@ export function sumClientDebt(
 }
 
 export function sumClientPaid(
-  appointments: AppointmentRecord[],
+  appointments: readonly AppointmentRecord[],
   clientId: string,
 ): number {
   return sumAmount(
@@ -58,7 +58,7 @@ export function sumClientPaid(
 
 /** Sum of `amount` for paid appointments that start on the same local day as `reference`. */
 export function sumTodayPaidRevenue(
-  appointments: AppointmentRecord[],
+  appointments: readonly AppointmentRecord[],
   reference: Date = new Date(),
 ): number {
   return sumAmount(
@@ -70,7 +70,7 @@ export function sumTodayPaidRevenue(
 }
 
 /** Sum of lesson amounts marked as partial payment (still tracked as open balance). */
-export function sumPartialAmount(appointments: AppointmentRecord[]): number {
+export function sumPartialAmount(appointments: readonly AppointmentRecord[]): number {
   return sumAmount(
     appointments,
     (a) => a.paymentStatus === PaymentStatus.Partial,
@@ -79,7 +79,7 @@ export function sumPartialAmount(appointments: AppointmentRecord[]): number {
 
 /** Paid revenue for lessons whose start falls in the current local calendar week (Sun–Sat). */
 export function sumWeekPaidRevenue(
-  appointments: AppointmentRecord[],
+  appointments: readonly AppointmentRecord[],
   reference: Date = new Date(),
 ): number {
   return sumAmount(
@@ -97,7 +97,7 @@ export interface ClientDebtRow {
 /** Clients with positive debt, highest first (for dashboard lists). */
 export function topClientsByDebt(
   clients: Client[],
-  appointments: AppointmentRecord[],
+  appointments: readonly AppointmentRecord[],
   limit = 5,
 ): ClientDebtRow[] {
   return clients
@@ -109,7 +109,43 @@ export function topClientsByDebt(
 
 export function countClientsWithDebt(
   clients: Client[],
-  appointments: AppointmentRecord[],
+  appointments: readonly AppointmentRecord[],
 ): number {
   return clients.filter((c) => sumClientDebt(appointments, c.id) > 0).length;
+}
+
+/** Appointments starting today (local), excluding cancelled. */
+export function countTodayAppointments(
+  appointments: readonly AppointmentRecord[],
+  reference: Date = new Date(),
+): number {
+  return appointments.filter(
+    (a) =>
+      a.status !== AppointmentStatus.Cancelled &&
+      isLocalCalendarDay(a.startAt, reference),
+  ).length;
+}
+
+/**
+ * Sum of amounts still “open” for today’s appointments (unpaid / partial / pending).
+ * Rough expected cash still to collect from today’s schedule.
+ */
+export function sumTodayExpectedCollections(
+  appointments: readonly AppointmentRecord[],
+  reference: Date = new Date(),
+): number {
+  return sumAmount(
+    appointments,
+    (a) =>
+      a.status !== AppointmentStatus.Cancelled &&
+      isLocalCalendarDay(a.startAt, reference) &&
+      isDebtStatus(a.paymentStatus),
+  );
+}
+
+/** Total unpaid debt across all appointments (same as sumUnpaidDebt). */
+export function totalOutstandingDebt(
+  appointments: readonly AppointmentRecord[],
+): number {
+  return sumUnpaidDebt(appointments);
 }

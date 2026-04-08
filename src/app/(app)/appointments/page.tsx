@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   appPageTitle,
@@ -23,6 +23,7 @@ import { ONBOARDING_ANCHORS } from "@/features/onboarding/components/FirstRunOnb
 
 function AppointmentsPageContent() {
   const toast = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const {
@@ -51,7 +52,7 @@ function AppointmentsPageContent() {
     appointmentPrefillClientId,
     setAppointmentPrefillClientId,
     editingAppointment,
-    handleToggleAppointmentPaid,
+    handleCycleAppointmentPayment,
     handleApprovePublicBooking,
     handleApproveAndSendPublicBookingWhatsapp,
     handleRejectPublicBooking,
@@ -63,6 +64,12 @@ function AppointmentsPageContent() {
   } = useServiceApp();
 
   useEffect(() => {
+    const edit = searchParams.get("edit");
+    if (edit) {
+      setEditingAppointmentId(edit);
+      setAppointmentPrefillClientId(null);
+      return;
+    }
     const raw = searchParams.get("prefillClient");
     if (raw) {
       setAppointmentPrefillClientId(raw);
@@ -204,14 +211,26 @@ function AppointmentsPageContent() {
                 clients={sortedClients}
                 preset={preset}
                 highlightedAppointmentId={editingAppointmentId}
+                reminderTemplate={settings.reminderTemplate}
+                businessName={settings.businessName}
+                businessPhone={settings.businessPhone}
+                onCyclePayment={handleCycleAppointmentPayment}
+                onReschedule={(id) => {
+                  router.push(
+                    `/appointments?edit=${encodeURIComponent(id)}`,
+                  );
+                }}
                 onRequestDelete={(id) =>
                   setConfirm({ kind: "appointment", id })
                 }
                 onEdit={(id) => {
                   setEditingAppointmentId(id);
                   setAppointmentPrefillClientId(null);
+                  router.replace(
+                    `/appointments?edit=${encodeURIComponent(id)}`,
+                    { scroll: false },
+                  );
                 }}
-                onTogglePaid={handleToggleAppointmentPaid}
                 onApproveRequest={handleApprovePublicBooking}
                 onApproveAndSendWhatsapp={handleApproveAndSendPublicBookingWhatsapp}
                 onRejectRequest={handleRejectPublicBooking}

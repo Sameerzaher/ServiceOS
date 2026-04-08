@@ -31,6 +31,9 @@ type SettingsApiShape = {
   workingHoursStart: string;
   workingHoursEnd: string;
   bufferBetweenLessons: number;
+  brandLogoUrl: string;
+  brandPrimaryColor: string;
+  brandAccentColor: string;
 };
 
 type SettingsApiResponse =
@@ -95,6 +98,11 @@ export default function SettingsPage() {
           lessonBufferMinutes: data.settings.bufferBetweenLessons,
           workingHoursStart: data.settings.workingHoursStart,
           workingHoursEnd: data.settings.workingHoursEnd,
+          brandLogoUrl: data.settings.brandLogoUrl ?? "",
+          brandPrimaryColor:
+            data.settings.brandPrimaryColor ?? settings.brandPrimaryColor,
+          brandAccentColor:
+            data.settings.brandAccentColor ?? settings.brandAccentColor,
         });
         updateAvailabilitySettings({
           ...availabilitySettings,
@@ -221,6 +229,9 @@ export default function SettingsPage() {
                     workingHoursStart: next.workingHoursStart,
                     workingHoursEnd: next.workingHoursEnd,
                     bufferBetweenLessons: next.lessonBufferMinutes,
+                    brandLogoUrl: next.brandLogoUrl,
+                    brandPrimaryColor: next.brandPrimaryColor,
+                    brandAccentColor: next.brandAccentColor,
                   };
                   try {
                     const res = await fetch("/api/settings", {

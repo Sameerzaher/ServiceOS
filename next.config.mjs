@@ -18,6 +18,16 @@ const isWin = process.platform === "win32";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+    ],
+  },
+
   /**
    * On some Windows setups, `next build` fails during "Collecting build traces"
    * with ENOENT for `.nft.json` / rename under `.next`. Disabling tracing avoids
@@ -27,14 +37,16 @@ const nextConfig = {
   outputFileTracing: isVercel || !isWin,
 
   /**
-   * Avoid server async chunks (`./<id>.js`) that can go missing under Windows
-   * dev HMR / parallel workers (`MODULE_NOT_FOUND` from webpack-runtime).
-   * Do not force this on Vercel/Linux server builds — it can break the client
-   * reference manifest used by App Router RSC (`Cannot read ... 'clientModules'`).
+   * - Client dev: disable splitChunks to reduce flaky `MODULE_NOT_FOUND` from
+   *   webpack-runtime on Windows HMR.
+   * - **Prod** server on Windows: disable splitChunks (avoids missing `./<id>.js`
+   *   chunks during `next build` / trace). Dev server must **not** do this on
+   *   the server bundle — it breaks App Router SSR (`ErrorBoundary` →
+   *   `usePathname` → null React dispatcher / `useContext`).
    */
   webpack: (config, { dev, isServer }) => {
     const disableSplitChunks =
-      (!isServer && dev) || (isServer && isWin);
+      (!isServer && dev) || (isServer && isWin && !dev);
     if (disableSplitChunks) {
       config.optimization = {
         ...config.optimization,

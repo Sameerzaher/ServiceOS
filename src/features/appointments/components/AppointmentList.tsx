@@ -2,15 +2,19 @@ import Link from "next/link";
 
 import { heUi, paymentStatusLabel } from "@/config";
 import { Button, EmptyState, ui } from "@/components/ui";
-import { AppointmentStatus } from "@/core/types/appointment";
+import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import { isTomorrowAppointment } from "@/core/reminders";
 import type {
   AppointmentId,
   AppointmentRecord,
 } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
+import { DEFAULT_APP_SETTINGS } from "@/core/types/settings";
 import { formatIls } from "@/core/utils/currency";
-import { isDebtStatus, isPaidStatus } from "@/core/utils/insights";
+import { isPaidStatus } from "@/core/utils/insights";
+import { getAppointmentServiceLabel } from "@/core/utils/appointmentDisplay";
+import { applyReminderTemplate } from "@/core/utils/reminderTemplate";
+import { buildWhatsAppHref } from "@/core/utils/whatsapp";
 import {
   CustomFieldInputKind,
   type CustomFieldDefinition,
@@ -32,6 +36,14 @@ export interface AppointmentListProps {
   onApproveAndSendWhatsapp?: (id: AppointmentId) => void;
   onRejectRequest?: (id: AppointmentId) => void;
   onChangeStatus?: (id: AppointmentId, status: AppointmentStatus) => void;
+  /** For quick WhatsApp — same template as dashboard reminders */
+  reminderTemplate?: string;
+  businessName?: string;
+  businessPhone?: string;
+  /** Unpaid → partial → paid → unpaid */
+  onCyclePayment?: (id: AppointmentId) => void;
+  /** Open editor to reschedule (e.g. change time) */
+  onReschedule?: (id: AppointmentId) => void;
 }
 
 function isPendingPublicRequest(appt: AppointmentRecord): boolean {
@@ -80,6 +92,23 @@ function appointmentStatusLabel(status: AppointmentStatus): string {
     case AppointmentStatus.Scheduled:
     default:
       return heUi.appointments.statusScheduled;
+  }
+}
+
+function paymentStatusChipClass(status: PaymentStatus): string {
+  switch (status) {
+    case PaymentStatus.Paid:
+    case PaymentStatus.Waived:
+      return "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100";
+    case PaymentStatus.Partial:
+      return "bg-violet-100 text-violet-900 dark:bg-violet-900/40 dark:text-violet-100";
+    case PaymentStatus.Pending:
+      return "bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-100";
+    case PaymentStatus.Refunded:
+      return "bg-neutral-200 text-neutral-800 dark:bg-neutral-600 dark:text-neutral-100";
+    case PaymentStatus.Unpaid:
+    default:
+      return "bg-amber-100 text-amber-950 dark:bg-amber-900/50 dark:text-amber-100";
   }
 }
 
@@ -170,7 +199,13 @@ export function AppointmentList({
   onApproveAndSendWhatsapp,
   onRejectRequest,
   onChangeStatus,
+  reminderTemplate,
+  businessName = "",
+  businessPhone = "",
+  onCyclePayment,
+  onReschedule,
 }: AppointmentListProps) {
+  const tmpl = reminderTemplate ?? DEFAULT_APP_SETTINGS.reminderTemplate;
   if (appointments.length === 0) {
     const isFilteredOut =
       totalAppointmentCount > 0 && appointments.length === 0;
@@ -191,12 +226,22 @@ export function AppointmentList({
   return (
     <ul className={ui.list}>
       {appointments.map((appt) => {
-        const paid = isPaidStatus(appt.paymentStatus);
-        const debt = isDebtStatus(appt.paymentStatus);
         const tomorrow = isTomorrowAppointment(appt);
         const pendingRequest = isPendingPublicRequest(appt);
         const approvedRequest = isApprovedPublicRequest(appt);
         const rejectedRequest = isRejectedPublicRequest(appt);
+        const clientRow = clients.find((c) => c.id === appt.clientId);
+        const phoneRaw = clientRow?.phone?.trim() ?? "";
+        const displayName = clientNameById(clients, appt.clientId);
+        const waMessage = applyReminderTemplate(tmpl, {
+          name: displayName === "—" ? "" : displayName,
+          time: formatAppointmentTimeOnly(appt.startAt),
+          date: formatAppointmentDateOnly(appt.startAt),
+          businessName: businessName.trim(),
+          businessPhone: businessPhone.trim(),
+        });
+        const waHref = buildWhatsAppHref(phoneRaw, waMessage);
+        const serviceLabel = getAppointmentServiceLabel(appt, preset);
 
         return (
           <li key={appt.id}>
@@ -227,16 +272,14 @@ export function AppointmentList({
                         {heUi.appointments.tomorrowBadge}
                       </span>
                     ) : null}
-                    {paid ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 sm:text-xs">
-                        {heUi.appointments.paidBadge}
-                      </span>
-                    ) : null}
-                    {debt ? (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-900 dark:text-amber-100 sm:text-xs">
-                        {heUi.appointments.unpaidBadge}
-                      </span>
-                    ) : null}
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs",
+                        paymentStatusChipClass(appt.paymentStatus),
+                      )}
+                    >
+                      {paymentStatusLabel(appt.paymentStatus)}
+                    </span>
                     {pendingRequest ? (
                       <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-900 dark:bg-violet-900 dark:text-violet-100 sm:text-xs">
                         {heUi.appointments.pendingApprovalBadge}
@@ -271,6 +314,14 @@ export function AppointmentList({
                         {heUi.appointments.phonePrefix}
                       </span>
                       {clientPhoneById(clients, appt.clientId)}
+                    </p>
+                    <p className="text-neutral-800 dark:text-neutral-200">
+                      <span className="font-medium text-neutral-800 dark:text-neutral-200">
+                        {heUi.appointments.serviceLabel}:{" "}
+                      </span>
+                      <span className="text-neutral-700 dark:text-neutral-300">
+                        {serviceLabel}
+                      </span>
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -329,19 +380,61 @@ export function AppointmentList({
                   <div className="grid gap-1 text-xs sm:text-sm">
                     <p className="text-neutral-600 dark:text-neutral-400">
                       <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                        {heUi.appointments.paymentPrefix}
-                      </span>
-                      {paymentStatusLabel(appt.paymentStatus)}
-                    </p>
-                    <p className="text-neutral-600 dark:text-neutral-400">
-                      <span className="font-medium text-neutral-700 dark:text-neutral-300">
                         {heUi.appointments.amountPrefix}
                       </span>
                       {formatIls(appt.amount ?? 0)}
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 sm:shrink-0 sm:flex-col">
+                <div className="flex flex-wrap gap-2 sm:max-w-[14rem] sm:shrink-0 sm:flex-col">
+                  {onChangeStatus &&
+                  appt.status !== AppointmentStatus.Completed &&
+                  appt.status !== AppointmentStatus.Cancelled &&
+                  !pendingRequest ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      onClick={() =>
+                        onChangeStatus(appt.id, AppointmentStatus.Completed)
+                      }
+                    >
+                      {heUi.appointments.quickComplete}
+                    </Button>
+                  ) : null}
+                  {waHref ? (
+                    <a
+                      href={waHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${heUi.appointments.sendReminder} — ${displayName}`}
+                      className={cn(
+                        "inline-flex min-h-[2.5rem] w-full items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600/35 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 shadow-md transition-all duration-200 hover:border-emerald-500 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 active:scale-95 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-100 dark:hover:bg-emerald-900/60 sm:w-auto sm:text-sm",
+                      )}
+                    >
+                      <span aria-hidden>💬</span>
+                      {heUi.appointments.sendReminder}
+                    </a>
+                  ) : phoneRaw ? null : (
+                    <span
+                      className="self-center text-[10px] text-neutral-400 sm:text-xs"
+                      title={heUi.whatsapp.noPhoneDetail}
+                    >
+                      {heUi.whatsapp.noPhone}
+                    </span>
+                  )}
+                  {onReschedule ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      onClick={() => onReschedule(appt.id)}
+                    >
+                      {heUi.appointments.reschedule}
+                    </Button>
+                  ) : null}
                   {pendingRequest && onApproveRequest ? (
                     <Button
                       type="button"
@@ -372,20 +465,32 @@ export function AppointmentList({
                       {heUi.appointments.rejectRequest}
                     </Button>
                   ) : null}
-                  {onTogglePaid ? (
+                  {onCyclePayment ? (
                     <Button
                       type="button"
                       variant="secondary"
                       size="sm"
+                      className="w-full border-violet-200 bg-violet-50 text-violet-950 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-100 sm:w-auto"
+                      onClick={() => onCyclePayment(appt.id)}
+                      aria-label={`${heUi.appointments.cyclePayment} — ${displayName}`}
+                    >
+                      {heUi.appointments.cyclePayment}
+                    </Button>
+                  ) : onTogglePaid ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => onTogglePaid(appt.id)}
                       aria-label={
-                        paid
+                        isPaidStatus(appt.paymentStatus)
                           ? `${heUi.appointments.markUnpaid} — ${clientNameById(clients, appt.clientId)}`
                           : `${heUi.appointments.markPaid} — ${clientNameById(clients, appt.clientId)}`
                       }
-                      aria-pressed={paid}
+                      aria-pressed={isPaidStatus(appt.paymentStatus)}
                     >
-                      {paid
+                      {isPaidStatus(appt.paymentStatus)
                         ? heUi.appointments.markUnpaid
                         : heUi.appointments.markPaid}
                     </Button>

@@ -17,15 +17,35 @@ export const PRODUCT_BRANDING = {
     { id: "beauty_salon", label: "מעצבי שיער", icon: "✂️" },
   ],
   
-  // Value propositions with emojis
+  /** Legacy list — still used in some previews */
   benefits: [
     "📱 הזמנת תורים אונליין 24/7",
     "📆 ניהול יומן אוטומטי וחכם",
     "💬 התראות ווטסאפ אוטומטיות",
-    "💰 מעקב תשלומים מקצועי",
-    "📊 דוחות ותובנות בזמן אמת",
-    "🎨 דף הזמנה מותאם אישית למותג שלכם",
   ],
+
+  /** Emotional owner pitch (headline EN + body HE for local market) */
+  ownerPitchBenefits: [
+    {
+      icon: "📈",
+      headline: "Get more clients",
+      body: "לקוחות קובעים לבד — גם כשאתם לא ליד הטלפון. פחות פספוסים, יותר תורים סגורים.",
+    },
+    {
+      icon: "⏱️",
+      headline: "Save time",
+      body: "פחות בלגן ביומן ובהודעות. יותר זמן לעבודה שבאמת מכניסה כסף.",
+    },
+    {
+      icon: "📵",
+      headline: "No phone calls",
+      body: "פחות שיחות חוזרות. הלקוחות מבינים לבד, ואתם שומעים רק את מה שחשוב — בווטסאפ.",
+    },
+  ],
+
+  /** Onboarding / signup reassurance */
+  setupTimeLabel: "Setup takes 2 minutes",
+  setupTimeLabelHe: "ההתחלה לוקחת בערך 2 דקות",
   
   // Social proof
   socialProof: {

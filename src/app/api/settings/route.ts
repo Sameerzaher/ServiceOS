@@ -28,6 +28,9 @@ type SettingsApiResponse = {
   workingHoursStart: string;
   workingHoursEnd: string;
   bufferBetweenLessons: number;
+  brandLogoUrl: string;
+  brandPrimaryColor: string;
+  brandAccentColor: string;
 };
 
 function toApiShape(
@@ -45,6 +48,9 @@ function toApiShape(
     workingHoursStart: app.workingHoursStart,
     workingHoursEnd: app.workingHoursEnd,
     bufferBetweenLessons: app.lessonBufferMinutes,
+    brandLogoUrl: app.brandLogoUrl ?? "",
+    brandPrimaryColor: app.brandPrimaryColor,
+    brandAccentColor: app.brandAccentColor,
   };
 }
 
@@ -68,6 +74,12 @@ function parseBody(raw: unknown): SettingsPutParsed | null {
   const bookingEnabled = typeof o.bookingEnabled === "boolean" ? o.bookingEnabled : null;
   const defaultLessonDuration = Number(o.defaultLessonDuration);
   const bufferBetweenLessons = Number(o.bufferBetweenLessons);
+  const brandLogoUrl =
+    typeof o.brandLogoUrl === "string" ? o.brandLogoUrl.trim() : "";
+  const brandPrimaryColor =
+    typeof o.brandPrimaryColor === "string" ? o.brandPrimaryColor.trim() : "";
+  const brandAccentColor =
+    typeof o.brandAccentColor === "string" ? o.brandAccentColor.trim() : "";
 
   if (bookingEnabled === null) return null;
   if (!Number.isFinite(defaultLessonDuration)) return null;
@@ -83,6 +95,9 @@ function parseBody(raw: unknown): SettingsPutParsed | null {
     workingHoursStart,
     workingHoursEnd,
     bufferBetweenLessons,
+    brandLogoUrl,
+    brandPrimaryColor,
+    brandAccentColor,
   };
 }
 
@@ -193,6 +208,9 @@ export async function PUT(req: Request): Promise<NextResponse> {
       lessonBufferMinutes: parsed.bufferBetweenLessons,
       workingHoursStart: parsed.workingHoursStart,
       workingHoursEnd: parsed.workingHoursEnd,
+      brandLogoUrl: parsed.brandLogoUrl,
+      brandPrimaryColor: parsed.brandPrimaryColor,
+      brandAccentColor: parsed.brandAccentColor,
     });
     const nextAvailability = normalizeAvailabilitySettings({
       ...currentAvailability,

@@ -56,3 +56,24 @@ export function getTomorrowAppointments(
         new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
     );
 }
+
+/**
+ * Appointments on the same local calendar day as `reference`, with start time ≥ `reference`.
+ * For same-day reminder workflows (manual or future cron).
+ */
+export function getTodayFutureAppointments(
+  appointments: readonly AppointmentRecord[],
+  reference: Date = new Date(),
+): AppointmentRecord[] {
+  const now = reference.getTime();
+  return [...appointments]
+    .filter(
+      (a) =>
+        isLocalCalendarDay(a.startAt, reference) &&
+        new Date(a.startAt).getTime() >= now,
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    );
+}

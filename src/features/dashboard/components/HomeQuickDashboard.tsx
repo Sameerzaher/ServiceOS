@@ -8,6 +8,7 @@ import { Button, EmptyState, ui } from "@/components/ui";
 import { getTomorrowAppointments, isLocalCalendarDay } from "@/core/reminders";
 import { PaymentStatus, type AppointmentRecord } from "@/core/types/appointment";
 import type { Client } from "@/core/types/client";
+import type { ReminderWorkflowSettings } from "@/features/dashboard/components/RemindersPanel";
 import { RemindersPanel } from "@/features/dashboard/components/RemindersPanel";
 import { cn } from "@/lib/cn";
 
@@ -16,9 +17,7 @@ export interface HomeQuickDashboardProps {
   clients: Client[];
   pendingBookingRequests: number;
   lessonLabelPlural: string;
-  reminderTemplate: string;
-  businessName?: string;
-  businessPhone?: string;
+  reminderWorkflow: ReminderWorkflowSettings;
   onReminderCopied?: () => void;
   onQuickAddClient: () => void;
   onQuickAddAppointment: () => void;
@@ -43,9 +42,7 @@ export function HomeQuickDashboard({
   clients,
   pendingBookingRequests,
   lessonLabelPlural,
-  reminderTemplate,
-  businessName = "",
-  businessPhone = "",
+  reminderWorkflow,
   onReminderCopied,
   onQuickAddClient,
   onQuickAddAppointment,
@@ -171,9 +168,7 @@ export function HomeQuickDashboard({
         <RemindersPanel
           appointments={appointments}
           clients={clients}
-          reminderTemplate={reminderTemplate}
-          businessName={businessName}
-          businessPhone={businessPhone}
+          workflow={reminderWorkflow}
           onCopied={onReminderCopied}
         />
       </section>

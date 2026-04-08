@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
 import { heUi } from "@/config";
 import { DataLoadErrorBanner } from "@/components/ui/DataLoadErrorBanner";
@@ -12,6 +19,11 @@ import {
   type PublicBookingFormSubmitInput,
 } from "@/features/booking/components/PublicBookingForm";
 import { PublicBookingSuccessPanel } from "@/features/booking/components/PublicBookingSuccessPanel";
+import {
+  PublicBookingHero,
+  PublicBookingTrustStrip,
+} from "@/features/booking/components/public/PublicBookingHero";
+import { PublicBookingServiceGrid } from "@/features/booking/components/public/PublicBookingServiceGrid";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { usePublicTeacherAppointments } from "@/features/booking/hooks/usePublicTeacherAppointments";
 import { generateAvailableSlots } from "@/features/booking/utils/generateAvailableSlots";
@@ -21,15 +33,25 @@ import {
 } from "@/core/types/availability";
 import type { BusinessType } from "@/core/types/teacher";
 import { getVerticalPreset } from "@/config/verticals/registry";
-import { HILAI_NAILS_COPY } from "@/features/booking/hilai/constants";
 import {
-  HilaiNailsHero,
+  HILAI_PREMIUM,
+  HILAI_PREMIUM_FORM_COPY,
+  HILAI_PREMIUM_REVIEWS,
+  HILAI_GALLERY_IMAGES,
+  HILAI_SERVICE_LABEL_EN,
+  HILAI_SUCCESS_COPY,
+} from "@/features/booking/hilai/constants";
+import {
+  HilaiGalleryStrip,
   HilaiNailsServiceGrid,
-  HilaiNailsTrustChips,
+  HilaiPremiumHero,
+  HilaiReviewsSection,
   HilaiSectionDivider,
   HilaiSectionHeading,
-  HilaiTrustMicroLine,
+  HilaiStudioWhatsAppLink,
+  HilaiUrgencyStrip,
 } from "@/features/booking/components/hilai/HilaiNailsSections";
+import { buildWhatsAppHref } from "@/core/utils/whatsapp";
 import { cn } from "@/lib/cn";
 
 function todayLocalYmd(): string {
@@ -78,6 +100,13 @@ export type PublicBookingIdentity = {
   phone: string;
 };
 
+/** Theme for the public booking page (from Settings → branding). */
+export type PublicBookingBranding = {
+  logoUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+};
+
 export type PublicBookingPageVariant = "default" | "hilai-nails";
 
 export interface PublicBookingPageContentProps {
@@ -85,6 +114,8 @@ export interface PublicBookingPageContentProps {
   businessType: BusinessType;
   identity: PublicBookingIdentity;
   availability: AvailabilitySettings;
+  /** Business logo + colors from app settings (optional). */
+  branding?: PublicBookingBranding | null;
   /** Branded layout for specific demo slugs (see `HILAI_NAILS_SLUG`). */
   variant?: PublicBookingPageVariant;
 }
@@ -94,6 +125,7 @@ export function PublicBookingPageContent({
   businessType,
   identity,
   availability,
+  branding = null,
   variant = "default",
 }: PublicBookingPageContentProps) {
   const toast = useToast();
@@ -103,9 +135,16 @@ export function PublicBookingPageContent({
   const [selectedSlotStart, setSelectedSlotStart] = useState<string | null>(null);
   const [appointmentsReloadKey, setAppointmentsReloadKey] = useState(0);
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedPresetService, setSelectedPresetService] = useState<string | null>(
+    null,
+  );
   const [servicePreflightError, setServicePreflightError] = useState<string | null>(null);
 
   const isHilai = variant === "hilai-nails";
+
+  const verticalPreset = useMemo(() => getVerticalPreset(businessType), [businessType]);
+  const showServiceCards =
+    !isHilai && verticalPreset.defaultServices.length > 0;
 
   const {
     sortedAppointments,
@@ -133,7 +172,7 @@ export function PublicBookingPageContent({
       if (isHilai) {
         const svc = selectedService?.trim();
         if (!svc) {
-          setServicePreflightError(HILAI_NAILS_COPY.serviceRequired);
+          setServicePreflightError(HILAI_PREMIUM.serviceRequired);
           return false;
         }
         setServicePreflightError(null);
@@ -145,9 +184,47 @@ export function PublicBookingPageContent({
           },
         });
       }
-      return submitBookingRaw(input);
+
+      if (showServiceCards) {
+        const svc = selectedPresetService?.trim();
+        if (!svc) {
+          setServicePreflightError(heUi.publicBooking.serviceRequiredSelect);
+          return false;
+        }
+      }
+      setServicePreflightError(null);
+
+      const hasTreatmentKey = verticalPreset.publicBookingFields.some(
+        (f) => f.key === "treatmentType",
+      );
+      let notes = input.notes;
+      let bookingCustomFields = { ...input.bookingCustomFields };
+
+      if (showServiceCards && selectedPresetService?.trim()) {
+        const svc = selectedPresetService.trim();
+        if (hasTreatmentKey) {
+          bookingCustomFields = { ...bookingCustomFields, treatmentType: svc };
+        } else {
+          notes = notes.trim()
+            ? `שירות: ${svc}\n${notes}`.trim()
+            : `שירות: ${svc}`;
+        }
+      }
+
+      return submitBookingRaw({
+        ...input,
+        notes,
+        bookingCustomFields,
+      });
     },
-    [isHilai, selectedService, submitBookingRaw],
+    [
+      isHilai,
+      selectedService,
+      showServiceCards,
+      selectedPresetService,
+      verticalPreset.publicBookingFields,
+      submitBookingRaw,
+    ],
   );
 
   const safeAvailability = useMemo(
@@ -187,14 +264,22 @@ export function PublicBookingPageContent({
   }, [safeAvailability.daysAhead]);
 
   const publicBookingExtraFields = useMemo(
-    () =>
-      isHilai ? [] : getVerticalPreset(businessType).publicBookingFields,
-    [businessType, isHilai],
+    () => (isHilai ? [] : verticalPreset.publicBookingFields),
+    [isHilai, verticalPreset.publicBookingFields],
   );
 
+  const extraFieldsForForm = useMemo(() => {
+    if (isHilai) return publicBookingExtraFields;
+    let fields = publicBookingExtraFields;
+    if (showServiceCards) {
+      fields = fields.filter((f) => f.key !== "treatmentType");
+    }
+    return fields.filter((f) => f.required);
+  }, [isHilai, publicBookingExtraFields, showServiceCards]);
+
   useEffect(() => {
-    if (selectedService) setServicePreflightError(null);
-  }, [selectedService]);
+    if (selectedService || selectedPresetService) setServicePreflightError(null);
+  }, [selectedService, selectedPresetService]);
 
   useEffect(() => {
     const min = todayLocalYmd();
@@ -246,6 +331,7 @@ export function PublicBookingPageContent({
     resetState();
     setSelectedSlotStart(null);
     if (isHilai) setSelectedService(null);
+    else setSelectedPresetService(null);
   }, [resetState, isHilai]);
 
   const onDateChange = useCallback(
@@ -272,30 +358,64 @@ export function PublicBookingPageContent({
 
   const showSuccess = Boolean(isSuccess && successSnapshot);
 
+  const hilaiStudioWhatsAppHref = useMemo(() => {
+    const p = phoneLine.trim();
+    if (!p) return null;
+    return buildWhatsAppHref(p, "Hi! I have a quick question about booking.");
+  }, [phoneLine]);
+
+  const hilaiShowLimitedSlotsToday = useMemo(() => {
+    if (showSuccess) return false;
+    if (!bookingDataReady || !safeAvailability.bookingEnabled) return false;
+    if (selectedDate !== todayLocalYmd()) return false;
+    return availableSlots.length > 0;
+  }, [
+    availableSlots.length,
+    bookingDataReady,
+    safeAvailability.bookingEnabled,
+    selectedDate,
+    showSuccess,
+  ]);
+
   const hilaiMainClass =
-    "min-h-screen bg-gradient-to-b from-[#fff5f9] via-white to-[#faf8ff] pb-8 pt-3 sm:pb-12 sm:pt-5";
+    "min-h-screen bg-gradient-to-b from-[#fff0f7] via-[#fffbfd] to-[#f5f0ff] pb-10 pt-4 sm:pb-14 sm:pt-6";
   const hilaiCardClass =
-    "rounded-2xl border border-pink-100/60 bg-white/95 shadow-lg shadow-pink-200/15";
+    "rounded-3xl border border-pink-100/50 bg-white/95 shadow-xl shadow-pink-200/20";
 
   if (isHilai) {
     return (
       <main
         className={cn(hilaiMainClass, "px-4 sm:px-6")}
-        dir="rtl"
-        lang="he"
+        dir="ltr"
+        lang="en"
       >
-        <div className="mx-auto flex max-w-md flex-col gap-7 sm:gap-10">
-          <HilaiNailsHero
-            primaryHook={HILAI_NAILS_COPY.primaryHook}
-            instructionLine={HILAI_NAILS_COPY.instructionLine}
-            title={HILAI_NAILS_COPY.heroTitle}
-            subtitle={HILAI_NAILS_COPY.subtitle}
+        <div className="mx-auto flex max-w-md flex-col gap-9 sm:gap-12">
+          <HilaiPremiumHero
+            headline={HILAI_PREMIUM.heroHeadline}
+            subheadline={HILAI_PREMIUM.heroSub}
+            brandName={(businessLine || "Hilai Nails").toUpperCase()}
+            eyebrow={HILAI_PREMIUM.heroTrustMicro}
+            logoUrl={branding?.logoUrl}
+            accentColor={branding?.primaryColor}
           />
-          <HilaiTrustMicroLine text={HILAI_NAILS_COPY.trustMicro} />
-          <HilaiNailsTrustChips
-            line1={HILAI_NAILS_COPY.trust1}
-            line2={HILAI_NAILS_COPY.trust2}
-            line3={HILAI_NAILS_COPY.trust3}
+          <HilaiUrgencyStrip
+            show={hilaiShowLimitedSlotsToday}
+            title={HILAI_PREMIUM.urgencyLimitedToday}
+            subtitle={HILAI_PREMIUM.urgencyLimitedTodaySub}
+          />
+          {hilaiStudioWhatsAppHref ? (
+            <HilaiStudioWhatsAppLink
+              href={hilaiStudioWhatsAppHref}
+              label={HILAI_PREMIUM.studioWhatsAppCta}
+            />
+          ) : null}
+          <HilaiGalleryStrip
+            heading={HILAI_PREMIUM.galleryHeading}
+            images={HILAI_GALLERY_IMAGES}
+          />
+          <HilaiReviewsSection
+            heading={HILAI_PREMIUM.reviewsHeading}
+            reviews={HILAI_PREMIUM_REVIEWS}
           />
           <HilaiSectionDivider />
 
@@ -316,6 +436,8 @@ export function PublicBookingPageContent({
               slotEnd={successSnapshot.slotEnd}
               onBookAnother={handleBookAnother}
               variant="hilai"
+              copyOverrides={HILAI_SUCCESS_COPY}
+              timeLocale="en-US"
             />
           ) : null}
 
@@ -323,12 +445,13 @@ export function PublicBookingPageContent({
             <>
               <section className={cn(ui.section, "space-y-0")}>
                 <HilaiNailsServiceGrid
-                  heading={HILAI_NAILS_COPY.sectionServices}
-                  hint={HILAI_NAILS_COPY.sectionServicesHint}
+                  heading={HILAI_PREMIUM.sectionServices}
                   stepNumber={1}
+                  serviceLabels={HILAI_SERVICE_LABEL_EN}
                   selected={selectedService}
                   onSelect={(name) => setSelectedService(name)}
                   disabled={isSubmitting}
+                  slotDurationMinutes={safeAvailability.slotDurationMinutes}
                 />
               </section>
 
@@ -336,8 +459,7 @@ export function PublicBookingPageContent({
 
               <section className={cn(ui.section, "space-y-4 sm:space-y-5")}>
                 <HilaiSectionHeading
-                  title={HILAI_NAILS_COPY.sectionDate}
-                  hint={HILAI_NAILS_COPY.sectionDateHint}
+                  title={HILAI_PREMIUM.sectionDate}
                   stepNumber={2}
                 />
                 <div
@@ -351,7 +473,9 @@ export function PublicBookingPageContent({
                   {!bookingDataReady ? (
                     <BookingSectionSkeleton tone="hilai" />
                   ) : !safeAvailability.bookingEnabled ? (
-                    <p className="text-sm text-stone-600">{heUi.publicBooking.bookingClosed}</p>
+                    <p className="text-sm leading-relaxed text-stone-600">
+                      {HILAI_PREMIUM.bookingClosedFriendly}
+                    </p>
                   ) : (
                     <>
                       <div className="space-y-2">
@@ -359,7 +483,7 @@ export function PublicBookingPageContent({
                           htmlFor="book-date-hilai"
                           className="text-xs font-medium text-stone-500 sm:text-sm"
                         >
-                          {heUi.publicBooking.dateLabel}
+                          {HILAI_PREMIUM.dateLabel}
                         </label>
                         <input
                           id="book-date-hilai"
@@ -383,9 +507,11 @@ export function PublicBookingPageContent({
                         selectedSlotStart={selectedSlotStart}
                         onSelect={onSlotSelect}
                         disabled={isSubmitting}
-                        emptyDescription={heUi.publicBooking.slotEmptyDescription}
+                        emptyTitle={HILAI_PREMIUM.slotEmptyTitle}
+                        emptyDescription={HILAI_PREMIUM.slotEmptyDescription}
                         tone="hilai"
-                        slotHeadingOverride={HILAI_NAILS_COPY.slotIntro}
+                        slotHeadingOverride={HILAI_PREMIUM.slotIntro}
+                        timeLocale="en-US"
                       />
                     </>
                   )}
@@ -395,7 +521,7 @@ export function PublicBookingPageContent({
               <HilaiSectionDivider />
 
               <section className={cn(ui.section, "space-y-4 sm:space-y-5")}>
-                <HilaiSectionHeading title={HILAI_NAILS_COPY.sectionContact} stepNumber={3} />
+                <HilaiSectionHeading title={HILAI_PREMIUM.sectionContact} stepNumber={3} />
                 {phoneLine ? (
                   <p className="text-[13px] text-stone-500" dir="ltr">
                     {phoneLine}
@@ -414,10 +540,22 @@ export function PublicBookingPageContent({
                   )}
                   formCardClassName={hilaiCardClass}
                   preflightError={servicePreflightError}
-                  submitIdleLabel={HILAI_NAILS_COPY.submitCta}
-                  ctaHelperText={HILAI_NAILS_COPY.ctaHelper}
+                  submitIdleLabel={HILAI_PREMIUM.submitCta}
+                  ctaHelperText={HILAI_PREMIUM.ctaHelper}
+                  formCopy={HILAI_PREMIUM_FORM_COPY}
+                  timeLocale="en-US"
                   visualTone="hilai"
                   stickyMobileCta
+                  trustBeforeSubmit={
+                    <PublicBookingTrustStrip
+                      className="border-pink-100/80 bg-white/85 dark:border-pink-900/35 dark:bg-stone-900/45"
+                      items={[
+                        HILAI_PREMIUM.trustNoCalls,
+                        HILAI_PREMIUM.trustQuickConfirm,
+                        HILAI_PREMIUM.trustPrivacy,
+                      ]}
+                    />
+                  }
                   submitButtonClassName="!min-h-[3.85rem] !rounded-xl !border-pink-300/90 !bg-gradient-to-r !from-pink-400 !via-pink-500 !to-fuchsia-500 !text-[17px] !font-bold !text-white !shadow-[0_14px_44px_-14px_rgba(219,39,119,0.5)] !transition-all !duration-200 hover:!brightness-[1.06] hover:!shadow-[0_18px_48px_-16px_rgba(219,39,119,0.45)] active:!scale-[0.96] active:!shadow-[0_8px_24px_-12px_rgba(219,39,119,0.4)] focus-visible:!outline-pink-400/70 sm:!static sm:!min-h-[3.4rem] sm:!shadow-[0_12px_36px_-16px_rgba(219,39,119,0.42)]"
                 />
               </section>
@@ -428,28 +566,40 @@ export function PublicBookingPageContent({
     );
   }
 
+  const defaultCardClass =
+    "rounded-2xl border border-neutral-200/90 bg-white/90 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/35";
+
   return (
-    <main className={cn(ui.pageMain, "px-3 sm:px-4")}>
-      <header className={cn(ui.header, "space-y-2")}>
-        <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
-          {businessLine || heUi.publicBooking.pageTitle}
-        </h1>
-        {teacherLine ? (
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">{teacherLine}</p>
-        ) : (
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">{heUi.publicBooking.pageSubtitle}</p>
-        )}
+    <main
+      className={cn(
+        ui.pageMain,
+        "min-h-screen px-4 pb-10 pt-6 sm:px-5 sm:pb-14 sm:pt-8",
+      )}
+      style={
+        branding?.primaryColor
+          ? ({
+              ["--public-booking-accent"]: branding.primaryColor,
+            } as CSSProperties)
+          : undefined
+      }
+    >
+      <div className="mx-auto max-w-md space-y-8 sm:space-y-10">
+        <PublicBookingHero
+          businessName={businessLine || heUi.publicBooking.pageTitle}
+          teacherName={teacherLine || undefined}
+          logoUrl={branding?.logoUrl}
+          accentColor={branding?.primaryColor}
+        />
+
         {phoneLine ? (
-          <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm" dir="ltr">
+          <p
+            className="text-center text-sm font-medium text-neutral-600 dark:text-neutral-400 sm:text-start"
+            dir="ltr"
+          >
             {phoneLine}
           </p>
         ) : null}
-        <p className="mt-2 max-w-prose text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 sm:text-sm">
-          {heUi.publicBooking.trustLine}
-        </p>
-      </header>
 
-      <div className={cn(ui.pageStack, "space-y-4 sm:space-y-5")}>
         <div className="flex flex-col gap-3">
           {appointmentsLoadError ? (
             <DataLoadErrorBanner
@@ -471,27 +621,47 @@ export function PublicBookingPageContent({
 
         {!showSuccess ? (
           <>
-            <section className={ui.section}>
-              <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg">
+            {showServiceCards ? (
+              <section className={cn(ui.section, "space-y-0")}>
+                <div className={cn(ui.formCard, defaultCardClass, "p-4 sm:p-5")}>
+                  <PublicBookingServiceGrid
+                    services={verticalPreset.defaultServices}
+                    heading={heUi.publicBooking.sectionServices}
+                    selectedName={selectedPresetService}
+                    onSelect={setSelectedPresetService}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </section>
+            ) : null}
+
+            <section className={cn(ui.section, "space-y-3")}>
+              <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 sm:text-xl">
                 {heUi.publicBooking.sectionDate}
               </h2>
-              <div className={cn(ui.formCard, "space-y-3 p-3 sm:space-y-4 sm:p-4")}>
+              <div className={cn(ui.formCard, defaultCardClass, "space-y-5 p-4 sm:p-5")}>
                 {!bookingDataReady ? (
                   <BookingSectionSkeleton />
                 ) : !safeAvailability.bookingEnabled ? (
-                  <p className="text-xs text-neutral-700 dark:text-neutral-300 sm:text-sm">
+                  <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
                     {heUi.publicBooking.bookingClosed}
                   </p>
                 ) : (
                   <>
-                    <div>
-                      <label htmlFor="book-date" className={cn(ui.label, "text-xs sm:text-sm")}>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="book-date"
+                        className={cn(ui.label, "text-sm font-semibold")}
+                      >
                         {heUi.publicBooking.dateLabel}
                       </label>
                       <input
                         id="book-date"
                         type="date"
-                        className={cn(ui.input, "min-h-[2.75rem] text-xs sm:text-sm")}
+                        className={cn(
+                          ui.input,
+                          "min-h-[3.25rem] rounded-2xl text-base sm:min-h-[3rem] sm:text-sm",
+                        )}
                         min={todayLocalYmd()}
                         max={maxBookDateYmd}
                         value={selectedDate}
@@ -505,6 +675,7 @@ export function PublicBookingPageContent({
                       selectedSlotStart={selectedSlotStart}
                       onSelect={onSlotSelect}
                       disabled={isSubmitting}
+                      emptyTitle={heUi.publicBooking.slotEmptyTitle}
                       emptyDescription={heUi.publicBooking.slotEmptyDescription}
                     />
                   </>
@@ -512,18 +683,27 @@ export function PublicBookingPageContent({
               </div>
             </section>
 
-            <section className={ui.section}>
-              <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg">
-                {heUi.publicBooking.sectionContact}
+            <section className={cn(ui.section, "space-y-3")}>
+              <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 sm:text-xl">
+                {heUi.publicBooking.sectionContactShort}
               </h2>
               <PublicBookingForm
-                extraFields={publicBookingExtraFields}
+                extraFields={extraFieldsForForm}
                 selectedSlot={selectedSlot}
                 isSelectedSlotAvailable={isSelectedSlotAvailable}
                 submitError={error}
                 isSubmitting={isSubmitting}
                 onSubmit={(input) => submitBooking(input)}
-                className={!isReady ? "opacity-80" : ""}
+                className={cn(
+                  !isReady ? "opacity-80" : "",
+                  "pb-[calc(6.5rem_+_env(safe-area-inset-bottom))] sm:pb-0",
+                )}
+                preflightError={servicePreflightError}
+                minimalContact
+                ctaHelperText={heUi.publicBooking.whatsappHelper}
+                stickyMobileCta
+                trustBeforeSubmit={<PublicBookingTrustStrip />}
+                submitButtonClassName="min-h-[3.35rem] rounded-2xl text-[15px] font-semibold shadow-md shadow-emerald-900/10 sm:min-h-[3.25rem]"
               />
             </section>
           </>

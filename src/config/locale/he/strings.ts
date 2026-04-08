@@ -78,6 +78,7 @@ export const heUi = {
     bookingRejected: "הבקשה נדחתה והשיעור בוטל.",
     lessonDeleted: "השיעור הוסר מהיומן.",
     paymentToggled: "סטטוס התשלום עודכן.",
+    paymentCycled: "תשלום עודכן (לא שולם ← חלקי ← שולם).",
     reminderCopied: "ההודעה בלוח — פתחו וואטסאפ, הדביקו ושלחו.",
     bookingLinkCopied: "קישור ההזמנה הועתק — אפשר להדביק ולשלוח לתלמידים.",
     settingsSaved:
@@ -201,14 +202,54 @@ export const heUi = {
       "הגדרה מהירה לשעות פתיחה. תחול על חלון הזמינות השבועי במסך ההזמנות.",
     workingHoursStart: "שעת התחלה",
     workingHoursEnd: "שעת סיום",
-    reminderTemplate: "תבנית תזכורת (וואטסאפ)",
+    reminderTemplate: "תבנית תזכורת לשיעור (מחר / ברירת מחדל להיום)",
     reminderTemplateHint:
-      "משתנים: {{name}}, {{time}}, {{business}} או {{businessName}}, {{businessPhone}}.",
+      "משתנים: {{name}}, {{time}}, {{date}}, {{business}} או {{businessName}}, {{businessPhone}}, {{amountDue}}.",
+    sameDayReminderTemplate: "תבנית נפרדת לתזכורת באותו היום (אופציונלי)",
+    sameDayReminderTemplateHint:
+      "אם תשאירו ריק — תשתמש המערכת באותה תבנית כמו למעלה. מתאים לניסוח «היום ב-{{time}}».",
+    paymentReminderTemplate: "תבנית תזכורת תשלום",
+    paymentReminderTemplateHint:
+      "למשל יתרה פתוחה. חובה לכלול לפחות {{amountDue}}; אפשר גם {{name}}, {{businessName}}, {{date}}, {{time}}.",
+    remindersEnabled: "הפעלת תזכורות בדף הבית",
+    remindersEnabledHint:
+      "כבו אם אינכם רוצים רשימת תזכורות או שליחה ידנית בוואטסאפ מהמסך הראשי.",
+    reminderChannelTomorrow: "תזכורות לשיעורים מחר",
+    reminderChannelSameDay: "תזכורות לשיעורים היום (עתידיים)",
+    reminderChannelPayment: "רשימת תזכורות תשלום (יתרה פתוחה)",
     reminderPreviewTitle: "איך זה ייראה",
+    paymentReminderPreviewTitle: "תצוגה מקדימה — תשלום",
+    previewAmountDue: "₪120",
     previewStudentName: "יוסי כהן",
     previewLessonTime: "09:00",
+    previewLessonDate: "מחר, 15 בינואר 2026",
     previewBusinessFallback: "בית ספר לנהיגה",
     previewPhoneFallback: "050-1234567",
+    googleCalendarTitle: "Google Calendar",
+    googleCalendarIntro:
+      "סנכרון תורים ליומן Google — אירוע נוצר ומתעדכן כשמוסיפים או משנים שיעור במערכת.",
+    googleCalendarNotConfigured:
+      "חיבור Google לא הוגדר בשרת (חסרים משתני סביבה). פנה למנהל המערכת.",
+    googleCalendarConnect: "חיבור ל-Google",
+    googleCalendarDisconnect: "ניתוק",
+    googleCalendarReconnect: "חיבור מחדש",
+    googleCalendarConnectedAs: (email: string) => `מחובר כ-${email}`,
+    googleCalendarSyncEnabled: "סנכרון אוטומטי ליומן",
+    googleCalendarSyncEnabledHint:
+      "כבוי — לא יווצרו אירועים חדשים (חיבור Google נשמר).",
+    googleCalendarDescriptionTemplate: "תבנית תיאור באירוע",
+    googleCalendarDescriptionTemplateHint:
+      "משתנים: {{clientName}}, {{serviceName}}, {{phone}}, {{notes}}, {{notesLine}}, {{linkLine}}, {{startAt}}, {{endAt}}",
+    googleCalendarCalendarId: "מזהה יומן (Calendar ID)",
+    googleCalendarCalendarIdHint:
+      "ברירת מחדל: primary. בחירת יומן אחר — בפיתוח.",
+    googleCalendarLastSync: "סנכרון אחרון",
+    googleCalendarLastError: "שגיאה אחרונה",
+    googleCalendarSaveIntegration: "שמירת הגדרות סנכרון",
+    googleCalendarToastConnected: "Google Calendar חובר בהצלחה",
+    googleCalendarStatusOk: "תקין",
+    googleCalendarStatusError: "שגיאה",
+    googleCalendarNone: "—",
     save: "שמירת הגדרות",
     saving: "שומר…",
     sectionHint: "פרטי העסק והטקסטים שיוצגו ללקוחות בהודעות ובדף ההזמנה.",
@@ -303,7 +344,7 @@ export const heUi = {
     quickActionsTitle: "פעולה מהירה להתחלה",
     quickAddClient: "הוספת לקוח",
     quickAddAppointment: "קביעת שיעור",
-    remindersSectionTitle: "תזכורות למחר",
+    remindersSectionTitle: "תזכורות",
     /** כותרת מתקפלת לייצוא ודמו בדף הבית */
     exportToolsSummary: "ייצוא, דמו וכלים",
     kpiToday: "שיעורים היום",
@@ -406,13 +447,58 @@ export const heUi = {
     rejectRequest: "דחה בקשה",
     approvalWhatsappText: (args: { name: string; dateTime: string }) =>
       `היי ${args.name}, בקשתך אושרה ✅\nנשמח לראות אותך ב-${args.dateTime}.`,
+    serviceLabel: "שירות",
+    reschedule: "שינוי מועד",
+    sendReminder: "תזכורת בוואטסאפ",
+    cyclePayment: "סטטוס תשלום",
+    quickComplete: "סימון כהושלם",
+  },
+
+  paymentsPage: {
+    title: "תשלומים ויתרות",
+    subtitle: "סיכום מהיר לפי שיעורים ולקוחות",
+    totalPaid: "סה״כ שולם",
+    totalUnpaid: "יתרה פתוחה",
+    debtByClient: "יתרות לפי לקוח",
+    emptyDebt: "אין יתרות פתוחות",
+    emptyDebtHint: "כשיש שיעורים ללא תשלום מלא, הם יופיעו כאן.",
+    reminderCta: "תזכורת תשלום בוואטסאפ",
+  },
+
+  dashboardKpi: {
+    todayAppointments: "היום ביומן",
+    expectedIncome: "צפי גבייה היום",
+    unpaidBalance: "יתרה פתוחה",
   },
 
   reminders: {
     title: "תזכורות למחר",
+    workflowTitle: "תזכורות",
+    workflowIntro:
+      "רשימות לפי סוג — שליחה ידנית בוואטסאפ בלחיצה. סימון «נשלח היום» נשמר במכשיר עד לחיבור אוטומציה לשרת.",
     empty: "מחר אין שיעורים ביומן",
     emptyHint:
       "כשנקבע שיעור למחר, תופיע כאן הודעה מוכנה — או תוכלו לנסח אוטומטית.",
+    workflowEmptyTitle: "אין כרגע תזכורות לטיפול",
+    workflowEmptyHint:
+      "כשיופיעו שיעורים מחר, היום או עם יתרה — הם יוצגו כאן לפי ההגדרות.",
+    disabledTitle: "תזכורות כבויות",
+    disabledHint: "הפעילו תזכורות בהגדרות כדי לראות רשימות ושליחה בוואטסאפ.",
+    allChannelsOffTitle: "כל סוגי התזכורות כבויים",
+    allChannelsOffHint: "בחרו לפחות סוג אחד (מחר, היום או תשלום) בהגדרות.",
+    openSettings: "מעבר להגדרות תזכורות",
+    sectionTomorrow: "מחר",
+    sectionSameDay: "היום",
+    sectionPayment: "תשלום",
+    emptyTomorrowSection: "אין שיעורים מחר",
+    emptyTomorrowSectionHint: "כשנקבע שיעור למחר, הוא יופיע כאן.",
+    emptySameDaySection: "אין שיעורים עתידיים להיום",
+    emptySameDaySectionHint: "שיעורים שעדיין לא התחילו היום יופיעו כאן.",
+    emptyPaymentSection: "אין יתרות פתוחות",
+    emptyPaymentSectionHint:
+      "שיעורים עם תשלום חלקי או שלא שולם יופיעו כאן לתזכורת תשלום.",
+    sentTodayBadge: "נשלח היום",
+    notSentBadge: "טרם סומן",
     copyWhatsapp: "העתקת הודעה לוואטסאפ",
     copied: "הועתק",
     clipboardError:
@@ -422,6 +508,21 @@ export const heUi = {
     aiGenerate: "ניסוח עם AI",
     aiGenerating: "מנסחים…",
     aiCopy: "העתקה",
+    openWhatsapp: "פתיחת וואטסאפ עם ההודעה",
+    automationNote:
+      "שליחה אוטומטית ברקע (למשל בלילה) אינה פעילה באפליקציה — השתמשו בכפתור או חברו מאוחר יותר משימה מתוזמנת לשרת.",
+  },
+
+  /** כפתורי פעולה — וואטסאפ ללקוח */
+  whatsapp: {
+    openChat: "פתיחת צ׳אט בוואטסאפ",
+    sendMessage: "שליחה בוואטסאפ",
+    quickReminder: "תזכורת מהירה",
+    paymentPing: "תזכורת תשלום",
+    followUp: "מעקב אחרי ביקור",
+    listRowChat: "וואטסאפ",
+    noPhone: "אין מספר טלפון",
+    noPhoneDetail: "הוסיפו מספר בכרטיס הלקוח כדי לשלוח הודעה.",
   },
 
   clientsPage: {
@@ -431,6 +532,12 @@ export const heUi = {
     listEmptyTitle: "אין לקוחות עדיין",
     listEmptyDescription:
       "לחצו על כפתור ההוספה למעלה. הנתונים נשמרים בענן ואז מסתנכרנים לכל המסכים.",
+    filterAll: "הכל",
+    filterDebt: "עם יתרה",
+    filterUpcoming: "עם תור קרוב",
+    colDebt: "יתרה",
+    colLastVisit: "ביקור אחרון",
+    colNext: "הבא בתור",
   },
 
   clientCard: {
@@ -439,6 +546,10 @@ export const heUi = {
   },
 
   clientProfile: {
+    overviewTitle: "סיכום מהיר",
+    nextAppointment: "התור הבא",
+    noNextAppointment: "אין תור עתידי מתוכנן",
+    appointmentsHistory: "היסטוריית תורים",
     back: "חזרה לדף הבית",
     notFound: "לא מצאנו את הלקוח",
     notFoundHint:
@@ -456,6 +567,7 @@ export const heUi = {
     lastLesson: "שיעור אחרון",
     noLastLesson: "אין שיעור קודם ברשומה",
     openWhatsapp: "שליחה בוואטסאפ",
+    debtWhatsappHint: "תזכורת ידידותית על יתרה",
   },
 
   nav: {
@@ -465,6 +577,7 @@ export const heUi = {
     dashboard: "ראשי",
     clients: "לקוחות",
     lessons: "שיעורים",
+    payments: "תשלומים",
     booking: "הזמנה",
     teachers: "מורים",
     settings: "הגדרות",
@@ -502,10 +615,27 @@ export const heUi = {
     pageTitle: "קביעת שיעור נהיגה",
     pageSubtitle:
       "בוחרים תאריך ושעה פנויה, משאירים פרטים — ואנחנו מאשרים ומעדכנים אתכם.",
+    /** Short hero line — mobile conversion */
+    heroSubtitle: "קבעו תור תוך פחות מדקה",
+    /** One-line trust under hero */
+    heroTrustMicro: "אישור מהיר • קל ופשוט • מותאם לנייד",
+    trustNoCalls: "בלי צורך בשיחות טלפון",
+    trustQuickConfirm: "אישור מהיר",
+    trustPrivacy: "הפרטים נשמרים אישית ומאובטחים",
+    sectionServices: "בחירת שירות",
+    serviceRequiredSelect: "נא לבחור שירות מהרשימה.",
+    durationMinutesShort: "דק׳",
+    priceFormatted: "₪{price}",
+    whatsappHelper: "נאשר את התור בוואטסאפ בהקדם",
+    addToCalendarSoon: "הוספה ליומן (בקרוב)",
+    successSummaryTitle: "סיכום התור",
+    summaryDate: "תאריך",
+    summaryTime: "שעה",
     trustLine:
       "המועד נשמר כבקשה. ניצור קשר לאישור סופי או שינוי — אין חיוב מהדף הזה.",
     sectionDate: "בחירת מועד",
     sectionContact: "פרטים לאישור ויצירת קשר",
+    sectionContactShort: "פרטי קשר",
     dateLabel: "תאריך",
     bookingClosed:
       "ההזמנה המקוונת סגורה כרגע. אפשר לנסות שוב מאוחר יותר או לפנות ישירות לעסק.",

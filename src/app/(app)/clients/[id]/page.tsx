@@ -8,12 +8,19 @@ import { heUi, paymentStatusLabel } from "@/config";
 import { Button, EmptyState, InlineLoading, ui } from "@/components/ui";
 import { useServiceApp } from "@/features/app/ServiceAppProvider";
 import type { AppointmentRecord } from "@/core/types/appointment";
+import { AppointmentStatus } from "@/core/types/appointment";
+import { getAppointmentServiceLabel } from "@/core/utils/appointmentDisplay";
 import { formatIls } from "@/core/utils/currency";
-import { getLastLesson } from "@/core/utils/clientSchedule";
+import { getLastLesson, getNextLesson } from "@/core/utils/clientSchedule";
 import {
   sumClientDebt,
   sumClientPaid,
 } from "@/core/utils/insights";
+import { WhatsAppActionButton } from "@/components/whatsapp/WhatsAppActionButton";
+import {
+  whatsappFollowUpAfterAppointmentHref,
+  whatsappPaymentReminderHref,
+} from "@/core/whatsapp";
 import { buildWhatsAppHref } from "@/core/utils/whatsapp";
 import { cn } from "@/lib/cn";
 import {
@@ -67,6 +74,7 @@ export default function ClientProfilePage() {
         : "";
   const {
     preset,
+    settings,
     sortedClients,
     clientsReady,
     sortedAppointments,
@@ -100,6 +108,29 @@ export default function ClientProfilePage() {
     return getLastLesson(id, sortedAppointments);
   }, [id, sortedAppointments]);
 
+  const nextLesson = useMemo(() => {
+    if (!id) return null;
+    return getNextLesson(id, sortedAppointments, new Date());
+  }, [id, sortedAppointments]);
+
+  function appointmentStatusLabelHe(status: AppointmentStatus): string {
+    switch (status) {
+      case AppointmentStatus.Confirmed:
+        return heUi.appointments.statusConfirmed;
+      case AppointmentStatus.InProgress:
+        return heUi.appointments.statusInProgress;
+      case AppointmentStatus.Completed:
+        return heUi.appointments.statusCompleted;
+      case AppointmentStatus.Cancelled:
+        return heUi.appointments.statusCancelled;
+      case AppointmentStatus.NoShow:
+        return heUi.appointments.statusNoShow;
+      case AppointmentStatus.Scheduled:
+      default:
+        return heUi.appointments.statusScheduled;
+    }
+  }
+
   if (!clientsReady || !appointmentsReady) {
     return (
       <main className={ui.pageMain}>
@@ -128,26 +159,59 @@ export default function ClientProfilePage() {
   }
 
   const whatsappHref = buildWhatsAppHref(client.phone);
+  const paymentPingHref =
+    debtTotal > 0
+      ? whatsappPaymentReminderHref(client.phone, {
+          name: client.fullName.trim() || "לקוח",
+          amountDue: formatIls(debtTotal),
+          businessName: settings.businessName.trim(),
+        })
+      : null;
+  const followUpHref = whatsappFollowUpAfterAppointmentHref(client.phone, {
+    name: client.fullName.trim() || "לקוח",
+    businessName: settings.businessName.trim(),
+  });
 
   return (
     <main className={ui.pageMain}>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <Link
           href="/clients"
           className="inline-flex min-h-[2.5rem] items-center text-sm font-medium text-neutral-700 underline-offset-2 hover:underline"
         >
           ← {heUi.clientProfile.back}
         </Link>
-        {whatsappHref ? (
-          <a
+        <div className="flex w-full max-w-md flex-col gap-2 sm:w-auto sm:items-end">
+          <WhatsAppActionButton
             href={whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm font-medium text-emerald-800 underline-offset-2 hover:underline"
+            variant="primary"
+            fullWidth
+            className="sm:w-auto"
+            disabledHint={heUi.whatsapp.noPhoneDetail}
           >
-            {heUi.clientProfile.openWhatsapp}
-          </a>
-        ) : null}
+            {heUi.whatsapp.openChat}
+          </WhatsAppActionButton>
+          {debtTotal > 0 ? (
+            <WhatsAppActionButton
+              href={paymentPingHref}
+              variant="secondary"
+              fullWidth
+              className="sm:w-auto"
+              disabledHint={heUi.whatsapp.noPhoneDetail}
+            >
+              {heUi.clientProfile.debtWhatsappHint}
+            </WhatsAppActionButton>
+          ) : null}
+          <WhatsAppActionButton
+            href={followUpHref}
+            variant="secondary"
+            fullWidth
+            className="sm:w-auto"
+            disabledHint={heUi.whatsapp.noPhoneDetail}
+          >
+            {heUi.whatsapp.followUp}
+          </WhatsAppActionButton>
+        </div>
       </div>
 
       <header className={ui.header}>
@@ -162,18 +226,35 @@ export default function ClientProfilePage() {
 
       <div className={ui.pageStack}>
         <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>{heUi.forms.notes}</h2>
-          <p className="rounded-xl border border-neutral-200/90 bg-white p-4 text-neutral-800 shadow-sm">
-            {client.notes.trim() ? client.notes : "—"}
-          </p>
+          <h2 className={ui.sectionHeading}>{heUi.clientProfile.overviewTitle}</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className={cn(ui.statCard, "text-start")}>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                {heUi.clientProfile.nextAppointment}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-neutral-900">
+                {nextLesson
+                  ? formatStartAt(nextLesson.startAt)
+                  : heUi.clientProfile.noNextAppointment}
+              </p>
+            </div>
+            <div className={cn(ui.statCard, "text-start")}>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                {heUi.clientProfile.lastLesson}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-neutral-900">
+                {lastLesson
+                  ? formatStartAt(lastLesson.startAt)
+                  : heUi.clientProfile.noLastLesson}
+              </p>
+            </div>
+          </div>
         </section>
 
         <section className={ui.section}>
-          <h2 className={ui.sectionHeading}>
-            {heUi.clientProfile.lastLesson}
-          </h2>
+          <h2 className={ui.sectionHeading}>{heUi.forms.notes}</h2>
           <p className="rounded-xl border border-neutral-200/90 bg-white p-4 text-neutral-800 shadow-sm">
-            {lastLesson ? formatStartAt(lastLesson.startAt) : heUi.clientProfile.noLastLesson}
+            {client.notes.trim() ? client.notes : "—"}
           </p>
         </section>
 
@@ -239,7 +320,7 @@ export default function ClientProfilePage() {
 
         <section className={ui.section}>
           <h2 className={ui.sectionHeading}>
-            {heUi.clientProfile.appointmentsTitle}
+            {heUi.clientProfile.appointmentsHistory}
           </h2>
           {clientAppointments.length === 0 ? (
             <div className="space-y-3">
@@ -268,15 +349,35 @@ export default function ClientProfilePage() {
                 .map((appt) => (
                   <li
                     key={appt.id}
-                    className={`${ui.card} ${ui.cardPadding} flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between`}
+                    className={`${ui.card} ${ui.cardPadding} flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between`}
                   >
-                    <span className="text-sm text-neutral-800">
-                      {formatStartAt(appt.startAt)}
-                    </span>
-                    <span className="flex flex-wrap items-center gap-2 text-sm text-neutral-600">
-                      <span>{paymentStatusLabel(appt.paymentStatus)}</span>
-                      <span>{formatIls(appt.amount ?? 0)}</span>
-                    </span>
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-sm font-medium text-neutral-900">
+                        {formatStartAt(appt.startAt)}
+                      </p>
+                      <p className="text-xs text-neutral-600">
+                        {heUi.appointments.serviceLabel}:{" "}
+                        {getAppointmentServiceLabel(appt, preset)}
+                      </p>
+                      <p className="text-xs text-neutral-600">
+                        {heUi.appointments.statusPrefix}{" "}
+                        {appointmentStatusLabelHe(appt.status)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-800 dark:bg-neutral-700 dark:text-neutral-100">
+                        {paymentStatusLabel(appt.paymentStatus)}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums text-neutral-900">
+                        {formatIls(appt.amount ?? 0)}
+                      </span>
+                      <Link
+                        href={`/appointments?edit=${encodeURIComponent(appt.id)}`}
+                        className="text-xs font-medium text-emerald-800 underline-offset-2 hover:underline dark:text-emerald-300"
+                      >
+                        {heUi.appointments.edit}
+                      </Link>
+                    </div>
                   </li>
                 ))}
             </ul>

@@ -14,6 +14,7 @@ import {
 import type { AppointmentRecord } from "@/core/types/appointment";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
+import { scheduleGoogleCalendarSync } from "@/core/integrations/googleCalendar/syncAppointmentToGoogleCalendar";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -427,6 +428,13 @@ export async function POST(req: Request): Promise<NextResponse> {
       console.error("[appointments/post]", insertRes.error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
+
+    scheduleGoogleCalendarSync({
+      supabase,
+      businessId,
+      teacherId,
+      appointmentId: id,
+    });
 
     const row: AppointmentRecord = {
       id,

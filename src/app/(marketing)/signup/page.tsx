@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { WhatsAppCtaLink } from "@/components/marketing/WhatsAppCtaLink";
 import { PRODUCT_BRANDING } from "@/config/branding";
 import { Button, ui } from "@/components/ui";
 
@@ -25,8 +26,6 @@ export default function SignupPage() {
     // Generate business name and slug from full name and email
     const businessName = fullName.trim();
     const slug = `${email.split("@")[0]}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-
-    console.log("[Signup] Attempting signup:", { email, fullName, slug });
 
     try {
       // API will automatically determine role:
@@ -55,8 +54,6 @@ export default function SignupPage() {
         return;
       }
 
-      console.log("[Signup] Signup successful, logging in...");
-
       // Now login
       const loginRes = await fetch("/api/auth/login", {
         method: "POST",
@@ -73,11 +70,9 @@ export default function SignupPage() {
         return;
       }
 
-      console.log("[Signup] Auto-login successful, redirecting...");
-      
-      // Redirect to dashboard
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.href = "/dashboard";
+      // Onboarding then dashboard — feels like a finished product
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      window.location.href = "/onboarding";
     } catch (e) {
       console.error("[Signup] Unexpected error:", e);
       setError("אירעה שגיאה. נסה שוב.");
@@ -224,6 +219,15 @@ export default function SignupPage() {
           <div className="rounded-lg bg-white p-3 shadow-sm">
             ✓ תמיכה מהירה
           </div>
+        </div>
+        <div className="mt-5 flex justify-center">
+          <WhatsAppCtaLink
+            variant="soft"
+            className="text-sm"
+            prefillMessage="היי, חושבים להירשם לתור פה — אפשר שאלה קטנה לפני?"
+          >
+            רוצים עזרה לפני הרשמה? ווטסאפ
+          </WhatsAppCtaLink>
         </div>
       </div>
     </div>

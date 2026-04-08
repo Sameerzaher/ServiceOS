@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { WhatsAppCtaLink } from "@/components/marketing/WhatsAppCtaLink";
 import { PRODUCT_BRANDING } from "@/config/branding";
 import { Button, ui } from "@/components/ui";
 
@@ -113,7 +114,14 @@ export default function PricingPage() {
               {PRODUCT_BRANDING.name}
             </span>
           </Link>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <WhatsAppCtaLink
+              variant="nav"
+              prefillMessage="היי, יש לי שאלה על התמחור של תור פה 💬"
+              className="hidden sm:inline-flex"
+            >
+              ווטסאפ
+            </WhatsAppCtaLink>
             <Link href="/demo">
               <Button variant="secondary">דמו</Button>
             </Link>
@@ -248,11 +256,20 @@ export default function PricingPage() {
         <p className="mx-auto mb-8 max-w-2xl text-xl text-neutral-600">
           הצטרפו ל-{PRODUCT_BRANDING.socialProof.activeBusinesses} עסקים שכבר מנהלים תורים בצורה חכמה
         </p>
-        <Link href="/signup">
-          <Button variant="primary" className="px-12 py-4 text-lg">
-            התחל 14 יום בחינם 🚀
-          </Button>
-        </Link>
+        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <Link href="/signup">
+            <Button variant="primary" className="px-12 py-4 text-lg">
+              התחל 14 יום בחינם 🚀
+            </Button>
+          </Link>
+          <WhatsAppCtaLink
+            variant="soft"
+            className="px-10 py-3.5 text-base"
+            prefillMessage="היי, אשמח לייעוץ קצר לפני שאני נרשם — מה כלול ב-Pro?"
+          >
+            שאלו אותנו בווטסאפ
+          </WhatsAppCtaLink>
+        </div>
       </section>
 
       {/* Footer */}

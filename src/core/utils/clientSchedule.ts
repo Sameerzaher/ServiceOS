@@ -19,6 +19,19 @@ export function getNextLesson(
   return future[0] ?? null;
 }
 
+/** Latest appointment by time (past or future) — for “last scheduled” display. */
+export function getMostRecentAppointment(
+  clientId: string,
+  appointments: readonly AppointmentRecord[],
+): AppointmentRecord | null {
+  const rows = appointments.filter((a) => a.clientId === clientId);
+  if (rows.length === 0) return null;
+  return [...rows].sort(
+    (a, b) =>
+      new Date(b.startAt).getTime() - new Date(a.startAt).getTime(),
+  )[0]!;
+}
+
 /** Most recent past appointment for this client. */
 export function getLastLesson(
   clientId: string,

@@ -4,6 +4,8 @@ import { getSupabaseAppointmentsTable, getSupabaseBusinessId } from "@/core/conf
 import { isMissingColumnError } from "@/core/repositories/supabase/postgrestErrors";
 import { AppointmentStatus, PaymentStatus } from "@/core/types/appointment";
 import { resolveTeacherIdFromRequest } from "@/lib/api/resolveTeacherId";
+import { getGoogleEventId } from "@/core/integrations/googleCalendar/appointmentCustomFields";
+import { scheduleGoogleCalendarSync } from "@/core/integrations/googleCalendar/syncAppointmentToGoogleCalendar";
 import {
   getSupabaseAdminClient,
   isSupabaseAdminConfigured,
@@ -136,6 +138,14 @@ export async function PUT(
       console.error("[appointments/put]", error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
+
+    scheduleGoogleCalendarSync({
+      supabase,
+      businessId,
+      teacherId,
+      appointmentId: id,
+    });
+
     return NextResponse.json({ ok: true as const });
   } catch (e) {
     console.error("[appointments/put]", e);
@@ -161,6 +171,33 @@ export async function DELETE(
     const businessId = getSupabaseBusinessId();
     const teacherId = resolveTeacherIdFromRequest(req);
     const table = getSupabaseAppointmentsTable();
+
+    let preloadedEventId: string | null = null;
+    const existingRes = await supabase
+      .from(table)
+      .select("custom_fields")
+      .eq("id", id)
+      .eq("business_id", businessId)
+      .eq("teacher_id", teacherId)
+      .maybeSingle();
+    if (!existingRes.error && existingRes.data) {
+      const cf = (existingRes.data as { custom_fields?: Record<string, unknown> })
+        .custom_fields;
+      preloadedEventId = cf ? getGoogleEventId(cf) : null;
+    } else if (!existingRes.error && !existingRes.data) {
+      const fallback = await supabase
+        .from(table)
+        .select("custom_fields")
+        .eq("id", id)
+        .eq("business_id", businessId)
+        .maybeSingle();
+      if (!fallback.error && fallback.data) {
+        const cf = (fallback.data as { custom_fields?: Record<string, unknown> })
+          .custom_fields;
+        preloadedEventId = cf ? getGoogleEventId(cf) : null;
+      }
+    }
+
     let deleteRes = await supabase
       .from(table)
       .delete()
@@ -179,6 +216,16 @@ export async function DELETE(
       console.error("[appointments/delete]", error);
       return NextResponse.json({ ok: false as const, error: HE_ERR_GENERIC }, { status: 500 });
     }
+
+    scheduleGoogleCalendarSync({
+      supabase,
+      businessId,
+      teacherId,
+      appointmentId: id,
+      deleteMode: true,
+      preloadedEventId,
+    });
+
     return NextResponse.json({ ok: true as const });
   } catch (e) {
     console.error("[appointments/delete]", e);

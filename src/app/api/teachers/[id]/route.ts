@@ -15,13 +15,25 @@ const HE_ERR_GENERIC = "אירעה תקלה. נסו שוב.";
 const HE_ERR_INVALID = "נתונים לא תקינים.";
 const HE_ERR_NOT_FOUND = "המורה לא נמצא.";
 const HE_ERR_SLUG_EXISTS = "ה-slug כבר קיים במערכת.";
+const HE_ERR_SLUG_INVALID = "הכתובת לדף ההזמנה לא תקינה — אותיות באנגלית, מספרים ומקף בלבד.";
 
 type UpdateTeacherBody = {
   fullName?: string;
   businessName?: string;
   phone?: string;
   businessType?: BusinessType;
+  /** Public booking path segment; Latin slug, unique globally. */
+  slug?: string;
 };
+
+function normalizeBookingSlug(raw: string): string {
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 function parseUpdateBody(raw: unknown): UpdateTeacherBody | null {
   if (!raw || typeof raw !== "object") return null;
@@ -40,6 +52,9 @@ function parseUpdateBody(raw: unknown): UpdateTeacherBody | null {
   }
   if ("businessType" in o) {
     result.businessType = coerceBusinessType(o.businessType);
+  }
+  if ("slug" in o && typeof o.slug === "string") {
+    result.slug = o.slug.trim();
   }
   
   return result;
@@ -63,9 +78,7 @@ export async function PUT(
 
   try {
     const supabase = getSupabaseAdminClient();
-    const businessId = getSupabaseBusinessId();
-    
-    // Get current authenticated teacher from session
+
     const { cookies } = await import("next/headers");
     const sessionToken = cookies().get("session_token")?.value;
     
@@ -93,10 +106,9 @@ export async function PUT(
       );
     }
     
-    // Get the authenticated teacher's role
     const { data: currentTeacher } = await supabase
       .from("teachers")
-      .select("id, role, email")
+      .select("id, role, email, business_id")
       .eq("id", session.teacher_id)
       .eq("is_active", true)
       .maybeSingle();
@@ -108,22 +120,23 @@ export async function PUT(
         { status: 401 }
       );
     }
-    
-    // Only admin can update teachers
-    if (currentTeacher.role !== "admin") {
-      console.error("[teachers/put] Non-admin attempted to update teacher:", currentTeacher.email);
+
+    const isSelf = session.teacher_id === teacherId;
+    if (!isSelf && currentTeacher.role !== "admin") {
+      console.error("[teachers/put] Forbidden — not self and not admin:", currentTeacher.email);
       return NextResponse.json(
-        { ok: false as const, error: "רק מנהל יכול לעדכן מורים" },
+        { ok: false as const, error: "אין הרשאה לעדכן פרופיל זה" },
         { status: 403 }
       );
     }
-    
-    console.log("[teachers/put] Admin updating teacher:", { 
-      adminEmail: currentTeacher.email, 
-      targetTeacherId: teacherId 
+
+    console.log("[teachers/put] Updating teacher:", {
+      actorEmail: currentTeacher.email,
+      targetTeacherId: teacherId,
+      isSelf,
     });
 
-  let raw: unknown;
+    let raw: unknown;
   try {
     raw = await req.json();
   } catch {
@@ -135,29 +148,66 @@ export async function PUT(
     return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
   }
 
-    // Check if teacher exists
     const { data: existing } = await supabase
       .from("teachers")
-      .select("id")
-      .eq("business_id", businessId)
+      .select("id, business_id")
       .eq("id", teacherId)
       .maybeSingle();
-    
+
     if (!existing) {
       console.error("[teachers/put] Teacher not found:", teacherId);
       return NextResponse.json({ ok: false as const, error: HE_ERR_NOT_FOUND }, { status: 404 });
     }
-    
+
+    if (existing.business_id !== currentTeacher.business_id) {
+      console.error("[teachers/put] Target teacher wrong business:", {
+        teacherId,
+        actorBusiness: currentTeacher.business_id,
+        targetBusiness: existing.business_id,
+      });
+      return NextResponse.json(
+        { ok: false as const, error: "אין הרשאה לעדכן פרופיל זה" },
+        { status: 403 },
+      );
+    }
+
     const updateData: Record<string, unknown> = {};
     if (parsed.fullName !== undefined) updateData.full_name = parsed.fullName;
     if (parsed.businessName !== undefined) updateData.business_name = parsed.businessName;
     if (parsed.phone !== undefined) updateData.phone = parsed.phone;
     if (parsed.businessType !== undefined) updateData.business_type = parsed.businessType;
-    
+
+    if (parsed.slug !== undefined) {
+      const normalizedSlug = normalizeBookingSlug(parsed.slug);
+      if (normalizedSlug.length < 2 || normalizedSlug.length > 80) {
+        return NextResponse.json(
+          { ok: false as const, error: HE_ERR_SLUG_INVALID },
+          { status: 400 },
+        );
+      }
+      const { data: slugRow } = await supabase
+        .from("teachers")
+        .select("id")
+        .eq("slug", normalizedSlug)
+        .neq("id", teacherId)
+        .maybeSingle();
+      if (slugRow) {
+        return NextResponse.json(
+          { ok: false as const, error: HE_ERR_SLUG_EXISTS },
+          { status: 400 },
+        );
+      }
+      updateData.slug = normalizedSlug;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ ok: false as const, error: HE_ERR_INVALID }, { status: 400 });
+    }
+
     const { error } = await supabase
       .from("teachers")
       .update(updateData)
-      .eq("business_id", businessId)
+      .eq("business_id", existing.business_id)
       .eq("id", teacherId);
     
     if (error) {

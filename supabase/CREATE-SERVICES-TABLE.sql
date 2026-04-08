@@ -1,3 +1,4 @@
+-- Legacy one-off script. Prefer applying `migrations/016_services.sql` (or `supabase db push`) so all envs stay in sync.
 -- Create services/pricing table
 CREATE TABLE IF NOT EXISTS public.services (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

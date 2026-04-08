@@ -1,6 +1,13 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { heUi } from "@/config";
 import { Button } from "@/components/ui/Button";
@@ -45,7 +52,35 @@ export interface PublicBookingFormProps {
   stickyMobileCta?: boolean;
   /** Short reassurance line above the primary CTA (conversion copy). */
   ctaHelperText?: string;
+  /** Friendly labels/messages (e.g. English premium booking page). */
+  formCopy?: PublicBookingFormCopy;
+  /** Locale for displaying selected time range (default Hebrew). */
+  timeLocale?: string;
+  /** Hide notes and optional `extraFields` (only `required` extras stay). Parent should filter extras when using service cards. */
+  minimalContact?: boolean;
+  /** Trust bullets / reassurance rendered above the primary CTA. */
+  trustBeforeSubmit?: ReactNode;
 }
+
+export type PublicBookingFormCopy = {
+  labels?: Partial<{
+    selectedSlot: string;
+    noSlotSelected: string;
+    fullName: string;
+    phone: string;
+    notes: string;
+  }>;
+  messages?: Partial<{
+    errFullName: string;
+    errFullNameShort: string;
+    errPhone: string;
+    errPhoneInvalid: string;
+    errSlot: string;
+    errSlotInvalid: string;
+    errSlotTaken: string;
+  }>;
+  submitSubmitting?: string;
+};
 
 interface FieldErrors {
   fullName?: string;
@@ -182,9 +217,31 @@ export function PublicBookingForm({
   visualTone = "default",
   stickyMobileCta = false,
   ctaHelperText,
+  formCopy,
+  timeLocale = "he-IL",
+  minimalContact = false,
+  trustBeforeSubmit,
 }: PublicBookingFormProps) {
   const hilaiVisual = visualTone === "hilai";
-  const stickyHilai = hilaiVisual && stickyMobileCta;
+  const stickyBar = stickyMobileCta;
+  const pb = heUi.publicBooking;
+  const L = {
+    selectedSlot: formCopy?.labels?.selectedSlot ?? pb.selectedSlotLabel,
+    noSlotSelected: formCopy?.labels?.noSlotSelected ?? pb.noSlotSelected,
+    fullName: formCopy?.labels?.fullName ?? pb.fullNameLabel,
+    phone: formCopy?.labels?.phone ?? pb.phoneLabel,
+    notes: formCopy?.labels?.notes ?? pb.notesLabel,
+  };
+  const msg = {
+    errFullName: formCopy?.messages?.errFullName ?? pb.errFullName,
+    errFullNameShort: formCopy?.messages?.errFullNameShort ?? pb.errFullNameShort,
+    errPhone: formCopy?.messages?.errPhone ?? pb.errPhone,
+    errPhoneInvalid: formCopy?.messages?.errPhoneInvalid ?? pb.errPhoneInvalid,
+    errSlot: formCopy?.messages?.errSlot ?? pb.errSlot,
+    errSlotInvalid: formCopy?.messages?.errSlotInvalid ?? pb.errSlotInvalid,
+    errSlotTaken: formCopy?.messages?.errSlotTaken ?? pb.errSlotTaken,
+  };
+  const submittingLabel = formCopy?.submitSubmitting ?? pb.submitSubmitting;
   const fieldLabel = cn(
     ui.label,
     "text-xs sm:text-sm",
@@ -192,9 +249,10 @@ export function PublicBookingForm({
   );
   const fieldInput = cn(
     ui.input,
-    "text-xs sm:text-sm",
+    hilaiVisual ? "text-xs sm:text-sm" : "min-h-[3rem] text-base sm:min-h-[2.85rem] sm:text-sm",
     hilaiVisual &&
       "rounded-2xl border-stone-200/80 bg-white/95 shadow-none transition-shadow placeholder:text-stone-400 focus:border-rose-300/80 focus:ring-2 focus:ring-rose-200/40",
+    !hilaiVisual && "rounded-2xl",
   );
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -203,6 +261,7 @@ export function PublicBookingForm({
     emptyExtra(extraFields),
   );
   const [errors, setErrors] = useState<FieldErrors>({});
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const extraKey = useMemo(
     () => extraFields.map((d) => d.key).join("|"),
@@ -213,33 +272,38 @@ export function PublicBookingForm({
     setExtra(emptyExtra(extraFields));
   }, [extraKey, extraFields]);
 
+  useEffect(() => {
+    if (!selectedSlot || isSubmitting) return;
+    const t = window.setTimeout(() => nameInputRef.current?.focus(), 80);
+    return () => window.clearTimeout(t);
+  }, [selectedSlot?.slotStart, isSubmitting, selectedSlot]);
+
   const selectedSlotLabel = useMemo(() => {
     if (!selectedSlot) return "";
     try {
-      const fmt = new Intl.DateTimeFormat("he-IL", { timeStyle: "short" });
+      const fmt = new Intl.DateTimeFormat(timeLocale, { timeStyle: "short" });
       return `${fmt.format(new Date(selectedSlot.slotStart))} - ${fmt.format(
         new Date(selectedSlot.slotEnd),
       )}`;
     } catch {
       return `${selectedSlot.slotStart} - ${selectedSlot.slotEnd}`;
     }
-  }, [selectedSlot]);
+  }, [selectedSlot, timeLocale]);
 
   function validate(): FieldErrors {
-    const pb = heUi.publicBooking;
     const next: FieldErrors = {};
     const extraErr: Record<string, string> = {};
 
     const name = fullName.trim();
-    if (!name) next.fullName = pb.errFullName;
-    else if (name.length < 2) next.fullName = pb.errFullNameShort;
+    if (!name) next.fullName = msg.errFullName;
+    else if (name.length < 2) next.fullName = msg.errFullNameShort;
 
     const phoneTrim = phone.trim();
-    if (!phoneTrim) next.phone = pb.errPhone;
-    else if (phoneTrim.replace(/\D/g, "").length < 8) next.phone = pb.errPhoneInvalid;
+    if (!phoneTrim) next.phone = msg.errPhone;
+    else if (phoneTrim.replace(/\D/g, "").length < 8) next.phone = msg.errPhoneInvalid;
 
-    if (!selectedSlot) next.slot = pb.errSlot;
-    else if (!slotDateTimeValid(selectedSlot)) next.slot = pb.errSlotInvalid;
+    if (!selectedSlot) next.slot = msg.errSlot;
+    else if (!slotDateTimeValid(selectedSlot)) next.slot = msg.errSlotInvalid;
 
     for (const def of extraFields) {
       if (!def.required) continue;
@@ -260,7 +324,7 @@ export function PublicBookingForm({
     if (selectedSlot && !isSelectedSlotAvailable) {
       setErrors((prev) => ({
         ...prev,
-        slot: heUi.publicBooking.errSlotTaken,
+        slot: msg.errSlotTaken,
       }));
       return;
     }
@@ -311,7 +375,7 @@ export function PublicBookingForm({
       {isSubmitting ? (
         <span className="flex items-center justify-center gap-2">
           <Spinner className="size-4 border-white/40 border-t-white" />
-          {heUi.publicBooking.submitSubmitting}
+          {submittingLabel}
         </span>
       ) : (
         submitIdleLabel ?? heUi.publicBooking.submitIdle
@@ -346,7 +410,7 @@ export function PublicBookingForm({
               : "text-neutral-600 dark:text-neutral-400",
           )}
         >
-          {heUi.publicBooking.selectedSlotLabel}
+          {L.selectedSlot}
         </p>
         <p
           className={cn(
@@ -356,7 +420,7 @@ export function PublicBookingForm({
               : "font-semibold text-neutral-900 dark:text-neutral-100",
           )}
         >
-          {selectedSlotLabel || heUi.publicBooking.noSlotSelected}
+          {selectedSlotLabel || L.noSlotSelected}
         </p>
         {errors.slot ? (
           <p className="mt-1 text-xs text-red-600 sm:text-sm">{errors.slot}</p>
@@ -365,9 +429,10 @@ export function PublicBookingForm({
 
       <div>
         <label htmlFor="public-booking-name" className={fieldLabel}>
-          {heUi.publicBooking.fullNameLabel}
+          {L.fullName}
         </label>
         <input
+          ref={nameInputRef}
           id="public-booking-name"
           type="text"
           value={fullName}
@@ -390,7 +455,7 @@ export function PublicBookingForm({
 
       <div>
         <label htmlFor="public-booking-phone" className={fieldLabel}>
-          {heUi.publicBooking.phoneLabel}
+          {L.phone}
         </label>
         <input
           id="public-booking-phone"
@@ -414,19 +479,21 @@ export function PublicBookingForm({
         ) : null}
       </div>
 
-      <div>
-        <label htmlFor="public-booking-notes" className={fieldLabel}>
-          {heUi.publicBooking.notesLabel}
-        </label>
-        <textarea
-          id="public-booking-notes"
-          value={notes}
-          disabled={isSubmitting}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          className={cn(fieldInput, "min-h-[5.5rem] resize-y")}
-        />
-      </div>
+      {!minimalContact ? (
+        <div>
+          <label htmlFor="public-booking-notes" className={fieldLabel}>
+            {L.notes}
+          </label>
+          <textarea
+            id="public-booking-notes"
+            value={notes}
+            disabled={isSubmitting}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            className={cn(fieldInput, "min-h-[5.5rem] resize-y")}
+          />
+        </div>
+      ) : null}
 
       {extraFields.map((def) => (
         <div key={def.key}>
@@ -468,10 +535,23 @@ export function PublicBookingForm({
         </p>
       ) : null}
 
-      {stickyHilai ? (
-        <div className="max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:z-40 max-sm:border-t max-sm:border-pink-100/70 max-sm:bg-gradient-to-t max-sm:from-[#fef7fb] max-sm:via-[#fef7fb]/97 max-sm:to-transparent max-sm:px-4 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:pt-3 max-sm:shadow-[0_-12px_40px_-16px_rgba(219,39,119,0.12)]">
+      {stickyBar ? (
+        <div
+          className={cn(
+            "max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:z-40 max-sm:px-4 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:pt-3",
+            hilaiVisual
+              ? "max-sm:border-t max-sm:border-pink-100/70 max-sm:bg-gradient-to-t max-sm:from-[#fef7fb] max-sm:via-[#fef7fb]/97 max-sm:to-transparent max-sm:shadow-[0_-12px_40px_-16px_rgba(219,39,119,0.12)]"
+              : "max-sm:border-t max-sm:border-neutral-200/90 max-sm:bg-white/95 max-sm:shadow-[0_-10px_40px_-18px_rgba(0,0,0,0.15)] max-sm:backdrop-blur-md dark:max-sm:border-neutral-700 dark:max-sm:bg-neutral-950/92",
+          )}
+        >
+          {trustBeforeSubmit ? <div className="mb-3">{trustBeforeSubmit}</div> : null}
           {ctaHelperText ? (
-            <p className="mb-3 text-center text-[13px] font-medium leading-snug text-stone-600 sm:mb-4 sm:text-sm">
+            <p
+              className={cn(
+                "mb-3 text-center text-[13px] font-medium leading-snug sm:mb-4 sm:text-sm",
+                hilaiVisual ? "text-stone-600" : "text-neutral-600 dark:text-neutral-400",
+              )}
+            >
               {ctaHelperText}
             </p>
           ) : null}
@@ -479,8 +559,14 @@ export function PublicBookingForm({
         </div>
       ) : (
         <>
-          {ctaHelperText && hilaiVisual ? (
-            <p className="mb-2 text-center text-[13px] font-medium text-stone-600 sm:mb-3 sm:text-sm">
+          {trustBeforeSubmit ? <div className="mb-3">{trustBeforeSubmit}</div> : null}
+          {ctaHelperText ? (
+            <p
+              className={cn(
+                "mb-2 text-center text-[13px] font-medium sm:mb-3 sm:text-sm",
+                hilaiVisual ? "text-stone-600" : "text-neutral-600 dark:text-neutral-400",
+              )}
+            >
               {ctaHelperText}
             </p>
           ) : null}

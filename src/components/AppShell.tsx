@@ -17,6 +17,7 @@ const NAV_ITEMS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/dashboard", label: heUi.nav.dashboard },
   { href: "/clients", label: heUi.nav.clients },
   { href: "/appointments", label: heUi.nav.lessons },
+  { href: "/payments", label: heUi.nav.payments },
   { href: "/booking", label: heUi.nav.booking },
   { href: "/blocked-dates", label: "חופשות" },
   { href: "/teachers", label: heUi.nav.teachers },

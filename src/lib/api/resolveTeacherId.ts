@@ -53,15 +53,16 @@ export function resolveTeacherIdFromRequest(req: Request, body?: unknown): strin
 }
 
 /**
- * Tenant scope for dashboard APIs: admins may use `x-teacher-id` / query; others use the logged-in teacher.
+ * Tenant scope for dashboard APIs: admins may use `x-teacher-id` / query / body; others use the logged-in teacher.
  */
 export function resolveTeacherScopeFromSession(
   req: Request,
   sessionTeacherId: string,
   role: string | undefined,
+  body?: unknown,
 ): string {
   if (role === "admin") {
-    return resolveTeacherIdFromRequest(req);
+    return resolveTeacherIdFromRequest(req, body);
   }
   return sessionTeacherId;
 }

@@ -19,6 +19,8 @@ export const DEMO_SETTINGS: AppSettings = {
   defaultLessonDurationMinutes: 45,
   reminderTemplate:
     "היי {{name}}, כאן {{business}}. תזכורת לשיעור נהיגה מחר ב-{{time}}. אם צריך לשנות שעה, אפשר לעדכן אותי ב-{{businessPhone}}.",
+  paymentReminderTemplate:
+    "היי {{name}}, תזכורת ידידותית מ-{{businessName}}: יתרה של {{amountDue}}. אפשר להשלים בוואטסאפ 🙏",
 };
 
 function id(): string {

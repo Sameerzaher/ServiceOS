@@ -58,10 +58,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await res.json();
+    const data = (await res.json()) as {
+      ok?: boolean;
+      error?: string;
+      _debug?: string;
+      data?: AuthTeacher;
+    };
 
     if (!res.ok || !data.ok) {
-      console.error("[AuthContext] Login failed:", data.error);
+      console.error("[AuthContext] Login failed:", {
+        httpStatus: res.status,
+        message: data.error,
+        _debug: data._debug ?? "(not set — use npm run dev, or set AUTH_LOGIN_DEBUG=1 on the server)",
+        raw: data,
+      });
       throw new Error(data.error || "Login failed");
     }
 

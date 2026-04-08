@@ -242,33 +242,39 @@ export default function TeachersManagementPage() {
   };
 
   return (
-    <main className={ui.pageMain}>
-      <header className={ui.header}>
-        <div className="flex items-center gap-3">
-          <span className="text-4xl">👥</span>
-          <div>
-            <h1 className={ui.pageTitle}>ניהול מורים ועסקים</h1>
-            <p className={ui.pageSubtitle}>הוסף, ערוך או מחק מורים ועסקים</p>
+    <main className="mx-auto min-h-dvh w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10 sm:pb-10">
+      <header className={cn(ui.header, "border-neutral-200/80 dark:border-neutral-700/80")}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 text-3xl shadow-sm dark:from-emerald-900/40 dark:to-teal-900/30"
+              aria-hidden
+            >
+              👥
+            </span>
+            <div>
+              <h1 className={ui.pageTitle}>ניהול מורים ועסקים</h1>
+              <p className={ui.pageSubtitle}>
+                הוסף, ערוך או מחק מורים ועסקים
+              </p>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className={ui.pageStack}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-emerald-100 px-3 py-1.5">
-              <span className="text-sm font-bold text-emerald-700">
-                {teachers.length} {teachers.length === 1 ? "מורה" : "מורים"}
-              </span>
-            </div>
+      <div className={cn(ui.pageStack, "gap-8 sm:gap-10")}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="inline-flex w-fit items-center rounded-full border border-emerald-200/80 bg-emerald-50/90 px-4 py-2 text-sm font-bold text-emerald-800 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-200">
+            {teachers.length}{" "}
+            {teachers.length === 1 ? "מורה" : "מורים"}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button
               type="button"
               variant="secondary"
               onClick={handleRepairLegacyData}
               disabled={isRepairing}
-              className="px-4 py-2 text-sm"
+              className="min-h-12 w-full justify-center px-4 py-2.5 text-sm sm:w-auto"
             >
               {isRepairing ? "⏳ מתקן…" : "🩹 תיקון נתונים ישנים"}
             </Button>
@@ -276,51 +282,66 @@ export default function TeachersManagementPage() {
               type="button"
               variant="primary"
               onClick={openCreateForm}
-              className="px-6 py-3 font-bold shadow-lg"
+              className="min-h-12 w-full justify-center px-6 py-3 font-bold shadow-md shadow-emerald-900/10 sm:w-auto"
             >
               ✨ הוסף מורה/עסק חדש
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {teachers.map((teacher) => (
             <div
               key={teacher.id}
               className={cn(
                 ui.card,
-                "group relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl",
-                teacher.id === ctx?.teacherId && "ring-2 ring-emerald-500",
+                "group relative overflow-hidden rounded-2xl border-neutral-200/90 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:border-neutral-700/90",
+                teacher.id === ctx?.teacherId &&
+                  "ring-2 ring-emerald-500/80 ring-offset-2 ring-offset-white dark:ring-offset-neutral-900",
               )}
             >
-              <div className="flex items-start gap-4 p-5">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 text-3xl shadow-md">
+              {teacher.id === ctx?.teacherId && (
+                <div className="absolute end-3 top-3 z-10 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-md">
+                  ✨ פעיל
+                </div>
+              )}
+              <div className="flex items-start gap-4 p-5 pt-6 sm:p-6">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-100 text-3xl shadow-inner dark:from-emerald-950/50 dark:to-teal-950/40">
                   {getTeacherIcon(teacher.businessType)}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-lg font-bold text-neutral-900">
-                    {teacher.businessName}
-                  </h3>
-                  <p className="truncate text-sm font-medium text-neutral-600">
-                    {teacher.fullName}
-                  </p>
-                  <div className="mt-2 flex items-center gap-1.5 rounded-md bg-neutral-100 px-2 py-1 text-xs font-mono text-neutral-700" dir="ltr">
-                    <span className="text-[10px]">🔗</span>
-                    <span>/book/{teacher.slug}</span>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div>
+                    <h3 className="text-lg font-bold leading-snug text-neutral-900 dark:text-neutral-50">
+                      {teacher.businessName}
+                    </h3>
+                    <p className="mt-0.5 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                      {teacher.fullName}
+                    </p>
                   </div>
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                    {teacher.businessType === 'driving_instructor' 
-                      ? 'מורה נהיגה' 
-                      : 'מרפאה קוסמטית'}
+                  <div
+                    className="rounded-xl border border-neutral-200/80 bg-neutral-50/80 px-3 py-2 dark:border-neutral-600/60 dark:bg-neutral-800/50"
+                    dir="ltr"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                      קישור הזמנה
+                    </p>
+                    <p className="mt-0.5 break-all font-mono text-[11px] leading-relaxed text-neutral-800 dark:text-neutral-200 sm:text-xs">
+                      /book/{teacher.slug}
+                    </p>
                   </div>
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
+                    {teacher.businessType === "driving_instructor"
+                      ? "מורה נהיגה"
+                      : "מרפאה קוסמטית"}
+                  </span>
                 </div>
               </div>
-              
-              <div className="flex gap-2 border-t border-neutral-100 bg-neutral-50/50 p-3">
+
+              <div className="flex gap-2 border-t border-neutral-200/80 bg-neutral-50/70 p-3 dark:border-neutral-700/80 dark:bg-neutral-900/40">
                 <Button
                   type="button"
                   variant="secondary"
-                  className="flex-1 text-sm font-semibold"
+                  className="min-h-12 flex-1 text-sm font-semibold"
                   onClick={() => openEditForm(teacher.id)}
                 >
                   ✏️ ערוך
@@ -328,19 +349,13 @@ export default function TeachersManagementPage() {
                 <Button
                   type="button"
                   variant="danger"
-                  className="flex-1 text-sm font-semibold"
+                  className="min-h-12 flex-1 text-sm font-semibold"
                   onClick={() => handleDelete(teacher.id)}
                   disabled={isDeleting === teacher.id || teachers.length === 1}
                 >
                   {isDeleting === teacher.id ? "⏳ מוחק..." : "🗑️ מחק"}
                 </Button>
               </div>
-              
-              {teacher.id === ctx?.teacherId && (
-                <div className="absolute left-0 top-0 rounded-br-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
-                  ✨ פעיל
-                </div>
-              )}
             </div>
           ))}
         </div>

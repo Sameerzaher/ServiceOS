@@ -17,7 +17,11 @@ type Notification = {
   createdAt: string;
 };
 
-export function NotificationBell() {
+export function NotificationBell({
+  triggerClassName,
+}: {
+  triggerClassName?: string;
+} = {}) {
   const router = useRouter();
   const teacherId = useDashboardTeacherId();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -150,21 +154,22 @@ export function NotificationBell() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center justify-center">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "relative inline-flex items-center justify-center rounded-lg p-2 transition-colors",
+          "relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-base transition-colors",
           unreadCount > 0
             ? "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
             : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800",
+          triggerClassName,
         )}
         title={unreadCount > 0 ? `${unreadCount} הודעות חדשות` : "הודעות"}
       >
-        <span className="text-xl">🔔</span>
+        <span className="text-lg leading-none">🔔</span>
         {unreadCount > 0 && (
-          <span className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white ring-2 ring-white dark:ring-neutral-900">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
